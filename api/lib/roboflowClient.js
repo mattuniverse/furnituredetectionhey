@@ -42,7 +42,14 @@ export async function runFurnitureDetectionWorkflow({
   const workspace = process.env.ROBOFLOW_WORKSPACE_NAME || 'tinnns-workspace';
   const workflowId =
     process.env.ROBOFLOW_WORKFLOW_ID || 'furniture-vfurniture-q5tkw-hv0i3-1-yolo11n-t1-logic';
-  const endpoint = `${apiUrl}/${workspace}/workflows/${workflowId}`;
+ const endpoint =
+  `${apiUrl}/${workspace}/workflows/chat?workflowUrl=${encodeURIComponent(workflowId)}`;
+  console.log("Calling Roboflow:", endpoint);
+  return await res.json();\
+  const json = await res.json();
+console.log(JSON.stringify(json, null, 2));
+return json;
+  
 
   const body = JSON.stringify({
     api_key: apiKey,
