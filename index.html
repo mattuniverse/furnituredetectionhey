@@ -51,34 +51,33 @@
   --color-success-bg: #edf8f0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1a1410;
-    --color-bg-raised: #221c16;
-    --color-bg-sunken: #14100c;
-    --color-surface: #2a221a;
-    --color-surface-hover: #342a20;
-    --color-surface-active: #3e3428;
-    --color-border: #4a3c2e;
-    --color-border-light: #3a302a;
-    --color-border-focus: #c4a282;
-    --color-text: #f0ebe4;
-    --color-text-secondary: #c4a282;
-    --color-text-muted: #8a7a66;
-    --color-text-inverse: #1a1410;
-    --color-primary: #c4a282;
-    --color-primary-hover: #d4b896;
-    --color-primary-active: #e0c8a8;
-    --color-accent: #c4a282;
-    --color-accent-light: #3a2e22;
-    --color-danger: #e06060;
-    --color-danger-bg: #3a2020;
-    --color-danger-border: #6a3030;
-    --color-info: #6aacee;
-    --color-info-bg: #1a2a3a;
-    --color-success: #60b070;
-    --color-success-bg: #1a2a1e;
-  }
+:root[data-theme="dark"] {
+  /* Walnut & Espresso — warm furniture-inspired dark palette */
+  --color-bg: #17130f;
+  --color-bg-raised: #1f1913;
+  --color-bg-sunken: #100d0a;
+  --color-surface: #241c16;
+  --color-surface-hover: #32281f;
+  --color-surface-active: #403227;
+  --color-border: #4b3a2a;
+  --color-border-light: #3a2c1f;
+  --color-border-focus: #d2a97f;
+  --color-text: #efe6d9;
+  --color-text-secondary: #d2b79a;
+  --color-text-muted: #9b8270;
+  --color-text-inverse: #17130f;
+  --color-primary: #caa27c;
+  --color-primary-hover: #d9b590;
+  --color-primary-active: #e4c6a4;
+  --color-accent: #caa27c;
+  --color-accent-light: #3a2c1d;
+  --color-danger: #e06a6a;
+  --color-danger-bg: #3a1f1f;
+  --color-danger-border: #6b3232;
+  --color-info: #6fb2e0;
+  --color-info-bg: #1a2a38;
+  --color-success: #6fbd7d;
+  --color-success-bg: #1a2a1e;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -506,17 +505,40 @@ canvas { display: block; }
 /* Save toast */
 .save-toast { transition: opacity var(--transition-base) var(--ease-bounce), transform var(--transition-base) var(--ease-bounce); box-shadow: var(--shadow-md); }
 
+/* Theme toggle */
+.theme-toggle { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition-base) var(--ease-soft); flex-shrink: 0; }
+.theme-toggle:hover { background: var(--color-surface-hover); border-color: var(--color-text-muted); color: var(--color-text); transform: translateY(-1px); }
+.theme-toggle:active { transform: scale(.94); }
+.theme-toggle svg { width: 16px; height: 16px; }
+.theme-toggle .icon-moon { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
+#screen-login .theme-toggle { position: absolute; top: 18px; right: 18px; }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .project-card, .new-card { animation: none; }
 }
 </style>
+<script>
+(function(){
+  try{
+    var saved=localStorage.getItem('fps-theme');
+    var theme=saved||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    if(theme==='dark')document.documentElement.setAttribute('data-theme','dark');
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 
 <!-- LOGIN -->
 <div id="screen-login" class="screen active">
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+  </button>
   <div class="login-card" role="main">
     <div class="brand">FloorPlan Studio</div>
     <div class="brand-sub">Smart Room Layout Planner</div>
@@ -545,6 +567,10 @@ canvas { display: block; }
   <div class="dash-header">
     <div class="brand">FloorPlan Studio</div>
     <div class="dash-header-right">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+      </button>
       <button class="btn-outline" id="admin-link" onclick="openAdmin()" style="display:none" aria-label="Open admin panel">Admin</button>
       <div class="avatar" id="user-avatar" aria-label="User avatar">U</div>
       <button class="btn-outline" onclick="logout()" aria-label="Log out">Log out</button>
@@ -565,6 +591,10 @@ canvas { display: block; }
     <div class="brand">FloorPlan Studio</div>
     <div class="dash-header-right">
       <span class="admin-badge">Admin</span>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+      </button>
       <button class="btn-outline" onclick="goTo('dashboard');loadProjects()" aria-label="Back to dashboard">&larr; Dashboard</button>
       <div class="avatar" id="admin-avatar" aria-label="Admin avatar">A</div>
     </div>
@@ -788,6 +818,29 @@ const SUPABASE_URL = 'https://binubqetpsugdnwtarvt.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_VKcnteRRdeIKlEHTN3DdtA_0IMkXDU0';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentProjectId = null;
+
+// ══════════════════════════════════════════
+//  THEME (furniture-inspired light/dark)
+// ══════════════════════════════════════════
+function currentTheme(){return document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';}
+function applyTheme(t){
+  if(t==='dark')document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  try{localStorage.setItem('fps-theme',t);}catch(e){}
+  refreshCanvasTheme();
+}
+function toggleTheme(){applyTheme(currentTheme()==='dark'?'light':'dark');}
+function cssVar(name){return (getComputedStyle(document.documentElement).getPropertyValue(name)||'').trim();}
+function cssVarHex(name){
+  const m=cssVar(name).match(/^#?([0-9a-f]{6})$/i);
+  return m?parseInt(m[1],16):0xede8e0;
+}
+function refreshCanvasTheme(){
+  if(currentScreen==='editor'){
+    if(editorView==='2d'&&canvas2d&&canvasW){draw2d();}
+    if(editorView==='3d'&&scene){scene.background=new THREE.Color(cssVarHex('--color-bg-sunken'));scene.fog=new THREE.FogExp2(cssVarHex('--color-bg-sunken'),0.022);renderer3d&&renderer3d.render(scene,camera);}
+  }
+}
 
 // ══════════════════════════════════════════
 //  STATE
@@ -1178,7 +1231,7 @@ function setTool(t){
 }
 function draw2d(){
   ctx.clearRect(0,0,canvasW,canvasH);
-  ctx.fillStyle='#ede8e0';ctx.fillRect(0,0,canvasW,canvasH);
+  ctx.fillStyle=cssVar('--color-bg-sunken')||'#ede8e0';ctx.fillRect(0,0,canvasW,canvasH);
   drawGrid();if(walls.length>=3)drawRoomFill();drawWalls();drawFurniture();
   if(wallStart){const s=worldToScreen(wallStart.x,wallStart.y);ctx.beginPath();ctx.arc(s.x,s.y,5,0,Math.PI*2);ctx.fillStyle='#8c6040';ctx.fill();}
 }
@@ -2125,7 +2178,7 @@ function build3d(){
   c3.width=canvasW;c3.height=canvasH;
   c3.style.width=canvasW+'px';c3.style.height=canvasH+'px';
   if(!scene){
-    scene=new THREE.Scene();scene.background=new THREE.Color(0xeae4db);scene.fog=new THREE.FogExp2(0xeae4db,0.022);
+    scene=new THREE.Scene();scene.background=new THREE.Color(cssVarHex('--color-bg-sunken'));scene.fog=new THREE.FogExp2(cssVarHex('--color-bg-sunken'),0.022);
     camera=new THREE.PerspectiveCamera(48,canvasW/canvasH,0.1,200);
     renderer3d=new THREE.WebGLRenderer({canvas:c3,antialias:true});
     renderer3d.setPixelRatio(Math.min(window.devicePixelRatio,2));
