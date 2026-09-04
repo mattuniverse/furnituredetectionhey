@@ -75,20 +75,9 @@ create table if not exists public.user_profiles (
 );
 alter table public.user_profiles enable row level security;
 
--- Every user can read their own profile row; admins can read all.
-create policy "Users can view their own profile"
-  on public.user_profiles for select
-  using (auth.uid() = user_id);
-
-create policy "Admins can view all profiles"
-  on public.user_profiles for select
-  using (public.is_admin());
-
--- Stamping a profile as admin is done by the app's owner with a SQL UPDATE
--- (see below), so no public insert/update policy is granted.
-
 -- Returns true when the signed-in user has the admin role. Security definer
 -- so RLS policies (which run as the caller) can safely rely on it.
+-- NOTE: created BEFORE the policies below that reference it.
 create or replace function public.is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists(
@@ -102,6 +91,18 @@ create or replace function public.get_my_role() returns text
 language sql stable security definer set search_path = public as $$
   select coalesce((select p.role from public.user_profiles p where p.user_id = auth.uid()), 'user');
 $$;
+
+-- Every user can read their own profile row; admins can read all.
+create policy "Users can view their own profile"
+  on public.user_profiles for select
+  using (auth.uid() = user_id);
+
+create policy "Admins can view all profiles"
+  on public.user_profiles for select
+  using (public.is_admin());
+
+-- Stamping a profile as admin is done by the app's owner with a SQL UPDATE
+-- (see below), so no public insert/update policy is granted.
 
 -- Admin only: list every account (email + signup date + role).
 create or replace function public.admin_list_users()
