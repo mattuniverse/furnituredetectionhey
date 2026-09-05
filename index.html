@@ -409,18 +409,36 @@ canvas { display: block; }
 .hero-eyebrow { font-family: var(--font-display); font-size: 21px; color: var(--color-primary); margin-bottom: 14px; }
 .hero-title { font-family: var(--font-display); font-size: 40px; line-height: 1.12; color: var(--color-text); margin-bottom: 14px; letter-spacing: -.01em; }
 .hero-sub { font-size: 15px; color: var(--color-text-muted); line-height: 1.7; max-width: 390px; }
-.hero-furniture { position: relative; width: 100%; height: 255px; margin-top: 26px; }
-.flu { position: absolute; display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 14px 18px color-mix(in srgb, var(--color-primary) 26%, transparent)); line-height: 1; animation: fl-float 6s var(--ease-soft) infinite, fl-rise .7s var(--ease-soft) backwards; will-change: transform; }
-.flu-sofa { font-size: 88px; left: 2%; top: 10%; animation-duration: 7s; animation-delay: .1s; }
-.flu-bed { font-size: 76px; right: 4%; top: 2%; animation-duration: 8s; animation-delay: .6s; }
-.flu-chair { font-size: 62px; left: 14%; bottom: 2%; animation-duration: 6s; animation-delay: 1.1s; }
-.flu-bath { font-size: 70px; right: 12%; bottom: 6%; animation-duration: 7.4s; animation-delay: .35s; }
-.flu-plant { font-size: 54px; left: 0; bottom: 20%; animation-duration: 6.4s; animation-delay: .9s; }
-.flu-lamp { font-size: 58px; right: 0; top: 24%; animation-duration: 5.8s; animation-delay: 1.4s; }
-.flu-door { font-size: 62px; left: 38%; top: 0; animation-duration: 7.2s; animation-delay: .25s; }
-.flu-window { font-size: 56px; left: 30%; bottom: 0; animation-duration: 6.8s; animation-delay: .95s; }
+/* Cartoon living-room scene */
+.room-scene { position: relative; width: 100%; max-width: 540px; aspect-ratio: 16 / 10; margin-top: 30px; border-radius: var(--radius-lg); overflow: hidden; background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent-light) 42%, var(--color-bg)) 0%, var(--color-bg-sunken) 100%); box-shadow: var(--shadow-md); animation: fl-rise .7s var(--ease-soft) .1s backwards; }
+.room-scene .rs-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 24%; background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent-light) 55%, var(--color-bg)), color-mix(in srgb, var(--color-accent) 18%, var(--color-bg-sunken))); }
+.room-scene .rs-rug { position: absolute; bottom: 3%; left: 18%; width: 64%; height: 15%; border-radius: 50%; background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface)); border: 3px dashed color-mix(in srgb, var(--color-accent) 42%, transparent); z-index: 1; animation: fl-rise .7s var(--ease-soft) .5s backwards; }
+.room-scene .rs-window { position: absolute; top: 7%; left: 9%; width: 30%; height: 47%; z-index: 2; background: linear-gradient(180deg, color-mix(in srgb, var(--color-info) 26%, var(--color-bg)), color-mix(in srgb, var(--color-info) 50%, var(--color-bg-sunken))); border: 6px solid color-mix(in srgb, var(--color-border-light) 80%, var(--color-surface)); border-bottom: 12px solid var(--color-border-light); border-radius: 9px; box-shadow: inset 0 0 26px color-mix(in srgb, var(--color-info) 40%, transparent); }
+.room-scene .rs-window::before, .room-scene .rs-window::after { content: ''; position: absolute; background: color-mix(in srgb, var(--color-border) 55%, var(--color-surface)); z-index: 1; }
+.room-scene .rs-window::before { left: 50%; top: 0; bottom: 0; width: 5px; transform: translateX(-50%); }
+.room-scene .rs-window::after { top: 50%; left: 0; right: 0; height: 5px; }
+.room-scene .rs-sun { position: absolute; top: 12%; right: 10%; width: 14px; height: 14px; border-radius: 50%; background: var(--color-accent); box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 70%, transparent); animation: lamp-glow 4s ease-in-out infinite; }
+.room-scene .rs-pic { position: absolute; width: 13%; aspect-ratio: 3 / 4; top: 11%; background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface)); border: 5px solid color-mix(in srgb, var(--color-border-light) 70%, var(--color-surface)); border-radius: 5px; animation: fl-rise .7s var(--ease-soft) backwards; }
+.room-scene .rs-pic.p1 { left: 46%; animation-delay: .2s; }
+.room-scene .rs-pic.p2 { left: 63%; background: color-mix(in srgb, var(--color-accent) 28%, var(--color-surface)); animation-delay: .35s; }
+.room-scene .rs-tv { position: absolute; right: 7%; bottom: 26%; width: 21%; aspect-ratio: 16 / 10; background: color-mix(in srgb, var(--color-primary) 86%, #000); border: 4px solid var(--color-border-light); border-radius: 6px; z-index: 2; animation: fl-rise .7s var(--ease-soft) .4s backwards; }
+.room-scene .rs-tv::before { content: ''; position: absolute; inset: 8% 8% 8%; border-radius: 2px; background: linear-gradient(180deg, color-mix(in srgb, var(--color-info) 40%, #30303a), color-mix(in srgb, var(--color-info-bg) 30%, #101014)); animation: tv-flicker 7s ease-in-out infinite; }
+.room-scene .rs-tv::after { content: ''; position: absolute; left: 26%; bottom: -16%; width: 48%; height: 14%; background: var(--color-border-light); border-radius: 3px; }
+.room-scene .rs-sofa { position: absolute; left: 3%; bottom: 20%; font-size: 94px; line-height: 1; z-index: 3; filter: drop-shadow(0 16px 14px color-mix(in srgb, var(--color-primary) 28%, transparent)); animation: fl-float 7s var(--ease-soft) infinite, fl-rise .7s var(--ease-soft) .15s backwards; will-change: transform; }
+.room-scene .rs-table { position: absolute; left: 35%; bottom: 9%; width: 27%; height: 15%; z-index: 3; background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 68%, #000), color-mix(in srgb, var(--color-primary) 42%, #000)); border-radius: 10px; box-shadow: 0 12px 16px color-mix(in srgb, var(--color-primary) 30%, transparent); animation: fl-rise .7s var(--ease-soft) .3s backwards; }
+.room-scene .rs-table::before, .room-scene .rs-table::after { content: ''; position: absolute; top: 100%; width: 9%; height: 55%; background: color-mix(in srgb, var(--color-primary) 60%, #000); border-radius: 0 0 4px 4px; }
+.room-scene .rs-table::before { left: 10%; }
+.room-scene .rs-table::after { right: 10%; }
+.room-scene .rs-lamp { position: absolute; right: 33%; bottom: 24%; width: 20px; height: 44%; z-index: 3; animation: fl-float 8s var(--ease-soft) infinite, fl-rise .7s var(--ease-soft) .45s backwards; will-change: transform; }
+.room-scene .rs-lamp-pole { position: absolute; left: 50%; top: 16%; bottom: 0; width: 4px; transform: translateX(-50%); background: var(--color-border-focus); border-radius: 2px; }
+.room-scene .rs-lamp-shade { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 40px; height: 26px; background: linear-gradient(180deg, var(--color-accent), var(--color-primary)); clip-path: polygon(12% 0, 88% 0, 68% 100%, 32% 100%); border-radius: 3px 3px 8px 8px; }
+.room-scene .rs-lamp-glow { position: absolute; left: 50%; top: 10%; transform: translateX(-50%); width: 36px; height: 60px; background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--color-accent) 58%, transparent), transparent 72%); animation: lamp-glow 3s ease-in-out infinite; }
+.room-scene .rs-plant { position: absolute; right: 23%; bottom: 17%; font-size: 54px; line-height: 1; z-index: 3; transform-origin: 50% 100%; animation: plant-sway 5s ease-in-out infinite, fl-rise .7s var(--ease-soft) .55s backwards; will-change: transform; }
 @keyframes fl-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-13px) rotate(2.5deg); } }
 @keyframes fl-rise { from { opacity: 0; transform: translateY(26px) scale(.88); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes lamp-glow { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes plant-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes tv-flicker { 0%, 88%, 100% { opacity: .9; } 90% { opacity: .45; } 93% { opacity: .85; } }
 .login-panel { flex: 0 0 45%; min-width: 420px; display: flex; align-items: center; justify-content: center; position: relative; background: var(--color-bg); padding: 48px 24px; }
 #screen-login .theme-toggle { position: absolute; top: 18px; right: 18px; z-index: 10; }
 @media (max-width: 900px) {
@@ -572,15 +590,17 @@ canvas { display: block; }
       <div class="hero-eyebrow">FloorPlan Studio</div>
       <div class="hero-title">Design a room you'll love</div>
       <div class="hero-sub">Snap a photo of your space — AI spots the furniture, drops it onto your floor plan, and brings it to life in 3D.</div>
-      <div class="hero-furniture">
-        <span class="flu flu-sofa">&#x1F6CB;</span>
-        <span class="flu flu-bed">&#x1F6CF;</span>
-        <span class="flu flu-chair">&#x1FA91;</span>
-        <span class="flu flu-bath">&#x1F6C1;</span>
-        <span class="flu flu-plant">&#x1FAB4;</span>
-        <span class="flu flu-lamp">&#x1F4A1;</span>
-        <span class="flu flu-door">&#x1F6AA;</span>
-        <span class="flu flu-window">&#x1FA9F;</span>
+      <div class="room-scene">
+        <div class="rs-floor"></div>
+        <div class="rs-rug"></div>
+        <div class="rs-window"><span class="rs-sun"></span></div>
+        <div class="rs-pic p1"></div>
+        <div class="rs-pic p2"></div>
+        <div class="rs-tv"></div>
+        <span class="rs-sofa">&#x1F6CB;</span>
+        <div class="rs-table"></div>
+        <div class="rs-lamp"><span class="rs-lamp-glow"></span><span class="rs-lamp-shade"></span><span class="rs-lamp-pole"></span></div>
+        <span class="rs-plant">&#x1FAB4;</span>
       </div>
     </div>
   </div>
