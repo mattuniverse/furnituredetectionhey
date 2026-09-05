@@ -879,10 +879,20 @@ canvas { display: block; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // ══════════════════════════════════════════
-//  SUPABASE
+//  SUPABASE + DETECTION API
+//  Values marked __NAME__ are injected at build time from Vercel
+//  environment variables (see build.js). When not provided, the
+//  defaults below are used — so the file also works when opened
+//  directly.
 // ══════════════════════════════════════════
-const SUPABASE_URL = 'https://binubqetpsugdnwtarvt.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_VKcnteRRdeIKlEHTN3DdtA_0IMkXDU0';
+const FLOORPLAN_ENV = {
+  SUPABASE_URL: '__SUPABASE_URL__',
+  SUPABASE_ANON_KEY: '__SUPABASE_ANON_KEY__',
+  DETECT_API_BASE: '__DETECT_API_BASE__'
+};
+const envTok=(v,def)=>(v&&typeof v==='string'&&v.indexOf('__')!==0)?v:def;
+const SUPABASE_URL = envTok(FLOORPLAN_ENV.SUPABASE_URL,'https://binubqetpsugdnwtarvt.supabase.co');
+const SUPABASE_ANON_KEY = envTok(FLOORPLAN_ENV.SUPABASE_ANON_KEY,'sb_publishable_VKcnteRRdeIKlEHTN3DdtA_0IMkXDU0');
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentProjectId = null;
 
@@ -1466,7 +1476,7 @@ function setStatus(msg){document.getElementById('statusbar-text').textContent=ms
 // ══════════════════════════════════════════
 //  FURNITURE DETECTION (Render ONNX backend)
 // ══════════════════════════════════════════
-const DETECT_API_BASE = window.FLOORPLAN_API_BASE || 'https://rendereed-floorplan.onrender.com';
+const DETECT_API_BASE = window.FLOORPLAN_API_BASE || envTok(FLOORPLAN_ENV.DETECT_API_BASE,'https://rendereed-floorplan.onrender.com');
 const uploadedPhotos={};
 let activePhotoSlot=null;
 

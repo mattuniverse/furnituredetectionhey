@@ -108,11 +108,25 @@ frontend deploy.
 
 1. Go to [vercel.com](https://vercel.com) → **Add New → Project** → import the GitHub repo
    you just pushed.
-2. Framework preset: choose **Other** (no build step — it's a static site).
-3. No environment variables are required — the Supabase keys are in `index.html` and the
-   detection URL is the Render default above.
-4. Deploy. Vercel gives you a `*.vercel.app` URL.
-5. Every future `git push` to `main` auto-redeploys.
+2. Framework preset: **Other**.
+3. **Build settings** (Project → Settings → General):
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Root Directory: `.` (default)
+4. **Environment variables** (Project → Settings → Environment Variables) — optional, but
+   recommended so you can switch projects without touching code. Any that are unset fall back
+   to the defaults baked into `index.html`:
+
+   | Name              | Example                                          |
+   | ----------------- | ------------------------------------------------ |
+   | `SUPABASE_URL`    | `https://binubqetpsugdnwtarvt.supabase.co`        |
+   | `SUPABASE_ANON_KEY` | `sb_publishable_...`                            |
+   | `DETECT_API_BASE` | `https://rendereed-floorplan.onrender.com`        |
+
+   `build.js` replaces the `__NAME__` placeholders in `index.html` with these values at build
+   time; with none set, the built site still works using the hardcoded defaults.
+5. Deploy. Vercel gives you a `*.vercel.app` URL.
+6. Every future `git push` to `main` auto-redeploys (rebuild + redeploy).
 
 ## 5. Test end-to-end
 
