@@ -262,6 +262,8 @@ canvas { display: block; }
 .hint3d { display: none; position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(26,20,16,.75); color: #f0ebe4; padding: 8px 20px; border-radius: 24px; font-size: 12px; pointer-events: none; white-space: nowrap; backdrop-filter: blur(8px); font-weight: 500; }
 .canvas-overlay { position: absolute; top: 14px; left: 14px; display: flex; gap: 8px; pointer-events: none; }
 .overlay-badge { background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 11px; color: var(--color-text-secondary); box-shadow: var(--shadow-sm); font-weight: 500; backdrop-filter: blur(8px); }
+.vio-tip { position: absolute; z-index: 40; max-width: 260px; background: color-mix(in srgb, var(--color-surface) 94%, transparent); border: 1px solid var(--color-danger-border); color: var(--color-danger); font-size: 11px; line-height: 1.5; padding: 8px 11px; border-radius: 10px; box-shadow: var(--shadow-md); pointer-events: none; backdrop-filter: blur(8px); font-weight: 500; }
+.vio-tip div { margin: 0 0 3px; }
 
 .right-panel { width: 192px; flex-shrink: 0; background: var(--color-surface); border-left: 1px solid var(--color-border-light); overflow-y: auto; padding: 14px; }
 .panel-title { font-size: 10px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
@@ -857,6 +859,7 @@ canvas { display: block; }
         <canvas id="canvas2d" aria-label="2D floor plan canvas"></canvas>
         <canvas id="canvas3d" aria-label="3D room view canvas"></canvas>
         <div class="hint3d" id="hint3d">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</div>
+        <div class="vio-tip" id="vio-tip" hidden aria-live="polite"></div>
         <div class="canvas-overlay">
           <div class="overlay-badge" id="badge-room"></div>
           <div class="overlay-badge" id="badge-tool">Tool: Select</div>
@@ -1275,9 +1278,10 @@ function buildFurnList(){
 }
 function placeFurnAtCenter(defId){
   const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;
-  const wx=snapG(screenToWorld(canvasW/2,canvasH/2).x-def.w/2);
-  const wy=snapG(screenToWorld(canvasW/2,canvasH/2).y-def.h/2);
-  const item={id:uid(),defId,x:wx,y:wy,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
+  const seed={x:snapG(screenToWorld(canvasW/2,canvasH/2).x-def.w/2),y:snapG(screenToWorld(canvasW/2,canvasH/2).y-def.h/2)};
+  const cand=bestNudge(def,furniture,walls,seed);
+  if(cand.score>=100){setStatus(`No clear spot for ${def.label} — try clearing space nearby.`);return;}
+  const item={id:uid(),defId,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
   furniture.push(item);selectItem(item);draw2d();
   setStatus(`${def.label} added`);
 }
@@ -1298,6 +1302,195 @@ function resizeCanvas(){
 const worldToScreen=(wx,wy)=>({x:wx*SCALE+panOffset.x,y:wy*SCALE+panOffset.y});
 const screenToWorld=(sx,sy)=>({x:(sx-panOffset.x)/SCALE,y:(sy-panOffset.y)/SCALE});
 const snapG=v=>Math.round(v/GRID)*GRID;
+
+// ═══════════ LAYOUT ENGINE (collision · clearance · anchors) ═══════════
+const PASSIVE_IDS=['rug','tv','window','curtain','curtain_s','wall_cab','shelf','plant'];
+const CLEARANCE_RULES={
+  pairs:[
+    {from:['sofa_2','sofa_3','armchair'],to:['coffee'],min:0.35,ideal:0.45,label:'Seating to coffee table'},
+    {from:['sofa_2','sofa_3','armchair'],to:['table_rect','table_round'],min:0.4,ideal:0.6,label:'Seating to table'},
+    {from:['chair'],to:['table_rect','table_round','desk'],min:0.45,ideal:0.6,label:'Chair to table'}
+  ],
+  walkway:{min:0.75,ideal:0.9,label:'Walkway between furniture'},
+  bedSide:{min:0.75,label:'Bed accessible side'},
+  chairPull:{min:0.9,ideal:1.05,label:'Chair pulled-out space'},
+  doorSwing:{margin:0.3,label:'Door swing arc'},
+  windowFace:{margin:0.3,label:'Window front'}
+};
+const ANCHOR_ORDER={
+  'Living Room':['sofa_3','sofa_2','armchair','coffee','tv','chair'],
+  'Bedroom':['bed_k','bed_d','bed_s','wardrobe','cabinet'],
+  'Dining Room':['table_rect','table_round','chair','shelf'],
+  'Kitchen':['table_rect','table_round','cabinet','sink'],
+  'Bathroom':['bathtub','toilet','sink','cabinet'],
+  'Office':['desk','chair','shelf','cabinet']
+};
+let dragFrom=null,lastViolations=[];
+function isPassive(f){return PASSIVE_IDS.indexOf(f.defId)!==-1;}
+function isDoorOrWindow(f){return f.defId==='door'||f.defId==='window';}
+function isBed(f){return f.defId==='bed_k'||f.defId==='bed_d'||f.defId==='bed_s';}
+function isChair(f){return f.defId==='chair'||f.defId==='armchair';}
+function anchorRank(defId){
+  const list=ANCHOR_ORDER[roomConfig.type]||[];
+  const i=list.indexOf(defId);
+  return i===-1?1000:i;
+}
+function boxesOverlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function boxGap(a,b){
+  const gx=Math.max(a.x-(b.x+b.w),b.x-(a.x+a.w),0);
+  const gy=Math.max(a.y-(b.y+b.h),b.y-(a.y+a.h),0);
+  return Math.hypot(gx,gy);
+}
+function overlapDepth(a,b){
+  const ow=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x);
+  const oh=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
+  return ow>0&&oh>0?Math.min(ow,oh):0;
+}
+function rotatedAABB(f){
+  const c=Math.abs(Math.cos(f.rot||0)),s=Math.abs(Math.sin(f.rot||0));
+  const w=f.w*c+f.h*s,h=f.w*s+f.h*c;
+  const cx=f.x+f.w/2,cy=f.y+f.h/2;
+  return{x:cx-w/2,y:cy-h/2,w,h};
+}
+function rotVec(x,y,cos,sin){return{x:x*cos-y*sin,y:x*sin+y*cos};}
+function doorSwingZone(d,margin){
+  const cos=Math.cos(d.rot||0),sin=Math.sin(d.rot||0);
+  const hx=d.x+d.w/2-d.w/2*cos,hy=d.y+d.h/2-d.w/2*sin;
+  const r=(d.w||0.9)+(margin||0);
+  const pa=rotVec(0,-1,cos,sin),pb=rotVec(1,0,cos,sin);
+  const xs=[hx,hx+pa.x*r,hx+pb.x*r],ys=[hy,hy+pa.y*r,hy+pb.y*r];
+  return{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};
+}
+function windowZone(d,margin){
+  const m=margin||0;return{x:d.x-m,y:d.y-m,w:d.w+2*m,h:d.h+2*m};
+}
+function wallBoxes(walls){
+  return walls.map(w=>{
+    const t=w.t||0.15;
+    return{x:Math.min(w.x1,w.x2)-t/2,y:Math.min(w.y1,w.y2)-t/2,w:Math.abs(w.x2-w.x1)+t,h:Math.abs(w.y2-w.y1)+t};
+  });
+}
+function boundaryObstacles(){
+  const W=roomConfig.w,H=roomConfig.h,t=0.01;
+  return[
+    {x:-t,y:-t,w:W+2*t,h:t},
+    {x:-t,y:H,w:W+2*t,h:t},
+    {x:-t,y:-t,w:t,h:H+2*t},
+    {x:W,y:-t,w:t,h:H+2*t}
+  ];
+}
+function allObstacles(walls){return wallBoxes(walls).concat(boundaryObstacles());}
+function sideClear(b,dir,obstacles){
+  let min=Infinity;
+  const bx=b.x,by=b.y,bw=b.w,bh=b.h,e=1e-9;
+  obstacles.forEach(o=>{
+    let g;
+    if(dir==='left'&&o.x+o.w<=bx+e){const ys=Math.max(0,Math.min(by+bh,o.y+o.h)-Math.max(by,o.y));if(ys>0)g=bx-(o.x+o.w);}
+    else if(dir==='right'&&o.x>=bx+bw-e){const ys=Math.max(0,Math.min(by+bh,o.y+o.h)-Math.max(by,o.y));if(ys>0)g=o.x-(bx+bw);}
+    else if(dir==='top'&&o.y+o.h<=by+e){const xs=Math.max(0,Math.min(bx+bw,o.x+o.w)-Math.max(bx,o.x));if(xs>0)g=by-(o.y+o.h);}
+    else if(dir==='bottom'&&o.y>=by+bh-e){const xs=Math.max(0,Math.min(bx+bw,o.x+o.w)-Math.max(bx,o.x));if(xs>0)g=o.y-(by+bh);}
+    if(typeof g==='number'){g=Math.max(0,Math.round(g*1e9)/1e9);if(g<min)min=g;}
+  });
+  return min===Infinity?1e6:min;
+}
+function computeViolations(arr,walls){
+  const viol=[];
+  const obstacles=allObstacles(walls);
+  const actives=arr.filter(f=>!isPassive(f));
+  for(let i=0;i<actives.length;i++)for(let j=i+1;j<actives.length;j++){
+    const a=actives[i],b=actives[j];
+    if(boxesOverlap(a,b)){
+      const z=overlapDepth(a,b);
+      viol.push({item:a,with:b.defId,rule:'overlap',label:'Overlaps another item',required:0,actual:-z,hard:true});
+      viol.push({item:b,with:a.defId,rule:'overlap',label:'Overlaps another item',required:0,actual:-z,hard:true});
+    }
+  }
+  CLEARANCE_RULES.pairs.forEach(pr=>{
+    for(let i=0;i<actives.length;i++)for(let j=i+1;j<actives.length;j++){
+      const a=actives[i],b=actives[j];
+      const hit=(pr.from.indexOf(a.defId)!==-1&&pr.to.indexOf(b.defId)!==-1)||(pr.from.indexOf(b.defId)!==-1&&pr.to.indexOf(a.defId)!==-1);
+      if(!hit)continue;
+      const g=boxGap(a,b);
+      if(g<pr.min){
+        viol.push({item:a,with:b.defId,rule:pr.label,label:`${pr.label} (${pr.min.toFixed(2)}m)`,required:pr.min,actual:g,hard:false});
+        viol.push({item:b,with:a.defId,rule:pr.label,label:`${pr.label} (${pr.min.toFixed(2)}m)`,required:pr.min,actual:g,hard:false});
+      }
+    }
+  });
+  arr.filter(isDoorOrWindow).forEach(d=>{
+    const zone=d.defId==='door'?doorSwingZone(d,CLEARANCE_RULES.doorSwing.margin):windowZone(d,CLEARANCE_RULES.windowFace.margin);
+    const dr=d.defId==='door'?CLEARANCE_RULES.doorSwing.label:CLEARANCE_RULES.windowFace.label;
+    const mr=d.defId==='door'?CLEARANCE_RULES.doorSwing.margin:CLEARANCE_RULES.windowFace.margin;
+    arr.forEach(f=>{
+      if(f===d)return;
+      if(boxesOverlap(zone,f)){
+        viol.push({item:f,with:d.defId,rule:dr,label:`${dr} (hard)`,required:mr,actual:-overlapDepth(zone,f),hard:true});
+      }
+    });
+  });
+  for(let i=0;i<actives.length;i++)for(let j=i+1;j<actives.length;j++){
+    const a=actives[i],b=actives[j];
+    const covered=CLEARANCE_RULES.pairs.some(pr=>(pr.from.indexOf(a.defId)!==-1&&pr.to.indexOf(b.defId)!==-1)||(pr.from.indexOf(b.defId)!==-1&&pr.to.indexOf(a.defId)!==-1));
+    if(covered)continue;
+    if(a.w*a.h<0.9||b.w*b.h<0.9)continue;
+    const g=boxGap(a,b);
+    if(!boxesOverlap(a,b)&&g<CLEARANCE_RULES.walkway.min){
+      viol.push({item:a,with:b.defId,rule:CLEARANCE_RULES.walkway.label,label:`${CLEARANCE_RULES.walkway.label} (${CLEARANCE_RULES.walkway.min.toFixed(2)}m)`,required:CLEARANCE_RULES.walkway.min,actual:g,hard:false});
+      viol.push({item:b,with:a.defId,rule:CLEARANCE_RULES.walkway.label,label:`${CLEARANCE_RULES.walkway.label} (${CLEARANCE_RULES.walkway.min.toFixed(2)}m)`,required:CLEARANCE_RULES.walkway.min,actual:g,hard:false});
+    }
+  }
+  arr.filter(isBed).forEach(bd=>{
+    const b=rotatedAABB(bd);
+    const others=arr.filter(f=>f!==bd).map(rotatedAABB).concat(obstacles);
+    const sides=b.w>=b.h?['left','right']:['top','bottom'];
+    const best=Math.max(...sides.map(s=>sideClear(b,s,others)));
+    if(best<CLEARANCE_RULES.bedSide.min){
+      viol.push({item:bd,with:'surroundings',rule:CLEARANCE_RULES.bedSide.label,label:`${CLEARANCE_RULES.bedSide.label} (${CLEARANCE_RULES.bedSide.min.toFixed(2)}m)`,required:CLEARANCE_RULES.bedSide.min,actual:best,hard:false});
+    }
+  });
+  arr.filter(isChair).forEach(ch=>{
+    const b=rotatedAABB(ch);
+    const tables=arr.filter(f=>f!==ch&&['table_rect','table_round','desk','coffee'].indexOf(f.defId)!==-1).map(rotatedAABB);
+    let faced=null;
+    ['left','right','top','bottom'].forEach(s=>{if(!faced&&sideClear(b,s,tables)<=0.6)faced=s;});
+    const others=arr.filter(f=>f!==ch).map(rotatedAABB).concat(obstacles);
+    const usable=['left','right','top','bottom'].filter(s=>s!==faced);
+    const best=Math.max(...usable.map(s=>sideClear(b,s,others)));
+    if(best<CLEARANCE_RULES.chairPull.min){
+      viol.push({item:ch,with:'surroundings',rule:CLEARANCE_RULES.chairPull.label,label:`${CLEARANCE_RULES.chairPull.label} (${CLEARANCE_RULES.chairPull.min.toFixed(2)}m)`,required:CLEARANCE_RULES.chairPull.min,actual:best,hard:false});
+    }
+  });
+  return viol;
+}
+function evalPlacement(def,others,walls,cand){
+  const probe={id:def.id||0,defId:def.defId,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:def.rot||0,h3d:def.h3d||0.9};
+  const viol=computeViolations([...others,probe],walls);
+  let score=0;
+  viol.forEach(v=>{score+=(v.hard?100:1);});
+  return score;
+}
+function bestNudge(def,others,walls,seed){
+  const step=GRID,maxR=Math.max(roomConfig.w,roomConfig.h);
+  const rings=Math.ceil(maxR/step);
+  const clampX=x=>Math.min(Math.max(x,0),Math.max(roomConfig.w-def.w,0));
+  const clampY=y=>Math.min(Math.max(y,0),Math.max(roomConfig.h-def.h,0));
+  let best=null,bestScore=Infinity;
+  for(let ring=0;ring<=rings;ring++){
+    const offsets=[];
+    for(let dx=-ring;dx<=ring;dx++)for(let dy=-ring;dy<=ring;dy++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==ring)continue;
+      offsets.push([seed.x+dx*step,seed.y+dy*step]);
+    }
+    offsets.sort((p,q)=>(p[0]-seed.x)**2+(p[1]-seed.y)**2-((q[0]-seed.x)**2+(q[1]-seed.y)**2));
+    for(const[cx,cy]of offsets){
+      const x=clampX(cx),y=clampY(cy);
+      const score=evalPlacement(def,others,walls,{x,y});
+      if(score===0)return{x,y,score:0};
+      if(score<bestScore){bestScore=score;best={x,y};}
+    }
+  }
+  return{x:best.x,y:best.y,score:bestScore};
+}
 function setTool(t){
   currentTool=t;
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
@@ -1307,9 +1500,10 @@ function setTool(t){
   if(t==='select')wallStart=null;draw2d();
 }
 function draw2d(){
+  lastViolations=computeViolations(furniture,walls);
   ctx.clearRect(0,0,canvasW,canvasH);
   ctx.fillStyle=cssVar('--color-bg-sunken')||'#ede8e0';ctx.fillRect(0,0,canvasW,canvasH);
-  drawGrid();if(walls.length>=3)drawRoomFill();drawWalls();drawFurniture();
+  drawGrid();if(walls.length>=3)drawRoomFill();drawWalls();drawFurniture(lastViolations);
   if(wallStart){const s=worldToScreen(wallStart.x,wallStart.y);ctx.beginPath();ctx.arc(s.x,s.y,5,0,Math.PI*2);ctx.fillStyle='#8c6040';ctx.fill();}
 }
 function drawGrid(){
@@ -1357,7 +1551,7 @@ function drawWalls(){
     ctx.fillText(len.toFixed(1)+'m',0,-thick/2-4);ctx.restore();
   });
 }
-function drawFurniture(){
+function drawFurniture(vio){
   furniture.forEach(f=>{
     const def=FURNITURE_DEFS.find(d=>d.id===f.defId);if(!def)return;
     const s=worldToScreen(f.x,f.y);const pw=f.w*SCALE,ph=f.h*SCALE;
@@ -1374,6 +1568,17 @@ function drawFurniture(){
     ctx.fillText(def.icon,pw/2,ph/2);ctx.globalAlpha=1;
     if(pw>30){ctx.fillStyle='rgba(74,48,32,.7)';ctx.font=`${Math.max(8,Math.min(11,pw/6))}px DM Sans,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(def.label,pw/2,ph+2);}
     if(isSel){ctx.strokeStyle='#8c6040';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.strokeRect(-3,-3,pw+6,ph+6);ctx.setLineDash([]);}
+    const mine=vio?vio.filter(v=>v.item===f):[];
+    if(mine.length){
+      const hard=mine.some(v=>v.hard);
+      ctx.strokeStyle=hard?'#d63a3a':'#e8a13d';
+      ctx.lineWidth=2;ctx.setLineDash([6,4]);
+      ctx.strokeRect(-4,-4,pw+8,ph+8);ctx.setLineDash([]);
+      ctx.fillStyle=hard?'#d63a3a':'#e8a13d';
+      ctx.beginPath();ctx.arc(pw+8,0,7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(String(mine.length),pw+8,0);
+    }
     ctx.restore();
   });
 }
@@ -1398,7 +1603,7 @@ canvas2d.addEventListener('mousedown',e=>{
     else{const wlen=Math.sqrt((wx-wallStart.x)**2+(wy-wallStart.y)**2);if(wlen>0.1){const wall={id:uid(),x1:wallStart.x,y1:wallStart.y,x2:wx,y2:wy,t:roomConfig.wallT,wh:roomConfig.wallH};walls.push(wall);selectItem(wall);wallStart={x:wx,y:wy};setStatus(`Wall added (${wlen.toFixed(1)}m)`);}draw2d();}
     return;
   }
-  if(currentTool==='select'){const fi=getItemAt(wx,wy);if(fi){selectItem(fi);dragging=fi;dragOffset={x:wx-fi.x,y:wy-fi.y};return;}const wi=getWallAt(wx,wy);if(wi){selectItem(wi);dragging=wi;dragOffset={x:wx,y:wy};return;}selectItem(null);draw2d();}
+  if(currentTool==='select'){const fi=getItemAt(wx,wy);if(fi){selectItem(fi);dragging=fi;dragFrom={x:fi.x,y:fi.y};dragOffset={x:wx-fi.x,y:wy-fi.y};return;}const wi=getWallAt(wx,wy);if(wi){selectItem(wi);dragging=wi;dragOffset={x:wx,y:wy};return;}selectItem(null);draw2d();}
 });
 canvas2d.addEventListener('contextmenu',e=>e.preventDefault());
 canvas2d.addEventListener('mousemove',e=>{
@@ -1414,20 +1619,40 @@ canvas2d.addEventListener('mousemove',e=>{
   }
   if(currentTool==='wall'&&wallStart){draw2d();const a=worldToScreen(wallStart.x,wallStart.y),b=worldToScreen(wx,wy);ctx.strokeStyle='#8c6040';ctx.lineWidth=3;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);const len=Math.sqrt((wx-wallStart.x)**2+(wy-wallStart.y)**2);ctx.fillStyle='#8c6040';ctx.font='bold 11px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(len.toFixed(1)+'m',(a.x+b.x)/2,(a.y+b.y)/2-8);return;}
   const prev=hoveredItem;hoveredItem=getItemAt(wx,wy)||getWallAt(wx,wy);
+  const tip=document.getElementById('vio-tip');
+  if(tip){
+    const mine=hoveredItem&&!walls.includes(hoveredItem)?lastViolations.filter(v=>v.item===hoveredItem):[];
+    if(mine.length){
+      const c=canvas2d.getBoundingClientRect();
+      tip.innerHTML=mine.slice(0,4).map(v=>`<div>${v.label}: needs ${v.required.toFixed(2)}m, has ${Math.max(v.actual,0).toFixed(2)}m</div>`).join('');
+      tip.hidden=false;tip.style.left=(e.clientX-c.left+16)+'px';tip.style.top=(e.clientY-c.top+12)+'px';
+    }else{tip.hidden=true;}
+  }
   canvas2d.style.cursor=hoveredItem?(currentTool==='select'?'move':'crosshair'):(currentTool==='wall'?'crosshair':'default');
   if(hoveredItem!==prev)draw2d();
 });
-canvas2d.addEventListener('mouseup',()=>{dragging=null;isPanning=false;});
-canvas2d.addEventListener('mouseleave',()=>{dragging=null;isPanning=false;});
+function endDrag(){
+  if(dragging&&dragFrom&&furniture.includes(dragging)){
+    const mine=lastViolations.filter(v=>v.item===dragging);
+    if(mine.some(v=>v.hard)){
+      dragging.x=dragFrom.x;dragging.y=dragFrom.y;draw2d();updateProps();
+      setStatus('Blocked: that spot overlaps or blocks a door/window. Moved back.');
+    }
+  }
+  dragging=null;dragFrom=null;isPanning=false;
+}
+canvas2d.addEventListener('mouseup',endDrag);
+canvas2d.addEventListener('mouseleave',()=>{endDrag();const tip=document.getElementById('vio-tip');if(tip)tip.hidden=true;});
 canvas2d.addEventListener('wheel',e=>{if(editorView!=='2d')return;e.preventDefault();},{passive:false});
 canvas2d.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
 canvas2d.addEventListener('drop',e=>{
   e.preventDefault();const defId=e.dataTransfer.getData('furnId');if(!defId)return;
   const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;
   const rect=canvas2d.getBoundingClientRect();
-  const wx=snapG(screenToWorld(e.clientX-rect.left,e.clientY-rect.top).x-def.w/2);
-  const wy=snapG(screenToWorld(e.clientX-rect.left,e.clientY-rect.top).y-def.h/2);
-  const item={id:uid(),defId:def.id,x:wx,y:wy,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
+  const seed={x:snapG(screenToWorld(e.clientX-rect.left,e.clientY-rect.top).x-def.w/2),y:snapG(screenToWorld(e.clientX-rect.left,e.clientY-rect.top).y-def.h/2)};
+  const cand=bestNudge(def,furniture,walls,seed);
+  if(cand.score>=100){setStatus(`${def.label} can't be placed there — no clear spot near the cursor.`);return;}
+  const item={id:uid(),defId:def.id,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
   furniture.push(item);selectItem(item);draw2d();setStatus(`${def.label} placed`);
 });
 window.addEventListener('keydown',e=>{
@@ -1829,8 +2054,10 @@ async function detectSingleFromFile(file){
 }
 function placeSingle(defId){
   const def=FURNITURE_DEFS.find(f=>f.id===defId);if(!def)return;
-  const x=Math.max((roomConfig.w-def.w)/2,0),y=Math.max((roomConfig.h-def.h)/2,0);
-  const item={id:uid(),defId:def.id,x,y,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
+  const seed={x:Math.max((roomConfig.w-def.w)/2,0),y:Math.max((roomConfig.h-def.h)/2,0)};
+  const cand=bestNudge(def,furniture,walls,seed);
+  if(cand.score>=100){setStatus(`No clear spot for ${def.label} — try removing some furniture first.`);closeModal('modal-single-cam');stopSingleCam();return;}
+  const item={id:uid(),defId:def.id,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
   furniture.push(item);selectItem(item);draw2d();
   setStatus(`${def.label} placed \u2014 drag to position it.`);
   closeModal('modal-single-cam');
@@ -1843,26 +2070,26 @@ function placeAllDetected(){
 function placeDetectedFurniture(result){
   const{detections,imageWidth,imageHeight}=result;
   if(!detections||!detections.length||!imageWidth||!imageHeight)return 0;
+  const defs=detections.map(d=>FURNITURE_DEFS.find(f=>f.id===(d.furnitureId||d.defId))).filter(Boolean);
+  defs.sort((a,b)=>anchorRank(a.id)-anchorRank(b.id));
   let placed=0;
-  detections.forEach((d,i)=>{
-    const def=FURNITURE_DEFS.find(f=>f.id===(d.furnitureId||d.defId));
-    if(!def)return;
-    let wx,wy;
+  for(const def of defs){
+    const d=detections.find(x=>(x.furnitureId||x.defId)===def.id);
+    let seed;
     if(d.refW&&d.refW>0){
       const ppm=d.refW/imageWidth;
-      wx=snapG((d.x)*ppm-def.w/2);
-      wy=snapG((d.y)*ppm-def.h/2);
+      seed={x:snapG((d.x)*ppm-def.w/2),y:snapG((d.y)*ppm-def.h/2)};
     }else{
       const fx=Math.min(Math.max(d.x/imageWidth,0),1);
       const fy=Math.min(Math.max(d.y/imageHeight,0),1);
-      wx=snapG(fx*roomConfig.w-def.w/2);
-      wy=snapG(fy*roomConfig.h-def.h/2);
+      seed={x:snapG(fx*roomConfig.w-def.w/2),y:snapG(fy*roomConfig.h-def.h/2)};
     }
-    wx=Math.min(Math.max(wx,0),Math.max(roomConfig.w-def.w,0));
-    wy=Math.min(Math.max(wy,0),Math.max(roomConfig.h-def.h,0));
-    furniture.push({id:uid(),defId:def.id,x:wx,y:wy,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9});
-    placed++;
-  });
+    const cand=bestNudge(def,furniture,walls,seed);
+    if(cand.score>=100)continue;
+    const item={id:uid(),defId:def.id,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:def.rot||0,h3d:def.h3d||0.9};
+    furniture.push(item);placed++;
+  }
+  draw2d();
   return placed;
 }
 // ══════════════════════════════════════════
@@ -1927,7 +2154,9 @@ function exportPDF(){
 
 function showSuggestions(){
   const el=document.getElementById('prop-content');
-  el.innerHTML=`<div class="sugg-title">Layout Suggestions</div><div class="sugg-card">Place the sofa facing the main wall or TV unit for a natural focal point.</div><div class="sugg-card">Keep at least 0.9m walkway between furniture for comfortable movement.</div><div class="sugg-card">Place the bed against the wall opposite the door for the classic layout.</div><div class="sugg-card">Rugs work best when all front legs of seating rest on the rug.</div><hr class="prop-divider"><button class="prop-btn" onclick="updateProps()">&larr; Back to Properties</button>`;
+  const ww=CLEARANCE_RULES.walkway,bs=CLEARANCE_RULES.bedSide,cp=CLEARANCE_RULES.chairPull,ds=CLEARANCE_RULES.doorSwing;
+  const pairLine=CLEARANCE_RULES.pairs.slice(0,2).map(p=>`${p.min.toFixed(2)}\u2013${p.ideal.toFixed(2)}m between ${p.label}`).join(', ');
+  el.innerHTML=`<div class="sugg-title">Layout Suggestions</div><div class="sugg-card">Place the sofa facing the main wall or TV unit for a natural focal point.</div><div class="sugg-card">Keep between ${ww.min.toFixed(2)}\u2013${ww.ideal.toFixed(2)}m walkway between furniture for comfortable circulation.</div><div class="sugg-card">Ergonomic gaps: ${pairLine}.</div><div class="sugg-card">Keep at least ${cp.min.toFixed(2)}\u2013${cp.ideal.toFixed(2)}m behind chairs so they can be pulled out.</div><div class="sugg-card">Beds need a ${bs.min.toFixed(2)}m clear side; keep ${ds.margin.toFixed(2)}m clear of every door swing and window.</div><hr class="prop-divider"><button class="prop-btn" onclick="updateProps()">&larr; Back to Properties</button>`;
 }
 
 // ══════════════════════════════════════════
