@@ -237,6 +237,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .btn-icon:hover { background: var(--color-surface-hover); border-color: var(--color-border); color: var(--color-text); }
 .btn-icon:active { transform: scale(.92); }
 .btn-icon.danger:hover { background: var(--color-danger-bg); border-color: var(--color-danger-border); color: var(--color-danger); }
+.btn-icon.active { background: var(--color-accent-light); border-color: var(--color-accent); color: var(--color-accent); }
 .btn-icon.saving .btn-icon-spinner { display: block; position: absolute; inset: 0; margin: auto; }
 .btn-icon-spinner { display: none; width: 14px; height: 14px; border: 2px solid var(--color-border); border-top-color: var(--color-accent); border-radius: 50%; animation: spin .6s linear infinite; }
 .save-toast { position: absolute; top: 46px; right: 16px; background: var(--color-success-bg); border: 1px solid var(--color-success); color: var(--color-success); padding: 8px 14px; border-radius: var(--radius-md); font-size: 12px; font-weight: 500; z-index: 60; opacity: 0; transform: translateY(-4px); transition: all var(--transition-base); pointer-events: none; }
@@ -833,6 +834,7 @@ canvas { display: block; }
       <button class="tab-btn" id="btn-3d" onclick="switchEditorView('3d')" aria-pressed="false">3D View</button>
       <div class="topbar-right" style="position:relative">
         <button class="btn-icon" title="Photograph furniture to add" onclick="openSingleCam()" aria-label="Photograph a piece of furniture to add">&#x1F4F7;</button>
+        <button class="btn-icon" id="btn-snap" title="Snap to grid (or hold Shift while dragging)" onclick="toggleGridSnap()" aria-label="Toggle snap to grid" aria-pressed="false">&#x29C9;</button>
         <button class="btn-icon" title="Upload photos" onclick="openModal('modal-photos')" aria-label="Upload room photos">&#x1F4F8;</button>
         <button class="btn-icon" title="Layout suggestions" onclick="showSuggestions()" aria-label="Layout suggestions">&#x1F4A1;</button>
         <button class="btn-icon" title="Export" onclick="toggleExportMenu()" aria-label="Export options" aria-haspopup="true">&#x2B73;</button>
@@ -934,6 +936,9 @@ let currentTool='select';
 let walls=[],furniture=[],selectedItem=null;
 let dragging=null,dragOffset={x:0,y:0};
 let wallStart=null,hoveredItem=null;
+let gridSnap=false,keys={shift:false};
+window.addEventListener('keydown',e=>{keys.shift=e.shiftKey;});
+window.addEventListener('keyup',e=>{keys.shift=e.shiftKey;});
 let panOffset={x:80,y:80};
 let canvasW=0,canvasH=0;
 let editorView='2d';
@@ -1278,7 +1283,7 @@ function buildFurnList(){
 }
 function placeFurnAtCenter(defId){
   const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;
-  const seed={x:snapG(screenToWorld(canvasW/2,canvasH/2).x-def.w/2),y:snapG(screenToWorld(canvasW/2,canvasH/2).y-def.h/2)};
+  const seed={x:Math.max((roomConfig.w-def.w)/2,0),y:Math.max((roomConfig.h-def.h)/2,0)};
   const cand=bestNudge(def,furniture,walls,seed);
   if(cand.score>=100){setStatus(`No clear spot for ${def.label} — try clearing space nearby.`);return;}
   const item={id:uid(),defId,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
@@ -1302,6 +1307,13 @@ function resizeCanvas(){
 const worldToScreen=(wx,wy)=>({x:wx*SCALE+panOffset.x,y:wy*SCALE+panOffset.y});
 const screenToWorld=(sx,sy)=>({x:(sx-panOffset.x)/SCALE,y:(sy-panOffset.y)/SCALE});
 const snapG=v=>Math.round(v/GRID)*GRID;
+const snapIf=v=>(gridSnap||keys.shift)?snapG(v):v;
+function toggleGridSnap(){
+  gridSnap=!gridSnap;
+  const b=document.getElementById('btn-snap');
+  if(b){b.classList.toggle('active',gridSnap);b.setAttribute('aria-pressed',String(gridSnap));}
+  setStatus(gridSnap?'Snap to grid ON — also hold Shift while dragging':'Snap to grid OFF — free placement');
+}
 
 // ═══════════ LAYOUT ENGINE (collision · clearance · anchors) ═══════════
 const PASSIVE_IDS=['rug','tv','window','curtain','curtain_s','wall_cab','shelf','plant'];
@@ -1597,7 +1609,7 @@ canvas2d.addEventListener('mousedown',e=>{
   if(editorView!=='2d')return;
   if(e.button===1||e.button===2){isPanning=true;panStart={x:e.clientX,y:e.clientY};panOffsetStart={...panOffset};return;}
   const rect=canvas2d.getBoundingClientRect();const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
-  const raw=screenToWorld(sx,sy);const wx=snapG(raw.x),wy=snapG(raw.y);
+  const raw=screenToWorld(sx,sy);const wx=snapIf(raw.x),wy=snapIf(raw.y);
   if(currentTool==='wall'){
     if(!wallStart){wallStart={x:wx,y:wy};setStatus('Click to place end point');}
     else{const wlen=Math.sqrt((wx-wallStart.x)**2+(wy-wallStart.y)**2);if(wlen>0.1){const wall={id:uid(),x1:wallStart.x,y1:wallStart.y,x2:wx,y2:wy,t:roomConfig.wallT,wh:roomConfig.wallH};walls.push(wall);selectItem(wall);wallStart={x:wx,y:wy};setStatus(`Wall added (${wlen.toFixed(1)}m)`);}draw2d();}
@@ -1610,7 +1622,7 @@ canvas2d.addEventListener('mousemove',e=>{
   if(editorView!=='2d')return;
   if(isPanning){panOffset.x=panOffsetStart.x+(e.clientX-panStart.x);panOffset.y=panOffsetStart.y+(e.clientY-panStart.y);draw2d();return;}
   const rect=canvas2d.getBoundingClientRect();const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
-  const raw=screenToWorld(sx,sy);const wx=snapG(raw.x),wy=snapG(raw.y);
+  const raw=screenToWorld(sx,sy);const wx=snapIf(raw.x),wy=snapIf(raw.y);
   document.getElementById('statusbar-coords').textContent=`${wx.toFixed(1)}m, ${wy.toFixed(1)}m`;
   if(dragging&&currentTool==='select'){
     if(furniture.includes(dragging)){dragging.x=wx-dragOffset.x;dragging.y=wy-dragOffset.y;}
@@ -1649,7 +1661,8 @@ canvas2d.addEventListener('drop',e=>{
   e.preventDefault();const defId=e.dataTransfer.getData('furnId');if(!defId)return;
   const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;
   const rect=canvas2d.getBoundingClientRect();
-  const seed={x:snapG(screenToWorld(e.clientX-rect.left,e.clientY-rect.top).x-def.w/2),y:snapG(screenToWorld(e.clientX-rect.left,e.clientY-rect.top).y-def.h/2)};
+  const raw=screenToWorld(e.clientX-rect.left,e.clientY-rect.top);
+  const seed={x:raw.x-def.w/2,y:raw.y-def.h/2};
   const cand=bestNudge(def,furniture,walls,seed);
   if(cand.score>=100){setStatus(`${def.label} can't be placed there — no clear spot near the cursor.`);return;}
   const item={id:uid(),defId:def.id,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9};
@@ -2078,11 +2091,11 @@ function placeDetectedFurniture(result){
     let seed;
     if(d.refW&&d.refW>0){
       const ppm=d.refW/imageWidth;
-      seed={x:snapG((d.x)*ppm-def.w/2),y:snapG((d.y)*ppm-def.h/2)};
+      seed={x:(d.x)*ppm-def.w/2,y:(d.y)*ppm-def.h/2};
     }else{
       const fx=Math.min(Math.max(d.x/imageWidth,0),1);
       const fy=Math.min(Math.max(d.y/imageHeight,0),1);
-      seed={x:snapG(fx*roomConfig.w-def.w/2),y:snapG(fy*roomConfig.h-def.h/2)};
+      seed={x:fx*roomConfig.w-def.w/2,y:fy*roomConfig.h-def.h/2};
     }
     const cand=bestNudge(def,furniture,walls,seed);
     if(cand.score>=100)continue;
@@ -2514,9 +2527,13 @@ function build3d(){
   furniture.forEach(f=>{
     const def=FURNITURE_DEFS.find(d=>d.id===f.defId);if(!def)return;
     const builder=BUILDERS[def.id]||buildGeneric;const group=builder(f,def);
-    group.position.set(f.x,0,f.y);group.rotation.y=-(f.rot||0);
-    group.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
-    scene.add(group);
+    const pivot=new THREE.Group();
+    group.position.set(-f.w/2,0,-f.h/2);
+    pivot.add(group);
+    pivot.position.set(f.x+f.w/2,0,f.y+f.h/2);
+    pivot.rotation.y=-(f.rot||0);
+    pivot.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+    scene.add(pivot);
   });
   const allX=walls.flatMap(w=>[w.x1,w.x2]).concat(furniture.flatMap(f=>[f.x,f.x+f.w]));
   const allZ=walls.flatMap(w=>[w.y1,w.y2]).concat(furniture.flatMap(f=>[f.y,f.y+f.h]));
