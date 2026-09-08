@@ -564,6 +564,54 @@ canvas { display: block; }
 :root[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 #screen-login .theme-toggle { position: absolute; top: 18px; right: 18px; }
 
+/* ===== Floor-plan mode ===== */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin: 6px 0 28px; max-width: 660px; }
+.mode-card { background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); padding: 26px 24px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; transition: all var(--transition-base) var(--ease-soft); text-align: left; }
+.mode-card:hover { border-color: var(--color-border); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.mode-card:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.mode-icon { font-size: 28px; width: 52px; height: 52px; border-radius: 50%; background: var(--color-bg-sunken); display: flex; align-items: center; justify-content: center; transition: transform var(--transition-fast) var(--ease-soft); }
+.mode-card:hover .mode-icon { transform: scale(1.06); }
+.mode-title { font-family: var(--font-display); font-size: 18px; color: var(--color-primary); }
+.mode-desc { font-size: 13px; color: var(--color-text-muted); line-height: 1.5; }
+.stepper-row { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 6px 0 16px; }
+.stepper-btn { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-tertiary-main); font-size: 22px; line-height: 1; cursor: pointer; transition: all var(--transition-fast) var(--ease-soft); display: flex; align-items: center; justify-content: center; }
+.stepper-btn:hover:not(:disabled) { background: var(--color-surface-hover); border-color: var(--color-text-muted); }
+.stepper-btn:disabled { opacity: .4; cursor: not-allowed; }
+.stepper-val { font-family: var(--font-display); font-size: 40px; color: var(--color-primary); min-width: 64px; text-align: center; }
+.stepper-dots { display: flex; justify-content: center; gap: 7px; margin: 0 0 24px; }
+.stepper-dots span { width: 12px; height: 12px; border-radius: 50%; background: var(--color-border); transition: background var(--transition-fast) var(--ease-soft); }
+.stepper-dots span.on { background: var(--color-tertiary-main); }
+.fp-wrap { display: flex; flex-direction: column; height: 100vh; min-height: 0; }
+#screen-fp-canvas { background: var(--color-bg); }
+.fp-title { font-family: var(--font-display); font-size: 15px; color: var(--color-primary); margin-right: 8px; white-space: nowrap; }
+.fp-main { display: flex; flex: 1; min-height: 0; }
+.fp-sidebar { width: 228px; border-right: 1px solid var(--color-border-light); background: var(--color-surface); display: flex; flex-direction: column; overflow: hidden; }
+.fp-canvas-area { position: relative; flex: 1; min-width: 0; background: var(--color-bg-sunken); }
+.fp-canvas-area canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+.fp-overlay { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 18px; gap: 8px; }
+.fp-hint { background: color-mix(in srgb, var(--color-surface) 86%, transparent); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: 8px 14px; font-size: 12px; color: var(--color-text-secondary); max-width: 72%; text-align: center; line-height: 1.5; }
+#fp-done { visibility: hidden; }
+#fp-done.on { visibility: visible; }
+.fp-rooms-scroll { flex: 1; overflow-y: auto; padding: 0 10px 12px; }
+.fp-room-chip { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border-radius: var(--radius-md); border: 1px solid transparent; background: transparent; cursor: pointer; transition: background var(--transition-fast) var(--ease-soft); font-size: 13px; font-family: var(--font-body); color: var(--color-text); margin-top: 4px; }
+.fp-room-chip:hover { background: var(--color-surface-hover); }
+.fp-room-chip.sel { border-color: var(--color-accent); background: var(--color-accent-light); box-shadow: 0 1px 4px color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.fp-rn { font-weight: 600; }
+.fp-rd { color: var(--color-text-muted); font-size: 11px; margin-left: auto; }
+.fp-info { border-top: 1px solid var(--color-border-light); padding: 14px 12px 16px; }
+.fp-info-title { font-family: var(--font-display); font-size: 15px; color: var(--color-primary); margin-bottom: 8px; }
+.fp-info-meta { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.65; }
+.fp-sugg { background: var(--color-accent-light); border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent); border-radius: var(--radius-md); padding: 10px; margin: 12px 0; font-size: 12.5px; color: var(--color-text); }
+.fp-sugg b { color: var(--color-accent); }
+.fp-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.fp-actions .btn-proceed { font-size: 13px; }
+.fp-actions .btn-outline { text-align: left; }
+.fp-empty { color: var(--color-text-muted); font-size: 13px; line-height: 1.6; }
+.fp-ed-banner { display: none; align-items: center; gap: 10px; background: var(--color-accent-light); border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent); border-radius: var(--radius-md); padding: 6px 12px; font-size: 13px; color: var(--color-text); margin: 0 12px; }
+.fp-ed-banner.show { display: flex; }
+.fp-ed-banner b { color: var(--color-primary); }
+.project-type-tag { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 10px; background: var(--color-accent-light); color: var(--color-accent); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; vertical-align: middle; }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -643,17 +691,50 @@ canvas { display: block; }
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
       </button>
-      <button class="btn-outline" id="admin-link" onclick="openAdmin()" style="display:none" aria-label="Open admin panel">Admin</button>
-      <div class="avatar" id="user-avatar" aria-label="User avatar">U</div>
+      <button class="btn-outline" data-admin-link onclick="openAdmin()" style="display:none" aria-label="Open admin panel">Admin</button>
+      <div class="avatar" data-avatar aria-label="User avatar">U</div>
       <button class="btn-outline" onclick="logout()" aria-label="Log out">Log out</button>
     </div>
   </div>
   <div class="dash-body">
     <div class="dash-title">My Projects</div>
-    <div class="dash-subtitle">Pick up where you left off, or start a new room design</div>
+    <div class="dash-subtitle">Pick up where you left off, or start a new design</div>
     <div class="project-grid" id="project-grid">
-      <button class="new-card" onclick="goTo('room-setup')" aria-label="Create new room design"><div class="plus">+</div><span>New Room Design</span></button>
+      <button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>
     </div>
+  </div>
+</div>
+
+<!-- MODE CHOICE (shown right after login) -->
+<div id="screen-start" class="screen">
+  <div class="dash-header">
+    <div class="brand">FloorPlan Studio</div>
+    <div class="dash-header-right">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+      </button>
+      <button class="btn-outline" data-admin-link onclick="openAdmin()" style="display:none" aria-label="Open admin panel">Admin</button>
+      <div class="avatar" data-avatar aria-label="User avatar">U</div>
+      <button class="btn-outline" onclick="logout()" aria-label="Log out">Log out</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="dash-title">Where shall we design?</div>
+    <div class="dash-subtitle">Choose a mode to get started</div>
+    <div class="mode-grid">
+      <button class="mode-card" onclick="goTo('room-setup')" aria-label="Design a single room">
+        <span class="mode-icon" aria-hidden="true">&#x1F6CB;&#xFE0F;</span>
+        <span class="mode-title">Design a Room</span>
+        <span class="mode-desc">Sketch one room, capture its walls, arrange furniture, style the flooring and walls, then view it in 3D.</span>
+      </button>
+      <button class="mode-card" onclick="startFloorPlan()" aria-label="Design a multi-room floor plan">
+        <span class="mode-icon" aria-hidden="true">&#x1F3E0;&#xFE0F;</span>
+        <span class="mode-title">Design a Floor Plan</span>
+        <span class="mode-desc">Lay out several rooms on one canvas, customize each room, and get layout suggestions for the whole plan.</span>
+      </button>
+    </div>
+    <button class="btn-outline" onclick="goTo('dashboard');loadProjects()" aria-label="View my saved projects">&rarr; My Projects</button>
   </div>
 </div>
 
@@ -741,6 +822,72 @@ canvas { display: block; }
     <div class="setup-actions">
       <button class="btn-back" onclick="goTo('dashboard')">&larr; Back</button>
       <button class="btn-proceed" onclick="startEditor()">Create Room &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- FLOOR PLAN: ROOM COUNT -->
+<div id="screen-fp-count" class="screen">
+  <div class="setup-card">
+    <div class="setup-title">Design a Floor Plan</div>
+    <div class="setup-sub">This mode lays out several rooms on one canvas. Each room can then be furnished, styled, and customized on its own.</div>
+    <div class="sidebar-label">Number of rooms</div>
+    <div class="stepper-row">
+      <button class="stepper-btn" id="fp-count-minus" onclick="fpCountStep(-1)" aria-label="Fewer rooms" tabindex="0">&#x2212;</button>
+      <div class="stepper-val" id="fp-count-val" aria-live="polite">1</div>
+      <button class="stepper-btn" id="fp-count-plus" onclick="fpCountStep(1)" aria-label="More rooms" tabindex="0">+</button>
+    </div>
+    <div class="stepper-dots" id="fp-count-dots" aria-hidden="true"></div>
+    <div class="setup-actions">
+      <button class="btn-back" onclick="goTo('start')">&larr; Back</button>
+      <button class="btn-proceed" onclick="startFloorPlan()">Start Floor Plan &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- FLOOR PLAN: LAYOUT CANVAS -->
+<div id="screen-fp-canvas" class="screen">
+  <div class="fp-wrap">
+    <div class="editor-topbar" role="toolbar" aria-label="Floor plan toolbar">
+      <div class="brand">FloorPlan Studio</div>
+      <div class="topbar-sep"></div>
+      <div class="fp-title" id="fp-title">Floor Plan</div>
+      <div class="topbar-right" style="position:relative">
+        <button class="btn-icon" title="Suggest a room type for every room from its size" onclick="fpRunSuggestions()" aria-label="Get room suggestions">&#x1F4A1;</button>
+        <button class="btn-icon" id="btn-fp-save" title="Save floor plan" onclick="saveProject()" aria-label="Save floor plan">&#x1F4BE;</button>
+        <button class="btn-icon" title="Export floor plan" onclick="toggleExportMenuFp()" aria-label="Export options" aria-haspopup="true">&#x2B73;</button>
+        <div class="export-menu" id="export-menu-fp" role="menu" aria-label="Export menu">
+          <button onclick="fpExport('png')" role="menuitem">&#x1F5BC; Export as PNG</button>
+          <button onclick="fpExport('pdf')" role="menuitem">&#x1F4C4; Export as PDF</button>
+          <button onclick="fpExport('json')" role="menuitem">&#x1F4C2; Export as JSON</button>
+        </div>
+        <button class="btn-outline" onclick="logout()" aria-label="Log out" style="margin-right:6px">Log out</button>
+        <button class="btn-icon danger" title="Back to menu" onclick="exitFloorPlan()" aria-label="Back to menu">&#x2302;</button>
+        <div class="save-toast" id="save-toast-fp" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="fp-main">
+      <div class="fp-sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-label">Tools</div>
+          <button class="tool-btn active" id="fp-tool-room" onclick="setFpTool('room')" aria-label="Draw room tool"><span class="ticon">&#x25AD;</span><span>Draw Room</span></button>
+          <button class="tool-btn" id="fp-tool-select" onclick="setFpTool('select')" aria-label="Select and edit room tool"><span class="ticon">&#x2196;</span><span>Edit Room</span></button>
+          <div class="sidebar-label" style="margin-top:14px">Rooms (<span id="fp-count-label">0</span> / <span id="fp-count-target">1</span>)</div>
+        </div>
+        <div class="fp-rooms-scroll" id="fp-rooms-list"></div>
+        <div class="fp-info" id="fp-info"></div>
+      </div>
+      <div class="fp-canvas-area" id="fp-canvas-area">
+        <canvas id="canvas-fp" aria-label="Floor plan layout canvas"></canvas>
+        <div class="fp-overlay">
+          <div class="fp-hint" id="fp-hint">Draw Room: click and drag on the canvas to sketch each room.</div>
+          <div class="fp-hint" id="fp-done">All <span id="fp-done-count">0</span> rooms drawn &#x2014; switch to Edit Room to open and customize each one, then save.</div>
+        </div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <span id="fp-status">Ready</span>
+      <span id="fp-coords"></span>
     </div>
   </div>
 </div>
@@ -849,6 +996,7 @@ canvas { display: block; }
         </div>
         <div class="save-toast" id="save-toast" aria-live="polite"></div>
       </div>
+      <div class="fp-ed-banner" id="fp-ed-banner"><span aria-hidden="true">&#x1F3E0;</span><span>Editing <b id="fp-ed-room-label">Room 1</b> &middot; Floor Plan</span><button class="btn-outline" onclick="backToDashboard()" style="margin-left:auto;padding:6px 12px">&larr; Back to Floor Plan</button></div>
     </div>
     <div class="editor-main">
       <div class="left-sidebar" id="sidebar-2d">
@@ -923,7 +1071,7 @@ function refreshCanvasTheme(){
   if(currentScreen==='editor'){
     if(editorView==='2d'&&canvas2d&&canvasW){draw2d();}
     if(editorView==='3d'&&scene){scene.background=new THREE.Color(cssVarHex('--color-bg-sunken'));scene.fog=new THREE.FogExp2(cssVarHex('--color-bg-sunken'),0.022);renderer3d&&renderer3d.render(scene,camera);}
-  }
+  }else if(currentScreen==='fp-canvas'&&fpctx&&fpW){drawFpCanvas();}
 }
 
 // ══════════════════════════════════════════
@@ -1026,10 +1174,9 @@ async function logout(){
 }
 async function enterDashboard(){
   const {data:{user}}=await supabaseClient.auth.getUser();
-  document.getElementById('user-avatar').textContent=(user?.email||'U')[0].toUpperCase();
+  document.querySelectorAll('[data-avatar]').forEach(el=>el.textContent=(user?.email||'U')[0].toUpperCase());
   await refreshRole();
-  goTo('dashboard');
-  await loadProjects();
+  goTo('start');
 }
 async function refreshRole(){
   currentUserRole='user';
@@ -1037,8 +1184,7 @@ async function refreshRole(){
     const {data}=await supabaseClient.rpc('get_my_role');
     if(data==='admin')currentUserRole='admin';
   }catch(err){console.warn('[refreshRole]',err.message);}
-  const link=document.getElementById('admin-link');
-  if(link)link.style.display=currentUserRole==='admin'?'':'none';
+  document.querySelectorAll('[data-admin-link]').forEach(link=>{link.style.display=currentUserRole==='admin'?'':'none';});
 }
 
 // ══════════════════════════════════════════
@@ -1108,20 +1254,21 @@ async function adminDeleteProject(id,btn){
 // ══════════════════════════════════════════
 async function loadProjects(){
   const grid=document.getElementById('project-grid');
-  grid.innerHTML=`<button class="new-card" onclick="goTo('room-setup')" aria-label="Create new room design"><div class="plus">+</div><span>New Room Design</span></button>`;
-  const {data,error}=await supabaseClient.from('projects').select('id,name,updated_at').order('updated_at',{ascending:false});
+  grid.innerHTML=`<button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>`;
+  const {data,error}=await supabaseClient.from('projects').select('id,name,updated_at,data').order('updated_at',{ascending:false});
   if(error){console.error('[loadProjects]',error);return;}
   if(!data||data.length===0){
     grid.innerHTML=`
-      <button class="new-card" onclick="goTo('room-setup')" aria-label="Create new room design"><div class="plus">+</div><span>New Room Design</span></button>
+      <button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>
       <div class="empty-state" style="grid-column:1/-1">
         <div class="empty-state-icon">&#x1F3E0;</div>
         <div class="empty-state-title">No projects yet</div>
-        <div class="empty-state-text">Create your first room design to get started. You can set up room dimensions, place furniture, and view your plan in 3D.</div>
+        <div class="empty-state-text">Create your first design to get started. Sketch a single room or lay out a whole floor plan, then furnish and style each room.</div>
       </div>`;
     return;
   }
   data.forEach(p=>{
+    const isFp=p.data&&p.data.type==='floor';
     const card=document.createElement('div');
     card.className='project-card';
     card.setAttribute('tabindex','0');
@@ -1130,7 +1277,7 @@ async function loadProjects(){
     card.onclick=()=>openProject(p.id);
     card.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(p.id);}};
     const date=new Date(p.updated_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-    card.innerHTML=`<button class="delete-project" title="Delete project" aria-label="Delete ${p.name}" onclick="event.stopPropagation();deleteProject(${p.id},this.parentElement)">&#x2715;</button><div class="project-thumb"><span class="thumb-icon">&#x1F3E0;</span></div><div class="project-info"><div class="project-name">${p.name}</div><div class="project-date">Modified ${date}</div></div>`;
+    card.innerHTML=`<button class="delete-project" title="Delete project" aria-label="Delete ${p.name}" onclick="event.stopPropagation();deleteProject(${p.id},this.parentElement)">&#x2715;</button><div class="project-thumb"><span class="thumb-icon">${isFp?'&#x1F3E0;':'&#x1F6CB;&#xFE0F;'}</span></div><div class="project-info"><div class="project-name">${p.name}${isFp?'<span class="project-type-tag">Floor plan</span>':''}</div><div class="project-date">Modified ${date}</div></div>`;
     grid.appendChild(card);
   });
 }
@@ -1185,6 +1332,17 @@ function sanitizeLayout(){
 async function openProject(id){
   const {data,error}=await supabaseClient.from('projects').select('*').eq('id',id).single();
   if(error){setStatus('Could not load that project.');console.error('[openProject]',error);return;}
+  if(data.data&&data.data.type==='floor'){
+    currentProjectId=null;
+    fpProjectId=id;
+    fpCommitEditingRoom();
+    fpRooms=(data.data.rooms||[]).map(fpNormalizeRoom);
+    fpRoomCount=Math.max(1,fpRooms.length);
+    fpSuggestions={};fpSelId=null;fpEditing=false;fpDrag=null;fpTool='room';
+    goTo('fp-canvas');
+    setTimeout(()=>{resizeFpCanvas();setFpTool('room');fpRenderRoomList();fpUpdateInfo();drawFpCanvas();},50);
+    return;
+  }
   currentProjectId=id;
   roomConfig=data.data.roomConfig;
   walls=data.data.walls||[];
@@ -1198,6 +1356,7 @@ async function openProject(id){
   setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();draw2d();},50);
 }
 async function saveProject(){
+  if(fpEditing||currentScreen==='fp-canvas'){await saveFloorPlan();return;}
   const saveBtn=document.getElementById('btn-save');
   const toast=document.getElementById('save-toast');
   const {data:{user}}=await supabaseClient.auth.getUser();
@@ -1233,7 +1392,15 @@ async function saveProject(){
     saveBtn.disabled=false;
   }
 }
-function backToDashboard(){goTo('dashboard');loadProjects();}
+function backToDashboard(){
+  if(fpEditing){
+    fpCommitEditingRoom();
+    goTo('fp-canvas');
+    setTimeout(()=>{resizeFpCanvas();fpRenderRoomList();fpUpdateInfo();drawFpCanvas();},50);
+    return;
+  }
+  goTo('dashboard');loadProjects();
+}
 
 // ══════════════════════════════════════════
 //  NAVIGATION
@@ -2910,6 +3077,511 @@ function setup3dMouse(){
 }
 
 window.addEventListener('resize',resizeCanvas);
+
+// ══════════════════════════════════════════
+//  FLOOR PLAN MODE
+// ══════════════════════════════════════════
+let fpRooms=[],fpRoomCount=1,fpProjectId=null,fpEditing=false,fpSelId=null,fpTool='room',fpDrag=null;
+let fpSuggestions={},fpView={scale:40,ox:0,oy:0},fpW=0,fpH=0;
+const canvasFp=document.getElementById('canvas-fp');
+const fpctx=canvasFp?canvasFp.getContext('2d'):null;
+
+function startFloorPlan(){
+  if(currentScreen==='fp-count'){
+    fpRooms=[];fpSuggestions={};fpDrag=null;fpSelId=null;fpEditing=false;fpProjectId=null;
+    goTo('fp-canvas');
+    setTimeout(()=>{resizeFpCanvas();setFpTool('room');fpRenderRoomList();fpUpdateInfo();drawFpCanvas();},50);
+  }else{
+    fpRoomCount=1;
+    goTo('fp-count');
+    setTimeout(fpCountRender,0);
+  }
+}
+function exitFloorPlan(){
+  fpCommitEditingRoom();
+  if(fpRooms.length&&!window.confirm('Leave the floor plan? Unsaved changes will be lost.'))return;
+  fpRooms=[];fpSuggestions={};fpSelId=null;fpEditing=false;fpDrag=null;fpProjectId=null;
+  goTo('start');
+}
+function fpCountStep(d){
+  fpRoomCount=Math.max(1,Math.min(10,fpRoomCount+d));
+  fpCountRender();
+}
+function fpCountRender(){
+  const val=document.getElementById('fp-count-val');if(val)val.textContent=fpRoomCount;
+  const mn=document.getElementById('fp-count-minus');if(mn)mn.disabled=fpRoomCount<=1;
+  const pl=document.getElementById('fp-count-plus');if(pl)pl.disabled=fpRoomCount>=10;
+  const dots=document.getElementById('fp-count-dots');
+  if(dots){dots.innerHTML='';for(let i=1;i<=10;i++){const s=document.createElement('span');if(i<=fpRoomCount)s.className='on';dots.appendChild(s);}}
+}
+function fpMakeRoomFromRect(rect,idx){
+  const w=rect.w,h=rect.h;
+  return{
+    id:uid(),
+    label:'Room '+idx,
+    rect:{x:rect.x,y:rect.y,w,h},
+    walls:[
+      {id:uid(),x1:0,y1:0,x2:w,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:uid(),x1:w,y1:0,x2:w,y2:h,t:0.15,wh:2.7,label:'East'},
+      {id:uid(),x1:w,y1:h,x2:0,y2:h,t:0.15,wh:2.7,label:'South'},
+      {id:uid(),x1:0,y1:h,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}
+    ],
+    furniture:[],
+    roomConfig:{type:'Custom',shape:'rect',w,h,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878',pattern:'boards'},wallFinish:{style:'solid',color:'#ddd0be'}}
+  };
+}
+function fpNormalizeRoom(raw){
+  const rc=Object.assign({type:'Custom',shape:'rect',w:3,h:3,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878',pattern:'boards'},wallFinish:{style:'solid',color:'#ddd0be'}},raw.roomConfig||{});
+  const walls=Array.isArray(raw.walls)?raw.walls:[];
+  const furn=Array.isArray(raw.furniture)?raw.furniture:[];
+  let rect=raw.rect;
+  if(!rect){
+    if(walls.length){
+      const xs=[],ys=[];
+      walls.forEach(w=>{xs.push(w.x1,w.x2);ys.push(w.y1,w.y2);});
+      const x0=Math.min(...xs),xn=Math.max(...xs),y0=Math.min(...ys),yn=Math.max(...ys);
+      rect={x:x0,y:y0,w:xn-x0,h:yn-y0};
+    }else rect={x:0,y:0,w:rc.w,h:rc.h};
+  }
+  return{id:raw.id||uid(),label:raw.label||'Room',rect,walls,furniture:furn,roomConfig:rc};
+}
+function fpRoomById(id){return fpRooms.find(r=>r.id===id)||null;}
+function fpStatus(msg){const el=document.getElementById('fp-status');if(el)el.textContent=msg;}
+function fpPickRoom(wx,wy){
+  let hit=null;
+  fpRooms.forEach(r=>{const b=r.rect;if(wx>=b.x&&wx<=b.x+b.w&&wy>=b.y&&wy<=b.y+b.h)hit=r;});
+  return hit;
+}
+function setFpTool(t){
+  fpTool=t;
+  const rb=document.getElementById('fp-tool-room'),sb=document.getElementById('fp-tool-select');
+  if(rb)rb.classList.toggle('active',t==='room');
+  if(sb)sb.classList.toggle('active',t==='select');
+  const hint=document.getElementById('fp-hint');
+  if(hint)hint.textContent=t==='room'
+    ?'Draw Room: click and drag on the canvas to sketch each room, then \u201CGet Suggestions\u201D.'
+    :'Edit Room: click a room on the canvas (or in the list) to inspect it, customize it, or remove it.';
+  canvas2d&&canvas2d.style&&(canvas2d.style.cursor='');
+  drawFpCanvas();
+}
+function fpToScreen(wx,wy){return{x:wx*fpView.scale+fpView.ox,y:wy*fpView.scale+fpView.oy};}
+function fpToWorld(sx,sy){return{x:(sx-fpView.ox)/fpView.scale,y:(sy-fpView.oy)/fpView.scale};}
+function resizeFpCanvas(){
+  const area=document.getElementById('fp-canvas-area');
+  if(!area||!canvasFp||!fpctx)return;
+  fpW=area.clientWidth||800;fpH=area.clientHeight||600;
+  canvasFp.width=fpW;canvasFp.height=fpH;
+  canvasFp.style.width=fpW+'px';canvasFp.style.height=fpH+'px';
+  drawFpCanvas();
+}
+function fpPlanBounds(){
+  const boxes=fpRooms.map(r=>r.rect);
+  if(fpDrag)boxes.push({x:Math.min(fpDrag.x0,fpDrag.x1),y:Math.min(fpDrag.y0,fpDrag.y1),w:Math.abs(fpDrag.x1-fpDrag.x0),h:Math.abs(fpDrag.y1-fpDrag.y0)});
+  if(!boxes.length)return null;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  boxes.forEach(b=>{minX=Math.min(minX,b.x);minY=Math.min(minY,b.y);maxX=Math.max(maxX,b.x+b.w);maxY=Math.max(maxY,b.y+b.h);});
+  return{minX,minY,maxX,maxY,planW:maxX-minX,planH:maxY-minY};
+}
+function hexOf(v,fallback){const m=String(v||'').match(/^#?([0-9a-f]{6})$/i);return m?'#'+m[1].toLowerCase():fallback;}
+function drawFpCanvas(){
+  if(!fpctx||!canvasFp)return;
+  fpctx.clearRect(0,0,fpW,fpH);
+  fpctx.fillStyle=cssVar('--color-bg-sunken')||'#ede8e0';
+  fpctx.fillRect(0,0,fpW,fpH);
+  const b=fpPlanBounds();
+  if(!b){
+    fpctx.fillStyle=cssVar('--color-text-muted')||'#8a8a85';
+    fpctx.font='13px "Segoe UI",sans-serif';
+    fpctx.textAlign='center';
+    fpctx.fillText('Click and drag on this canvas (Draw Room tool) to sketch your first room.',fpW/2,fpH/2);
+    return;
+  }
+  const m=90;
+  let sc=Math.min((fpW-m*2)/Math.max(b.planW,0.5),(fpH-m*2)/Math.max(b.planH,0.5));
+  sc=Math.max(sc,8);
+  fpView.scale=sc;
+  fpView.ox=(fpW-b.planW*sc)/2-b.minX*sc;
+  fpView.oy=(fpH-b.planH*sc)/2-b.minY*sc;
+  fpctx.strokeStyle='rgba(140,96,64,.10)';fpctx.lineWidth=0.5;
+  for(let gx=Math.floor(b.minX);gx<=Math.ceil(b.maxX);gx++){
+    const sx=fpToScreen(gx,b.minY).x;
+    fpctx.beginPath();fpctx.moveTo(sx,fpView.oy);fpctx.lineTo(sx,fpView.oy+b.planH*sc);fpctx.stroke();
+  }
+  for(let gy=Math.floor(b.minY);gy<=Math.ceil(b.maxY);gy++){
+    const sy=fpToScreen(b.minX,gy).y;
+    fpctx.beginPath();fpctx.moveTo(fpView.ox,sy);fpctx.lineTo(fpView.ox+b.planW*sc,sy);fpctx.stroke();
+  }
+  fpRooms.forEach(r=>{if(r.id!==fpSelId)fpDrawRoom(r,false);});
+  if(fpSelId&&fpRoomById(fpSelId))fpDrawRoom(fpRoomById(fpSelId),true);
+  if(fpDrag){
+    const x=Math.min(fpDrag.x0,fpDrag.x1),y=Math.min(fpDrag.y0,fpDrag.y1);
+    const w=Math.abs(fpDrag.x1-fpDrag.x0),h=Math.abs(fpDrag.y1-fpDrag.y0);
+    const p0=fpToScreen(x,y),p1=fpToScreen(x+w,y+h);
+    fpctx.setLineDash([6,4]);
+    fpctx.strokeStyle='rgba(196,99,58,.9)';fpctx.lineWidth=2;
+    fpctx.strokeRect(p0.x,p0.y,p1.x-p0.x,p1.y-p0.y);
+    fpctx.setLineDash([]);
+    fpctx.fillStyle='#c4633a';fpctx.font='600 12px "Segoe UI",sans-serif';fpctx.textAlign='center';
+    fpctx.fillText(Math.max(w,0.1).toFixed(1)+'m \u00D7 '+Math.max(h,0.1).toFixed(1)+'m  (Room '+(fpRooms.length+1)+')',(p0.x+p1.x)/2,Math.min(p0.y,p1.y)-8);
+  }
+}
+function fpDrawRoom(r,sel){
+  const b=r.rect;
+  const p0=fpToScreen(b.x,b.y);
+  const wd=b.w*fpView.scale,ht=b.h*fpView.scale;
+  const rc=r.roomConfig||{};
+  const style=(rc.floor&&rc.floor.style)||'wood';
+  const mcol=({wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'})[style]||'#c8a878';
+  fpctx.fillStyle=(rc.floor&&rc.floor.color)||mcol;
+  fpctx.fillRect(p0.x,p0.y,wd,ht);
+  fpctx.strokeStyle=sel?hexOf(cssVar('--color-accent'),'#c4633a'):(cssVar('--color-border')||'#b7ad9e');
+  fpctx.lineWidth=sel?3:1.5;
+  fpctx.strokeRect(p0.x,p0.y,wd,ht);
+  const lblCol=sel?(cssVar('--color-primary')||'#1a6b4f'):(cssVar('--color-text')||'#3a3a35');
+  fpctx.fillStyle=lblCol;
+  fpctx.font=(sel?'600 ':'')+'13px "Segoe UI",sans-serif';
+  fpctx.textAlign='center';
+  fpctx.fillText(r.label,p0.x+wd/2,p0.y-8);
+  fpctx.fillStyle=cssVar('--color-text-muted')||'#8a8a85';
+  fpctx.font='11px "Segoe UI",sans-serif';
+  fpctx.fillText(b.w.toFixed(1)+' \u00D7 '+b.h.toFixed(1)+' m',p0.x+wd/2,p0.y-8+16);
+  const t=rc.type;
+  const labT=(t&&t!=='Custom')?t:(fpSuggestions[r.id]?fpSuggestions[r.id].type:'');
+  if(labT){
+    fpctx.fillStyle=sel?(cssVar('--color-accent')||'#c4633a'):(cssVar('--color-text-secondary')||'#6b6b66');
+    fpctx.font='600 11px "Segoe UI",sans-serif';
+    fpctx.fillText(labT,p0.x+wd/2,p0.y+ht/2+4);
+  }
+  (r.furniture||[]).forEach(f=>{
+    const c={x:f.x+f.w/2,y:f.y+f.h/2};
+    const s=fpToScreen(b.x+c.x,b.y+c.y);
+    if(f.defId==='door'||f.defId==='window'){
+      fpctx.fillStyle='#8c6040';
+      fpctx.fillRect(s.x-(f.w*fpView.scale)/2,s.y-1.5,f.w*fpView.scale,3);
+    }else{
+      fpctx.fillStyle='rgba(140,96,64,.55)';
+      fpctx.fillRect(s.x-(f.w*fpView.scale)/2,s.y-(f.h*fpView.scale)/2,f.w*fpView.scale,f.h*fpView.scale);
+    }
+  });
+}
+function fpRenderRoomList(){
+  const el=document.getElementById('fp-rooms-list');if(!el)return;
+  const target=document.getElementById('fp-count-target');if(target)target.textContent=fpRoomCount;
+  const cnt=document.getElementById('fp-count-label');if(cnt)cnt.textContent=fpRooms.length;
+  const title=document.getElementById('fp-title');if(title)title.textContent='Floor Plan \u2014 '+fpRooms.length+' of '+fpRoomCount+' rooms';
+  const dp=document.getElementById('fp-done-count');if(dp)dp.textContent=fpRooms.length;
+  const done=document.getElementById('fp-done');if(done)done.classList.toggle('on',fpRooms.length>=fpRoomCount);
+  el.innerHTML='';
+  fpRooms.forEach(r=>{
+    const chip=document.createElement('button');
+    chip.className='fp-room-chip'+(r.id===fpSelId?' sel':'');
+    chip.setAttribute('role','button');
+    chip.setAttribute('tabindex','0');
+    chip.innerHTML='<span class="fp-rn"></span><span class="fp-rd"></span>';
+    chip.querySelector('.fp-rn').textContent=r.label;
+    chip.querySelector('.fp-rd').textContent=r.rect.w.toFixed(1)+'\u00D7'+r.rect.h.toFixed(1)+'m';
+    chip.onclick=()=>{fpSelId=r.id;fpRenderRoomList();fpUpdateInfo();drawFpCanvas();};
+    chip.onkeydown=(ev)=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();chip.onclick();}};
+    el.appendChild(chip);
+  });
+  if(!fpRooms.length){
+    const p=document.createElement('div');
+    p.className='fp-empty';
+    p.textContent='No rooms yet \u2014 use the Draw Room tool to sketch rooms on the canvas.';
+    el.appendChild(p);
+  }
+}
+function fpUpdateInfo(){
+  const el=document.getElementById('fp-info');if(!el)return;
+  const r=fpRoomById(fpSelId);
+  if(!r){
+    el.innerHTML='<div class="fp-info-title">Room info</div><div class="fp-empty">Select a room with the Edit Room tool (or tap it in the list) to customize it here.</div>';
+    return;
+  }
+  const sug=fpSuggestions[r.id];
+  const t=r.roomConfig.type;
+  const fcount=r.furniture.length;
+  const isCustom=t==='Custom'||!t;
+  let html='<div class="fp-info-title"></div><div class="fp-info-meta"></div>';
+  el.querySelector('.fp-info-title').textContent=r.label;
+  el.querySelector('.fp-info-meta').textContent=r.rect.w.toFixed(1)+'m \u00D7 '+r.rect.h.toFixed(1)+'m \u00B7 '+(r.rect.w*r.rect.h).toFixed(1)+' m\u00B2 \u00B7 Type: '+(isCustom?'unsure':t)+' \u00B7 '+fcount+' piece'+(fcount===1?'':'s');
+  if(sug){
+    const div=document.createElement('div');
+    div.className='fp-sugg';
+    div.innerHTML='<b></b><br><span></span>';
+    div.querySelector('b').textContent=sug.type;
+    div.querySelector('span').textContent=sug.reason;
+    el.appendChild(div);
+    if(isCustom){
+      const box=document.createElement('div');
+      box.className='fp-actions';
+      const use=document.createElement('button');
+      use.className='btn-proceed';
+      use.textContent='Use '+sug.type+' \u2192';
+      use.onclick=()=>fpAcceptSuggestion(r.id);
+      box.appendChild(use);
+      el.appendChild(box);
+    }
+  }
+  const box=document.createElement('div');
+  box.className='fp-actions';
+  const edit=document.createElement('button');
+  edit.className='btn-proceed';
+  edit.style.background='var(--color-tertiary-main)';
+  edit.textContent='Customize Room \u2192';
+  edit.onclick=()=>fpOpenRoomEditor(r.id);
+  box.appendChild(edit);
+  if(!isCustom){
+    const setB=document.createElement('button');
+    setB.className='btn-outline';
+    setB.textContent='Suggest furniture ('+fpFurnitureSetFor(t).length+')';
+    setB.onclick=()=>fpAddRoomSet(r.id);
+    box.appendChild(setB);
+  }
+  const rem=document.createElement('button');
+  rem.className='btn-outline';
+  rem.style.color='var(--color-danger)';
+  rem.textContent='Remove room';
+  rem.onclick=()=>fpRemoveRoom(r.id);
+  box.appendChild(rem);
+  el.appendChild(box);
+}
+function fpSuggestRoom(r){
+  const b=r.rect||{w:(r.roomConfig&&r.roomConfig.w)||3,h:(r.roomConfig&&r.roomConfig.h)||3};
+  const w=b.w,h=b.h;
+  const area=w*h;
+  const aspect=Math.max(w,h)/Math.max(Math.min(w,h),0.5);
+  const rules=[
+    {type:'Bathroom',ideal:5,max:8},
+    {type:'Kitchen',ideal:9,max:13},
+    {type:'Office',ideal:9,max:15},
+    {type:'Dining Room',ideal:12,max:18},
+    {type:'Bedroom',ideal:14,max:22},
+    {type:'Living Room',ideal:24,max:Infinity}
+  ];
+  let best=null,bestScore=Infinity;
+  rules.forEach(rule=>{
+    if(area>rule.max)return;
+    let s=Math.abs(area-rule.ideal);
+    if(aspect>1.8&&rule.type!=='Kitchen'&&rule.type!=='Office')s+=2;
+    if((rule.type==='Kitchen'||rule.type==='Office')&&aspect<1.3)s+=1.5;
+    if(s<bestScore){bestScore=s;best=rule;}
+  });
+  if(!best)best=rules[rules.length-1];
+  return{type:best.type,reason:'At '+w.toFixed(1)+'\u00D7'+h.toFixed(1)+' m ('+area.toFixed(1)+' m\u00B2) this reads as a '+best.type.toLowerCase()+' \u2014 pick a different type if it doesn\u2019t fit.'};
+}
+function fpRunSuggestions(){
+  if(!fpRooms.length){fpStatus('Draw at least one room before asking for suggestions.');return;}
+  fpRooms.forEach(r=>{fpSuggestions[r.id]=fpSuggestRoom(r);});
+  const open=fpRooms.filter(r=>!r.roomConfig.type||r.roomConfig.type==='Custom');
+  fpRenderRoomList();fpUpdateInfo();drawFpCanvas();
+  fpStatus(open.length?'Suggested types for '+open.length+' room'+(open.length===1?'':'s')+' \u2014 select a room and accept one.':(fpRooms.length?'Every room already has a type; export or refine.':'' ));
+}
+function fpAcceptSuggestion(id){
+  const r=fpRoomById(id);const sug=fpSuggestions[id];
+  if(!r||!sug)return;
+  r.roomConfig.type=sug.type;
+  fpUpdateInfo();fpRenderRoomList();drawFpCanvas();
+  fpStatus(r.label+' set to '+sug.type+' \u2014 you can now suggest furniture for it.');
+}
+function fpFurnitureSetFor(type){return ANCHOR_ORDER[type]||[];}
+function fpAddRoomSet(id){
+  const r=fpRoomById(id);if(!r)return;
+  const n=fpAddSetToRoom(r);
+  fpUpdateInfo();drawFpCanvas();
+  fpStatus('Added '+n+' suggested '+(n===1?'piece':'pieces')+' to '+r.label+'.');
+}
+function fpAddSetToRoom(r){
+  const type=r.roomConfig.type;
+  const ids=fpFurnitureSetFor(type);
+  const saved=roomConfig;
+  roomConfig=r.roomConfig;
+  let added=0;
+  ids.forEach(defId=>{
+    const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;
+    const w=r.roomConfig.w,h=r.roomConfig.h;
+    const seed={x:Math.max((w-def.w)/2,0),y:Math.max((h-def.h)/2,0)};
+    const cand=bestNudge(def,r.furniture,r.walls,seed);
+    if(cand.score>=100)return;
+    r.furniture.push({id:uid(),defId,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:0,h3d:def.h3d||0.9});
+    added++;
+  });
+  roomConfig=saved;
+  return added;
+}
+function fpRemoveRoom(id){
+  const r=fpRoomById(id);if(!r)return;
+  if(!window.confirm('Remove '+r.label+' from the floor plan?'))return;
+  fpRooms=fpRooms.filter(x=>x.id!==id);
+  if(fpSelId===id)fpSelId=fpRooms.length?fpRooms[fpRooms.length-1].id:null;
+  delete fpSuggestions[id];
+  fpRenderRoomList();fpUpdateInfo();drawFpCanvas();
+  fpStatus('Removed '+r.label+'.');
+}
+function fpCommitEditingRoom(){
+  if(!fpEditing)return;
+  const r=fpRoomById(fpSelId);
+  if(r){
+    r.walls=JSON.parse(JSON.stringify(walls));
+    r.furniture=JSON.parse(JSON.stringify(furniture));
+    r.roomConfig=JSON.parse(JSON.stringify(roomConfig));
+  }
+  fpEditing=false;
+  const banner=document.getElementById('fp-ed-banner');
+  if(banner)banner.classList.remove('show');
+}
+function fpOpenRoomEditor(id){
+  const r=fpRoomById(id);if(!r)return;
+  fpCommitEditingRoom();
+  walls=r.walls;
+  furniture=r.furniture;
+  roomConfig=r.roomConfig;
+  roomPhotos=[];
+  selectedItem=null;wallStart=null;
+  setTool('select');
+  fpEditing=true;fpSelId=id;
+  const banner=document.getElementById('fp-ed-banner');
+  if(banner){banner.classList.add('show');const lab=document.getElementById('fp-ed-room-label');if(lab)lab.textContent=r.label;}
+  goTo('editor');
+  setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();setStatus('Editing '+r.label+' \u2014 exit to go back to the floor plan.');draw2d();},50);
+}
+function fpShowToast(el,msg,isErr){
+  if(!el)return;
+  el.textContent=msg;
+  el.classList.add('show');
+  el.style.background='';el.style.borderColor='';el.style.color='';
+  if(isErr){el.style.background='var(--color-danger-bg)';el.style.borderColor='var(--color-danger-border)';el.style.color='var(--color-danger)';}
+  setTimeout(()=>{el.classList.remove('show');el.style.background='';el.style.borderColor='';el.style.color='';},3000);
+}
+async function saveFloorPlan(){
+  const wasEditorScreen=currentScreen==='editor';
+  fpCommitEditingRoom();
+  if(wasEditorScreen){
+    fpEditing=true;
+    const banner=document.getElementById('fp-ed-banner');
+    if(banner)banner.classList.add('show');
+  }
+  const btn=document.getElementById('btn-fp-save');
+  const toastEl=document.getElementById('save-toast-fp');
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  if(!user){fpStatus('Sign in to save your project.');return;}
+  if(btn){btn.classList.add('saving');btn.disabled=true;}
+  const rooms=fpRooms.map(r=>({id:r.id,label:r.label,rect:r.rect,walls:r.walls,furniture:r.furniture,roomConfig:r.roomConfig}));
+  const payload={type:'floor',rooms};
+  try{
+    if(fpProjectId){
+      const {error}=await supabaseClient.from('projects').update({data:payload,updated_at:new Date().toISOString()}).eq('id',fpProjectId);
+      if(error)throw error;
+    }else{
+      const name=('Floor Plan \u2014 '+fpRooms.length+(fpRooms.length===1?' room':' rooms')+' \u2014 '+new Date().toLocaleDateString());
+      const {data,error}=await supabaseClient.from('projects').insert({user_id:user.id,name,data:payload}).select().single();
+      if(error)throw error;
+      fpProjectId=data.id;
+    }
+    fpShowToast(toastEl,'\u2713 Floor plan saved',false);
+    fpStatus('Floor plan saved.');
+  }catch(err){
+    console.error('[saveFloorPlan]',err);
+    fpShowToast(toastEl,'\u2717 Save failed',true);
+    fpStatus('Save failed: '+err.message);
+  }finally{
+    if(btn){btn.classList.remove('saving');btn.disabled=false;}
+  }
+}
+function fpFileName(ext){return 'floor-plan-'+fpRooms.length+(fpRooms.length===1?'room':'rooms')+'.'+ext;}
+function toggleExportMenuFp(){const m=document.getElementById('export-menu-fp');if(m)m.classList.toggle('open');}
+function fpExport(kind){
+  const menu=document.getElementById('export-menu-fp');if(menu)menu.classList.remove('open');
+  fpCommitEditingRoom();
+  if(!fpRooms.length){fpStatus('Draw at least one room before exporting.');return;}
+  if(kind==='png'){
+    drawFpCanvas();
+    downloadDataUrl(canvasFp.toDataURL('image/png'),fpFileName('png'));
+    fpStatus('Exported floor plan as PNG.');
+  }else if(kind==='json'){
+    const payload={type:'floor',rooms:fpRooms.map(r=>({id:r.id,label:r.label,rect:r.rect,walls:r.walls,furniture:r.furniture,roomConfig:r.roomConfig})),exportedAt:new Date().toISOString()};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    downloadDataUrl(url,fpFileName('json'));
+    URL.revokeObjectURL(url);
+    fpStatus('Exported floor plan data as JSON.');
+  }else if(kind==='pdf'){
+    drawFpCanvas();
+    const img=canvasFp.toDataURL('image/jpeg',0.92);
+    const{jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+    const pageW=pdf.internal.pageSize.getWidth(),pageH=pdf.internal.pageSize.getHeight();
+    pdf.setFontSize(16);
+    pdf.text('Floor Plan \u2014 '+fpRooms.length+(fpRooms.length===1?' room':' rooms'),32,36);
+    let totalA=0;
+    fpRooms.forEach(r=>{totalA+=r.rect.w*r.rect.h;});
+    pdf.setFontSize(10);
+    pdf.text(totalA.toFixed(1)+' m\u00B2 total \u00B7 '+fpRooms.length+' rooms \u00B7 Generated '+new Date().toLocaleDateString(),32,52);
+    const imgW=pageW-64,imgH=Math.min(pageH-180,imgW*(canvasFp.height/canvasFp.width));
+    pdf.addImage(img,'JPEG',32,60,imgW,imgH);
+    pdf.setFontSize(10);
+    let ty=60+imgH+16;
+    fpRooms.forEach(r=>{
+      const counts={};
+      (r.furniture||[]).forEach(f=>{const def=FURNITURE_DEFS.find(d=>d.id===f.defId);const label=def?def.label:f.defId;counts[label]=(counts[label]||0)+1;});
+      const parts=Object.entries(counts).map(([l,n])=>l+' \u00D7 '+n).join(', ');
+      const type=(r.roomConfig&&r.roomConfig.type&&r.roomConfig.type!=='Custom')?r.roomConfig.type:(fpSuggestions[r.id]?fpSuggestions[r.id].type:'room');
+      pdf.text('\u2022 '+r.label+' \u2014 '+r.rect.w.toFixed(1)+'m \u00D7 '+r.rect.h.toFixed(1)+'m ('+type+')'+(parts?' \u2014 '+parts:''),40,ty);
+      ty+=13;
+    });
+    pdf.save(fpFileName('pdf'));
+    fpStatus('Exported floor plan as PDF.');
+  }
+}
+
+if(canvasFp&&fpctx){
+  canvasFp.addEventListener('pointerdown',e=>{
+    const rect=canvasFp.getBoundingClientRect();
+    const w=fpToWorld(e.clientX-rect.left,e.clientY-rect.top);
+    if(fpTool==='room'){
+      if(fpRooms.length>=fpRoomCount){fpStatus('All '+fpRoomCount+' rooms drawn \u2014 switch to Edit Room.');drawFpCanvas();return;}
+      fpDrag={x0:w.x,y0:w.y,x1:w.x,y1:w.y};
+      canvasFp.setPointerCapture(e.pointerId);
+      drawFpCanvas();
+    }else{
+      const r=fpPickRoom(w.x,w.y);
+      fpSelId=r?r.id:null;
+      fpRenderRoomList();fpUpdateInfo();drawFpCanvas();
+    }
+  });
+  canvasFp.addEventListener('pointermove',e=>{
+    if(fpDrag){
+      const rect=canvasFp.getBoundingClientRect();
+      const w=fpToWorld(e.clientX-rect.left,e.clientY-rect.top);
+      fpDrag.x1=w.x;fpDrag.y1=w.y;
+      drawFpCanvas();
+    }else if(currentScreen==='fp-canvas'){
+      const rect=canvasFp.getBoundingClientRect();
+      const w=fpToWorld(e.clientX-rect.left,e.clientY-rect.top);
+      const co=document.getElementById('fp-coords');
+      if(co)co.textContent='\u00B7 '+w.x.toFixed(2)+'m, '+w.y.toFixed(2)+'m';
+    }
+  });
+  const fpEndDrag=(e)=>{
+    if(!fpDrag)return;
+    const rect=canvasFp.getBoundingClientRect();
+    const w=fpToWorld(e.clientX-rect.left,e.clientY-rect.top);
+    fpDrag.x1=w.x;fpDrag.y1=w.y;
+    const x=Math.min(fpDrag.x0,fpDrag.x1),y=Math.min(fpDrag.y0,fpDrag.y1);
+    const bw=Math.abs(fpDrag.x1-fpDrag.x0),bh=Math.abs(fpDrag.y1-fpDrag.y0);
+    fpDrag=null;
+    if(bw<0.8||bh<0.8){fpStatus('Room too small \u2014 drag a larger area (min 0.8 m).');drawFpCanvas();return;}
+    if(bw>30||bh>30){fpStatus('Room too large \u2014 max 30 m per side.');drawFpCanvas();return;}
+    const r=fpMakeRoomFromRect({x,y,w:bw,h:bh},fpRooms.length+1);
+    fpRooms.push(r);
+    fpStatus('Added '+r.label+' ('+bw.toFixed(1)+'m \u00D7 '+bh.toFixed(1)+'m). '+(fpRooms.length>=fpRoomCount?'All rooms drawn \u2014 switch to Edit Room, customize, then save.':'Sketch '+(fpRoomCount-fpRooms.length)+' more.'));
+    fpRenderRoomList();fpUpdateInfo();drawFpCanvas();
+  };
+  canvasFp.addEventListener('pointerup',fpEndDrag);
+  canvasFp.addEventListener('pointercancel',()=>{if(fpDrag){fpDrag=null;drawFpCanvas();}});
+  canvasFp.addEventListener('contextmenu',e=>e.preventDefault());
+}
+window.addEventListener('resize',()=>{if(currentScreen==='fp-canvas')resizeFpCanvas();});
 
 window.addEventListener('DOMContentLoaded', async ()=>{
   const {data:{session}} = await supabaseClient.auth.getSession();
