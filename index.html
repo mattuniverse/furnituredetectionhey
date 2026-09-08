@@ -1143,7 +1143,13 @@ async function deleteProject(id,cardEl){
 }
 function sanitizeLayout(){
   const notes=[];
-  const known=furniture.filter(f=>f&&FURNITURE_DEFS.find(d=>d.id===f.defId));
+  const known=furniture.filter(f=>f&&FURNITURE_DEFS.find(d=>d.id===f.defId)).map(f=>{
+    const def=FURNITURE_DEFS.find(d=>d.id===f.defId);
+    f.x=+(f.x)||0;f.y=+(f.y)||0;
+    f.w=+(f.w)||def.w;f.h=+(f.h)||def.h;
+    f.rot=+(f.rot)||0;f.h3d=+(f.h3d)||def.h3d||0.9;
+    return f;
+  });
   const seen=new Set(),kept=[];
   known.forEach(f=>{
     const key=f.defId+'|'+f.x+'|'+f.y+'|'+f.w+'|'+f.h+'|'+(f.rot||0);
@@ -1307,7 +1313,7 @@ function buildFurnList(){
       chip.innerHTML=`<span class="fchip-icon" aria-hidden="true">${def.icon}</span><span>${def.label}</span>`;
       chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('furnId',def.id);});
       chip.addEventListener('click',()=>placeFurnAtCenter(def.id));
-      chip.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeFurnAtCenter(def.id);}});
+      chip.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();}});
       el.appendChild(chip);
     });
   });
@@ -2523,11 +2529,12 @@ function buildCoffee(f,def){
   return g;
 }
 function buildTV(f,def){
-  const g=new THREE.Group();const fw=f.w,fd=f.h,fh=f.h3d;
+  const g=new THREE.Group();const fw=f.w,fd=f.h,fh=parseFloat(f.h3d)>0?parseFloat(f.h3d):0.5;
   const unitMat=stdMat(0x2a2a2a,0.8);const screenMat=stdMat(0x101018,0.1,0.3);
   const stand=new THREE.Mesh(new THREE.BoxGeometry(fw,fh,fd),unitMat);stand.position.set(fw/2,fh/2,fd/2);stand.castShadow=true;stand.receiveShadow=true;g.add(stand);
-  const screen=new THREE.Mesh(new THREE.BoxGeometry(fw*0.85,fh*1.6,0.05),screenMat);screen.position.set(fw/2,fh+fh*0.8,fd/2);screen.castShadow=true;g.add(screen);
-  const bezel=new THREE.Mesh(new THREE.BoxGeometry(fw*0.88,fh*1.65,0.04),stdMat(0x1a1a1a,0.7));bezel.position.set(fw/2,fh+fh*0.82,fd/2+0.01);g.add(bezel);
+  const screenH=fh*1.6;
+  const screen=new THREE.Mesh(new THREE.BoxGeometry(fw*0.85,screenH,0.05),screenMat);screen.position.set(fw/2,fh+screenH/2,fd/2);screen.castShadow=true;g.add(screen);
+  const bezel=new THREE.Mesh(new THREE.BoxGeometry(fw*0.88,screenH+0.05,0.04),stdMat(0x1a1a1a,0.7));bezel.position.set(fw/2,fh+screenH/2+0.025,fd/2+0.01);g.add(bezel);
   return g;
 }
 function buildPlant(f,def){
