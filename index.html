@@ -261,6 +261,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 canvas { display: block; }
 #canvas3d { display: none; position: absolute; top: 0; left: 0; }
 .hint3d { display: none; position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(26,20,16,.75); color: #f0ebe4; padding: 8px 20px; border-radius: 24px; font-size: 12px; pointer-events: none; white-space: nowrap; backdrop-filter: blur(8px); font-weight: 500; }
+.hint3d .view-btn { pointer-events: auto; display: inline-block; background: rgba(176,122,64,.92); color: #fff; border: none; border-radius: 14px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 10px; vertical-align: middle; font-family: inherit; }
+.hint3d .view-btn:hover { background: #b07a40; }
 .canvas-overlay { position: absolute; top: 14px; left: 14px; display: flex; gap: 8px; pointer-events: none; }
 .overlay-badge { background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 11px; color: var(--color-text-secondary); box-shadow: var(--shadow-sm); font-weight: 500; backdrop-filter: blur(8px); }
 .vio-tip { position: absolute; z-index: 40; max-width: 260px; background: color-mix(in srgb, var(--color-surface) 94%, transparent); border: 1px solid var(--color-danger-border); color: var(--color-danger); font-size: 11px; line-height: 1.5; padding: 8px 11px; border-radius: 10px; box-shadow: var(--shadow-md); pointer-events: none; backdrop-filter: blur(8px); font-weight: 500; }
@@ -860,7 +862,7 @@ canvas { display: block; }
       <div class="canvas-area" id="canvas-area">
         <canvas id="canvas2d" aria-label="2D floor plan canvas"></canvas>
         <canvas id="canvas3d" aria-label="3D room view canvas"></canvas>
-        <div class="hint3d" id="hint3d">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</div>
+        <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><span>Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</span></div>
         <div class="vio-tip" id="vio-tip" hidden aria-live="polite"></div>
         <div class="canvas-overlay">
           <div class="overlay-badge" id="badge-room"></div>
@@ -1139,6 +1141,36 @@ async function deleteProject(id,cardEl){
   if(cardEl&&cardEl.parentElement)cardEl.parentElement.classList.add('removing');
   setTimeout(()=>loadProjects(),120);
 }
+function sanitizeLayout(){
+  const notes=[];
+  const known=furniture.filter(f=>f&&FURNITURE_DEFS.find(d=>d.id===f.defId));
+  const seen=new Set(),kept=[];
+  known.forEach(f=>{
+    const key=f.defId+'|'+f.x+'|'+f.y+'|'+f.w+'|'+f.h+'|'+(f.rot||0);
+    if(seen.has(key)){notes.push('removed duplicate '+f.defId+' @ ('+f.x+','+f.y+')');return;}
+    seen.add(key);kept.push(f);
+  });
+  furniture.length=0;furniture.push(...kept);
+  if(walls.length){
+    furniture.filter(f=>f.defId==='door'||f.defId==='window').forEach(f=>{
+      const c=itemCenter(f);
+      let onWall=null,bd=1e9;
+      walls.forEach(w=>{
+        const u=wallDir(w);if(u.l<1e-6)return;
+        const proj=(c.x-w.x1)*u.x+(c.y-w.y1)*u.y;
+        const px=w.x1+proj*u.x,py=w.y1+proj*u.y;
+        const d=Math.sqrt((c.x-px)*(c.x-px)+(c.y-py)*(c.y-py));
+        if(d<bd){bd=d;onWall=itemOnWall(f,w);}
+      });
+      if(!onWall||bd>0.02){snapDoorWindow(f);notes.push('moved '+f.defId+' onto nearest wall');}
+    });
+  }
+  furniture.filter(f=>f.defId!=='door'&&f.defId!=='window').forEach(f=>{
+    const c=f.x+f.w/2,cy=f.y+f.h/2;
+    if(c<0||cy<0||c>roomConfig.w||cy>roomConfig.h){clampFootprint(f);notes.push('pulled '+f.defId+' inside room');}
+  });
+  if(notes.length)console.warn('[layout-heal] repaired loaded layout: '+notes.join('; '));
+}
 async function openProject(id){
   const {data,error}=await supabaseClient.from('projects').select('*').eq('id',id).single();
   if(error){setStatus('Could not load that project.');console.error('[openProject]',error);return;}
@@ -1148,6 +1180,7 @@ async function openProject(id){
   furniture=data.data.furniture||[];
   roomPhotos=data.data.photos||[];
   selectedItem=null;wallStart=null;
+  sanitizeLayout();
   const usedIds=[0,...walls.map(w=>w.id),...furniture.map(f=>f.id)];
   nextId=Math.max(...usedIds)+1;
   goTo('editor');
@@ -1436,6 +1469,26 @@ function snapDoorWindow(f){
   f.x=pcx-hw*cos+hh*sin;
   f.y=pcy-hw*sin-hh*cos;
 }
+function centerOffWall(f){
+  if(f.defId!=='door'&&f.defId!=='window')return 1e9;
+  if(!walls.length)return 1e9;
+  const c=itemCenter(f);let bd=1e9;
+  walls.forEach(w=>{
+    const u=wallDir(w);if(u.l<1e-6)return;
+    const proj=(c.x-w.x1)*u.x+(c.y-w.y1)*u.y;
+    const px=w.x1+proj*u.x,py=w.y1+proj*u.y;
+    const d=Math.sqrt((c.x-px)*(c.x-px)+(c.y-py)*(c.y-py));
+    if(d<bd)bd=d;
+  });
+  return bd;
+}
+function ensureWallAttachment(){
+  if(!walls.length)return;
+  if(dragging&&furniture.includes(dragging)&&(dragging.defId==='door'||dragging.defId==='window'))return;
+  furniture.filter(f=>f.defId==='door'||f.defId==='window').forEach(f=>{
+    if(centerOffWall(f)>0.02){snapDoorWindow(f);}
+  });
+}
 function wallBoxes(walls){
   return walls.map(w=>{
     const t=w.t||0.15;
@@ -1469,8 +1522,9 @@ function computeViolations(arr,walls){
   const viol=[];
   const obstacles=allObstacles(walls);
   const actives=arr.filter(f=>!isPassive(f));
-  for(let i=0;i<actives.length;i++)for(let j=i+1;j<actives.length;j++){
-    const a=actives[i],b=actives[j];
+  const solids=arr.filter(f=>f.defId!=='rug'&&f.defId!=='wall_cab'&&f.defId!=='window');
+  for(let i=0;i<solids.length;i++)for(let j=i+1;j<solids.length;j++){
+    const a=solids[i],b=solids[j];
     if(boxesOverlap(a,b)){
       const z=overlapDepth(a,b);
       viol.push({item:a,with:b.defId,rule:'overlap',label:'Overlaps another item',required:0,actual:-z,hard:true});
@@ -1535,7 +1589,7 @@ function computeViolations(arr,walls){
   return viol;
 }
 function evalPlacement(def,others,walls,cand){
-  const probe={id:def.id||0,defId:def.defId,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:def.rot||0,h3d:def.h3d||0.9};
+  const probe={id:def.id||0,defId:def.id,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:def.rot||0,h3d:def.h3d||0.9};
   const viol=computeViolations([...others,probe],walls);
   let score=0;
   viol.forEach(v=>{score+=(v.hard?100:1);});
@@ -1563,6 +1617,14 @@ function bestNudge(def,others,walls,seed){
   }
   return{x:best.x,y:best.y,score:bestScore};
 }
+function clampFootprint(f){
+  if(f.defId==='door'||f.defId==='window')return;
+  const c=Math.abs(Math.cos(f.rot||0)),s=Math.abs(Math.sin(f.rot||0));
+  const hw=(f.w*c+f.h*s)/2,hh=(f.w*s+f.h*c)/2;
+  const cnt=Math.min(Math.max(f.x+f.w/2,hw),Math.max(hw,roomConfig.w-hw));
+  const cny=Math.min(Math.max(f.y+f.h/2,hh),Math.max(hh,roomConfig.h-hh));
+  f.x=cnt-f.w/2;f.y=cny-f.h/2;
+}
 function setTool(t){
   currentTool=t;
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
@@ -1572,6 +1634,7 @@ function setTool(t){
   if(t==='select')wallStart=null;draw2d();
 }
 function draw2d(){
+  ensureWallAttachment();
   lastViolations=computeViolations(furniture,walls);
   ctx.clearRect(0,0,canvasW,canvasH);
   ctx.fillStyle=cssVar('--color-bg-sunken')||'#ede8e0';ctx.fillRect(0,0,canvasW,canvasH);
@@ -1640,9 +1703,9 @@ function drawWalls(){
 function drawFurniture(vio){
   furniture.forEach(f=>{
     const def=FURNITURE_DEFS.find(d=>d.id===f.defId);if(!def)return;
-    const s=worldToScreen(f.x,f.y);const pw=f.w*SCALE,ph=f.h*SCALE;
+    const c=itemCenter(f);const s=worldToScreen(c.x,c.y);const pw=f.w*SCALE,ph=f.h*SCALE;
     const isSel=selectedItem===f,isHov=hoveredItem===f;
-    ctx.save();ctx.translate(s.x+pw/2,s.y+ph/2);ctx.rotate(f.rot||0);ctx.translate(-pw/2,-ph/2);
+    ctx.save();ctx.translate(s.x,s.y);ctx.rotate(f.rot||0);ctx.translate(-pw/2,-ph/2);
     ctx.fillStyle=def.color+(isSel?'ff':'cc');
     ctx.strokeStyle=isSel?'#8c6040':isHov?'#ad7f58':'rgba(74,48,32,.3)';
     ctx.lineWidth=isSel?2:1;
@@ -1681,7 +1744,7 @@ function drawFurniture(vio){
 //  MOUSE EVENTS
 // ══════════════════════════════════════════
 function getItemAt(wx,wy){
-  for(let i=furniture.length-1;i>=0;i--){const f=furniture[i];const cx=f.x+f.w/2,cy=f.y+f.h/2;const dx=wx-cx,dy=wy-cy;const cos=Math.cos(-(f.rot||0)),sin=Math.sin(-(f.rot||0));const lx=cos*dx-sin*dy,ly=sin*dx+cos*dy;if(Math.abs(lx)<f.w/2+0.1&&Math.abs(ly)<f.h/2+0.1)return f;}return null;
+  for(let i=furniture.length-1;i>=0;i--){const f=furniture[i];const c=itemCenter(f);const dx=wx-c.x,dy=wy-c.y;const cos=Math.cos(-(f.rot||0)),sin=Math.sin(-(f.rot||0));const lx=cos*dx-sin*dy,ly=sin*dx+cos*dy;if(Math.abs(lx)<f.w/2+0.1&&Math.abs(ly)<f.h/2+0.1)return f;}return null;
 }
 function getWallAt(wx,wy){
   for(let i=walls.length-1;i>=0;i--){const w=walls[i];const dx=w.x2-w.x1,dy=w.y2-w.y1;const len=Math.sqrt(dx*dx+dy*dy);if(len<0.01)continue;const t=((wx-w.x1)*dx+(wy-w.y1)*dy)/(len*len);const tc=Math.max(0,Math.min(1,t));const px=w.x1+tc*dx,py=w.y1+tc*dy;if(Math.sqrt((wx-px)**2+(wy-py)**2)<(w.t||0.15)/2+0.15)return w;}return null;
@@ -1707,7 +1770,7 @@ canvas2d.addEventListener('mousemove',e=>{
   const raw=screenToWorld(sx,sy);const wx=snapIf(raw.x),wy=snapIf(raw.y);
   document.getElementById('statusbar-coords').textContent=`${wx.toFixed(1)}m, ${wy.toFixed(1)}m`;
   if(dragging&&currentTool==='select'){
-    if(furniture.includes(dragging)){dragging.x=wx-dragOffset.x;dragging.y=wy-dragOffset.y;}
+    if(furniture.includes(dragging)){dragging.x=wx-dragOffset.x;dragging.y=wy-dragOffset.y;clampFootprint(dragging);}
     else if(walls.includes(dragging)){const dx=wx-dragOffset.x,dy=wy-dragOffset.y;dragging.x1+=dx;dragging.y1+=dy;dragging.x2+=dx;dragging.y2+=dy;dragOffset={x:wx,y:wy};}
     draw2d();updateProps();return;
   }
@@ -2529,13 +2592,17 @@ function buildWindow(f,def){
   const g=new THREE.Group();const fw=f.w,fd=f.h,fh=f.h3d;
   const panels=Math.max(1,Math.min(4,parseInt(f.panels)||2));
   const paneW=fw/panels;
-  const frameMat=stdMat(0xd8cfc0,0.7);const glassMat=new THREE.MeshStandardMaterial({color:0xb8d8f0,roughness:0.05,metalness:0.1,transparent:true,opacity:0.35});
+  const glassCol=parseInt(String(def.color||'').replace('#',''),16)||0xb8d8f0;
+  const frameMat=stdMat(0xd8cfc0,0.7);
+  const glassMat=new THREE.MeshStandardMaterial({color:glassCol,roughness:0.05,metalness:0.05,transparent:true,opacity:0.22,side:THREE.DoubleSide});
   const frame=new THREE.Mesh(new THREE.BoxGeometry(fw,fh,0.08),frameMat);frame.position.set(fw/2,fh/2,fd/2);frame.castShadow=true;g.add(frame);
   for(let i=0;i<panels;i++){
-    const pane=new THREE.Mesh(new THREE.BoxGeometry(paneW*0.9,fh*0.82,0.02),glassMat);
-    pane.position.set(paneW*i+paneW/2,fh/2,fd/2+0.01);g.add(pane);
-    if(i<panels-1){const div=new THREE.Mesh(new THREE.BoxGeometry(0.04,fh*0.9,0.09),frameMat);div.position.set(paneW*(i+1),fh/2,fd/2);g.add(div);}
+    const pane=new THREE.Mesh(new THREE.BoxGeometry(paneW*0.9,fh*0.78,0.02),glassMat);
+    pane.position.set(paneW*i+paneW/2,fh/2,fd/2+0.01);pane.castShadow=true;pane.receiveShadow=true;g.add(pane);
+    if(i<panels-1){const div=new THREE.Mesh(new THREE.BoxGeometry(0.04,fh*0.86,0.09),frameMat);div.position.set(paneW*(i+1),fh/2,fd/2);g.add(div);}
   }
+  const sill=new THREE.Mesh(new THREE.BoxGeometry(fw+0.14,0.06,0.12),frameMat);sill.position.set(fw/2,0.03,fd/2);sill.castShadow=true;g.add(sill);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(fw+0.14,0.06,0.12),frameMat);head.position.set(fw/2,fh-0.03,fd/2);head.castShadow=true;g.add(head);
   if(f.curtain&&f.curtain!=='none'){
     const cur=new THREE.Group();
     const dark=stdMat(f.curtain==='sheer'?0xf3e9d8:0x5c6e7b,0.7);
@@ -2582,6 +2649,7 @@ function build3d(){
     setup3dMouse();
   }
   const toRemove=[];scene.children.forEach(c=>{if(!(c instanceof THREE.Light))toRemove.push(c);});toRemove.forEach(c=>scene.remove(c));
+  ensureWallAttachment();
   const floorTex=makeFloorTexture();const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:0.85,metalness:0.0});
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),floorMat);floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
   const ceilH=roomConfig.wallH||2.7;const ceilMat=new THREE.MeshStandardMaterial({color:0xf8f4ee,roughness:0.95});
@@ -2629,12 +2697,23 @@ function build3d(){
     });
   });
   furniture.forEach(f=>{
-    const def=FURNITURE_DEFS.find(d=>d.id===f.defId);if(!def)return;
-    const builder=BUILDERS[def.id]||buildGeneric;const group=builder(f,def);
+    console.log('[build3d] FURNITURE DUMP — id, defId, x, y, w, h, rot, h3d per item:');
+    console.log(JSON.stringify(furniture,null,2));
+    const def=FURNITURE_DEFS.find(d=>d.id===f.defId);
+    if(!def){console.warn('[build3d] Skipping furniture item: no FURNITURE_DEFS entry for defId "'+(f.defId||'?')+'" (item '+f.id+'). This usually means the layout was saved against an older def list or an unmapped detection class. Remap defId in the item or re-add the piece.',f);return;}
+    const builder=BUILDERS[def.id];
+    if(!builder)console.warn('[build3d] No 3D builder mapped for defId "'+def.id+'"; using buildGeneric fallback (generic box/shape).',f);
+    let group;
+    try{group=(builder||buildGeneric)(f,def);}
+    catch(err){
+      console.error('[build3d] Builder for defId "'+def.id+'" threw; rendering generic fallback:',err,f);
+      try{group=buildGeneric(f,def);}catch(err2){console.error('[build3d] buildGeneric also threw for defId "'+def.id+'" — item not rendered:',err2);return;}
+    }
     const pivot=new THREE.Group();
     group.position.set(-f.w/2,0,-f.h/2);
     pivot.add(group);
-    pivot.position.set(f.x+f.w/2,0,f.y+f.h/2);
+    const ctr=itemCenter(f);
+    pivot.position.set(ctr.x,0,ctr.y);
     pivot.rotation.y=-(f.rot||0);
     pivot.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
     scene.add(pivot);
@@ -2651,6 +2730,12 @@ function updateCam3d(){
   if(!camera)return;
   camera.position.set(tgt.x+sph.radius*Math.sin(sph.phi)*Math.cos(sph.theta),sph.radius*Math.cos(sph.phi),tgt.z+sph.radius*Math.sin(sph.phi)*Math.sin(sph.theta));
   camera.lookAt(tgt.x,tgt.y,tgt.z);camera.aspect=canvasW/canvasH;camera.updateProjectionMatrix();
+}
+function view3dTop(){
+  if(editorView!=='3d')return;
+  sph.theta=-Math.PI/2;       // orbit right-vector=+X so 2D east points screen-right
+  sph.phi=1.35;               // steep tilt, north (z small) reads as screen-top
+  updateCam3d();
 }
 function setup3dMouse(){
   const c3=document.getElementById('canvas3d');
