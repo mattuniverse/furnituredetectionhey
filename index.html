@@ -933,7 +933,7 @@ function refreshCanvasTheme(){
 // ══════════════════════════════════════════
 let currentScreen='login';
 let currentUserRole='user';
-let roomConfig={type:'Living Room',shape:'rect',w:5,h:4,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878'}};
+let roomConfig={type:'Living Room',shape:'rect',w:5,h:4,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878',pattern:'boards'},wallFinish:{style:'solid',color:'#ddd0be'}};
 let currentTool='select';
 let walls=[],furniture=[],selectedItem=null;
 let dragging=null,dragOffset={x:0,y:0};
@@ -1256,6 +1256,8 @@ function selectFloorStyle(btn,style){
   btn.classList.add('active');btn.setAttribute('aria-checked','true');
   roomConfig.floor=roomConfig.floor||{};
   roomConfig.floor.style=style;
+  if(!roomConfig.floor.color)roomConfig.floor.color=floorDefaultColorFor(style);
+  if(!roomConfig.floor.pattern&&(style==='wood'||style==='tile'))roomConfig.floor.pattern=style==='wood'?'boards':'check';
 }
 function selectFloorColor(btn){
   document.querySelectorAll('.floor-color-swatch').forEach(b=>b.classList.remove('active'));
@@ -1283,7 +1285,7 @@ function startEditor(){
   setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();},50);
 }
 function loadDemo(){
-  roomConfig={type:'Living Room',shape:'rect',w:6,h:5,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878'}};
+  roomConfig={type:'Living Room',shape:'rect',w:6,h:5,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878',pattern:'boards'},wallFinish:{style:'solid',color:'#ddd0be'}};
   walls=[];furniture=[];selectedItem=null;wallStart=null;currentProjectId=null;
   buildRectRoom();
   addFurn('sofa_3',0.5,3.5,0);addFurn('coffee',1.5,2.5,0);addFurn('tv',0.5,0.3,0);
@@ -1441,7 +1443,7 @@ function itemOnWall(f,wall){
   if(align<0.707)return null;
   const t0=Math.max(0,(proj-(f.w/2))/u.l),t1=Math.min(1,(proj+(f.w/2))/u.l);
   if(t1<=t0)return null;
-  return{t0,t1,type:f.defId,rot:Math.atan2(u.y,u.x)};
+  return{t0,t1,type:f.defId,rot:Math.atan2(u.y,u.x),item:f};
 }
 function wallOpenings(wall){
   const out=[];
@@ -1671,6 +1673,23 @@ function drawRoomFill(){
   ctx.closePath();
   const fc=roomConfig.floor&&roomConfig.floor.color?roomConfig.floor.color:'#e8d9cc';
   ctx.fillStyle=hexToRgba(fc,0.85);ctx.fill();
+  const fstyle=(roomConfig.floor&&roomConfig.floor.style)||'wood';
+  const fpat=(roomConfig.floor&&roomConfig.floor.pattern)||(fstyle==='tile'?'check':fstyle==='wood'?'boards':'');
+  ctx.save();ctx.clip();
+  ctx.lineWidth=0.75;
+  const sp=(wx,wy,wx2,wy2)=>{const a=worldToScreen(wx,wy),b=worldToScreen(wx2,wy2);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();};
+  if(fstyle==='wood'){
+    const vStep=fpat==='strip'?0.16:0.45;
+    for(let vx=0;vx<=roomConfig.w;vx+=vStep){sp(vx,0,vx,roomConfig.h);}
+    ctx.strokeStyle='rgba(60,38,20,.16)';
+    for(let hy=fpat==='strip'?0.23:0.5;hy<=roomConfig.h;hy+=(fpat==='strip'?0.46:1)){sp(0,hy,roomConfig.w,hy);}
+  }else if(fstyle==='tile'&&fpat!=='hex'){
+    ctx.strokeStyle='rgba(30,30,30,.14)';
+    const step=fpat==='large'?0.8:0.25;
+    for(let gx=0;gx<=roomConfig.w;gx+=step){sp(gx,0,gx,roomConfig.h);}
+    for(let gy=0;gy<=roomConfig.h;gy+=step){sp(0,gy,roomConfig.w,gy);}
+  }
+  ctx.restore();
   ctx.strokeStyle='rgba(74,48,32,.18)';ctx.lineWidth=1;
   const grid=0.5;
   for(let gx=0;gx<=roomConfig.w;gx+=grid){const a=worldToScreen(gx,0),b=worldToScreen(gx,roomConfig.h);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
@@ -1730,7 +1749,7 @@ function drawFurniture(vio){
       ctx.strokeStyle='rgba(140,96,64,.6)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
       ctx.restore();
     }
-    else if(def.id==='window'){ctx.fillRect(0,0,pw,ph);ctx.strokeRect(0,0,pw,ph);ctx.strokeStyle='rgba(139,180,212,.8)';ctx.lineWidth=1.5;const mid=ph/2;ctx.beginPath();ctx.moveTo(pw*0.2,mid);ctx.lineTo(pw*0.8,mid);ctx.stroke();}
+    else if(def.id==='window'){ctx.fillRect(0,0,pw,ph);ctx.strokeRect(0,0,pw,ph);ctx.strokeStyle='rgba(139,180,212,.8)';ctx.lineWidth=1.5;const mid=ph/2;ctx.beginPath();ctx.moveTo(pw*0.2,mid);ctx.lineTo(pw*0.8,mid);ctx.stroke();if(curtainOf(f)){const off=(curtainOf(f).widthScale-1)*pw/2;const aCol=curtainOf(f).style==='sheer'?'rgba(200,190,180,.5)':'rgba(120,110,100,.75)';ctx.strokeStyle=aCol;ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(-off-2,-2,pw+2*off+2,ph+2);ctx.setLineDash([]);}}
     else{ctx.fillRect(0,0,pw,ph);ctx.strokeRect(0,0,pw,ph);}
     ctx.font=`${Math.max(10,Math.min(16,pw/3))}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.globalAlpha=0.85;
     ctx.fillText(def.icon,pw/2,ph/2);ctx.globalAlpha=1;
@@ -1841,7 +1860,28 @@ window.addEventListener('keydown',e=>{
 function selectItem(item){selectedItem=item;updateProps();}
 function updateProps(){
   const el=document.getElementById('prop-content');
-  if(!selectedItem){el.innerHTML='<p class="empty-prop">Select a wall or furniture piece to edit its properties here.</p>';draw2d();return;}
+  if(!selectedItem){
+    const floor=roomConfig.floor||{style:'wood',color:'#c8a878',pattern:'boards'};
+    const wf=roomConfig.wallFinish||{style:'solid',color:'#ddd0be'};
+    const floorPatterns={wood:[['boards','Boards'],[`strip`,'Strips'],['herring','Herringbone']],tile:[['check','Checker'],[`hex`,'Hexagon'],[`large`,'Large format']],carpet:[],concrete:[]};
+    const curPat=floorPatterns[floor.style||'wood']||[];
+    const patHtml=curPat.length?`<div class="prop-group" id="fp-patw"><div class="prop-label">Pattern</div><select class="prop-input" id="fp-pat">${curPat.map(([v,l])=>`<option value="${v}" ${(floor.pattern||curPat[0][0])===v?'selected':''}>${l}</option>`).join('')}</select></div>`:'';
+    el.innerHTML=`<div class="prop-group" style="font-size:13px;font-weight:600;color:var(--color-text-secondary);margin-bottom:12px">Room Style</div>
+    <div class="prop-group"><div class="prop-label">Floor</div><select class="prop-input" id="fp-style"><option value="wood" ${(floor.style||'wood')==='wood'?'selected':''}>Wood</option><option value="tile" ${floor.style==='tile'?'selected':''}>Tile</option><option value="carpet" ${floor.style==='carpet'?'selected':''}>Carpet</option><option value="concrete" ${floor.style==='concrete'?'selected':''}>Concrete</option></select></div>
+    ${patHtml}
+    <div class="prop-group"><div class="prop-label">Floor color</div><input class="prop-input" type="color" id="fp-color" value="${floor.color||'#c8a878'}"></div>
+    <hr class="prop-divider">
+    <div class="prop-group"><div class="prop-label">Wall finish</div><select class="prop-input" id="wp-style"><option value="solid" ${(wf.style||'solid')==='solid'?'selected':''}>Solid</option><option value="stripe" ${wf.style==='stripe'?'selected':''}>Vertical stripe</option><option value="textured" ${wf.style==='textured'?'selected':''}>Textured paint</option></select></div>
+    <div class="prop-group"><div class="prop-label">Wall color</div><input class="prop-input" type="color" id="wp-color" value="${wf.color||'#ddd0be'}"></div>
+    <p class="empty-prop" style="margin-top:12px">Or select a wall or furniture piece to edit its properties.</p>`;
+    const fp=document.getElementById('fp-style');
+    fp.onchange=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.style=this.value;if(!roomConfig.floor.color)roomConfig.floor.color=floorDefaultColorFor(this.value);updateProps();};
+    if(document.getElementById('fp-pat'))document.getElementById('fp-pat').onchange=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.pattern=this.value;draw2d();};
+    document.getElementById('fp-color').oninput=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.color=this.value;draw2d();};
+    document.getElementById('wp-style').onchange=function(){roomConfig.wallFinish=roomConfig.wallFinish||{};roomConfig.wallFinish.style=this.value;draw2d();};
+    document.getElementById('wp-color').oninput=function(){roomConfig.wallFinish=roomConfig.wallFinish||{};roomConfig.wallFinish.color=this.value;draw2d();};
+    draw2d();return;
+  }
   if(walls.includes(selectedItem)){
     const w=selectedItem;const len=Math.sqrt((w.x2-w.x1)**2+(w.y2-w.y1)**2);
     el.innerHTML=`<div class="prop-group"><div class="prop-label">Length (m)</div><input class="prop-input" type="number" id="p-len" value="${len.toFixed(2)}" step="0.1" min="0.1"></div><div class="prop-group"><div class="prop-label">Thickness (m)</div><input class="prop-input" type="number" id="p-t" value="${(w.t||0.15).toFixed(2)}" step="0.05" min="0.05" max="1"></div><div class="prop-group"><div class="prop-label">Wall Height 3D (m)</div><input class="prop-input" type="number" id="p-wh" value="${(w.wh||2.7).toFixed(1)}" step="0.1" min="0.5" max="6"></div><hr class="prop-divider"><div class="prop-row-btns"><button class="prop-btn danger" onclick="deleteSelected()">Delete</button></div>`;
@@ -1853,16 +1893,28 @@ function updateProps(){
     let extra='';
     if(def.type==='window'){
       const panels=Math.max(1,Math.min(4,parseInt(f.panels)||2));
-      const curtain=f.curtain||'none';
-      extra=`<hr class="prop-divider"><div class="prop-group"><div class="prop-label">Window panels</div><select class="prop-input" id="p-panels"><option value="1" ${panels===1?'selected':''}>1</option><option value="2" ${panels===2?'selected':''}>2</option><option value="3" ${panels===3?'selected':''}>3</option><option value="4" ${panels===4?'selected':''}>4</option></select></div><div class="prop-group"><div class="prop-label">Curtain</div><select class="prop-input" id="p-curtain"><option value="none" ${curtain==='none'?'selected':''}>None</option><option value="sheer" ${curtain==='sheer'?'selected':''}>Sheer</option><option value="heavy" ${curtain==='heavy'?'selected':''}>Heavy</option></select></div>`;
+      const cur=curtainOf(f);
+      const sillH=typeof f.sillHeight==='number'?f.sillHeight:0.9;
+      const winH=typeof f.windowHeight==='number'?f.windowHeight:1.4;
+      extra=`<hr class="prop-divider"><div class="prop-group"><div class="prop-label">Window panels</div><select class="prop-input" id="p-panels"><option value="1" ${panels===1?'selected':''}>1</option><option value="2" ${panels===2?'selected':''}>2</option><option value="3" ${panels===3?'selected':''}>3</option><option value="4" ${panels===4?'selected':''}>4</option></select></div><div class="prop-group"><div class="prop-label">Sill height (m)</div><input class="prop-input" type="number" id="p-wsill" value="${sillH.toFixed(1)}" step="0.1" min="0.1" max="1.8"></div><div class="prop-group"><div class="prop-label">Window height (m)</div><input class="prop-input" type="number" id="p-wwin" value="${winH.toFixed(1)}" step="0.1" min="0.3" max="2.4"></div><hr class="prop-divider"><div class="prop-group" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="p-curon" ${cur?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"><label class="prop-label" style="margin:0;flex:1">Curtain</label></div><div id="p-curwrap" style="display:${cur?'block':'none'}"><div class="prop-group"><div class="prop-label">Curtain style</div><select class="prop-input" id="p-curstyle"><option value="panel" ${cur&&cur.style==='panel'?'selected':''}>Panel</option><option value="sheer" ${cur&&cur.style==='sheer'?'selected':''}>Sheer</option></select></div><div class="prop-group"><div class="prop-label">Curtain color</div><input class="prop-input" type="color" id="p-curcolor" value="${cur?cur.color:'#c8c4bc'}"></div><div class="prop-group"><div class="prop-label">Width past frame <span id="p-curws-v" style="color:var(--color-accent);font-weight:600">${cur?(cur.widthScale).toFixed(2):'1.00'}\u00D7</span></div><input class="prop-input" type="range" id="p-curws" min="1" max="1.6" step="0.05" value="${cur?cur.widthScale:1}" style="width:100%"></div><div class="prop-group"><div class="prop-label">Position</div><select class="prop-input" id="p-curopen"><option value="closed" ${cur&&!cur.open?'selected':''}>Closed</option><option value="open" ${cur&&cur.open?'selected':''}>Open</option></select></div></div>`;
     }
-    el.innerHTML=`<div class="prop-group" style="font-size:13px;font-weight:600;color:var(--color-text-secondary);margin-bottom:12px">${def.icon||''} ${def.label}</div><div class="prop-group"><div class="prop-label">Width (m)</div><input class="prop-input" type="number" id="p-fw" value="${f.w.toFixed(2)}" step="0.1" min="0.1"></div><div class="prop-group"><div class="prop-label">Depth (m)</div><input class="prop-input" type="number" id="p-fh" value="${f.h.toFixed(2)}" step="0.1" min="0.1"></div><div class="prop-group"><div class="prop-label">Height 3D (m)</div><input class="prop-input" type="number" id="p-fht" value="${f.h3d.toFixed(1)}" step="0.1" min="0.05" max="5"></div><div class="prop-group"><div class="prop-label">Rotate (\u00B0)</div><input class="prop-input" type="number" id="p-rot" value="${Math.round((f.rot||0)*180/Math.PI)}" step="15"></div><div class="prop-row-btns"><button class="prop-btn" onclick="rotSel(-90)">\u21BA 90\u00B0</button><button class="prop-btn" onclick="rotSel(90)">\u21BB 90\u00B0</button></div>${extra}<hr class="prop-divider"><div class="prop-row-btns"><button class="prop-btn danger" onclick="deleteSelected()">Delete</button></div>`;
+    el.innerHTML=`<div class="prop-group" style="font-size:13px;font-weight:600;color:var(--color-text-secondary);margin-bottom:12px">${def.icon||''} ${def.label}</div><div class="prop-group"><div class="prop-label">Width (m)</div><input class="prop-input" type="number" id="p-fw" value="${f.w.toFixed(2)}" step="0.1" min="0.1"></div><div class="prop-group"><div class="prop-label">Depth (m)</div><input class="prop-input" type="number" id="p-fh" value="${f.h.toFixed(2)}" step="0.1" min="0.1"></div>${def.type==='window'?'':`<div class="prop-group"><div class="prop-label">Height 3D (m)</div><input class="prop-input" type="number" id="p-fht" value="${f.h3d.toFixed(1)}" step="0.1" min="0.05" max="5"></div>`}<div class="prop-group"><div class="prop-label">Rotate (\u00B0)</div><input class="prop-input" type="number" id="p-rot" value="${Math.round((f.rot||0)*180/Math.PI)}" step="15"></div><div class="prop-row-btns"><button class="prop-btn" onclick="rotSel(-90)">\u21BA 90\u00B0</button><button class="prop-btn" onclick="rotSel(90)">\u21BB 90\u00B0</button></div>${extra}<hr class="prop-divider"><div class="prop-row-btns"><button class="prop-btn danger" onclick="deleteSelected()">Delete</button></div>`;
     document.getElementById('p-fw').oninput=function(){f.w=parseFloat(this.value)||0.5;draw2d();};
     document.getElementById('p-fh').oninput=function(){f.h=parseFloat(this.value)||0.5;draw2d();};
-    document.getElementById('p-fht').oninput=function(){f.h3d=parseFloat(this.value)||0.9;};
+    if(document.getElementById('p-fht'))document.getElementById('p-fht').oninput=function(){f.h3d=parseFloat(this.value)||0.9;};
     document.getElementById('p-rot').oninput=function(){f.rot=(parseFloat(this.value)||0)*Math.PI/180;if(f.defId==='door'||f.defId==='window')snapDoorWindow(f);draw2d();};
     if(document.getElementById('p-panels'))document.getElementById('p-panels').onchange=function(){f.panels=parseInt(this.value)||2;draw2d();};
-    if(document.getElementById('p-curtain'))document.getElementById('p-curtain').onchange=function(){f.curtain=this.value;draw2d();};
+    if(document.getElementById('p-wsill'))document.getElementById('p-wsill').oninput=function(){f.sillHeight=Math.min(1.8,Math.max(0.1,parseFloat(this.value)||0.9));draw2d();};
+    if(document.getElementById('p-wwin'))document.getElementById('p-wwin').oninput=function(){f.windowHeight=Math.min(2.4,Math.max(0.3,parseFloat(this.value)||1.4));draw2d();};
+    if(document.getElementById('p-curon'))document.getElementById('p-curon').onchange=function(){
+      const cur=curtainOf(f)||{style:'panel',color:'#c8c4bc',widthScale:1.15,open:false};
+      cur.enabled=this.checked;
+      f.curtain=cur;draw2d();updateProps();
+    };
+    if(document.getElementById('p-curstyle'))document.getElementById('p-curstyle').onchange=function(){const cur=curtainOf(f);if(!cur)return;cur.style=this.value;draw2d();};
+    if(document.getElementById('p-curcolor'))document.getElementById('p-curcolor').oninput=function(){const cur=curtainOf(f);if(!cur)return;cur.color=this.value;draw2d();};
+    if(document.getElementById('p-curws'))document.getElementById('p-curws').oninput=function(){const cur=curtainOf(f);if(!cur)return;cur.widthScale=Math.min(1.6,Math.max(1,parseFloat(this.value)||1));const v=document.getElementById('p-curws-v');if(v)v.textContent=cur.widthScale.toFixed(2)+'\u00D7';draw2d();};
+    if(document.getElementById('p-curopen'))document.getElementById('p-curopen').onchange=function(){const cur=curtainOf(f);if(!cur)return;cur.open=this.value==='open';draw2d();};
   }
   draw2d();
 }
@@ -2368,54 +2420,110 @@ let sph={theta:0.7,phi:1.0,radius:10};
 let tgt={x:0,y:0,z:0};
 let md3=false,rDrag=false,pm={x:0,y:0};
 
+function floorDefaultColorFor(style){return ({wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'})[style]||'#c8a878';}
+function shadeHex(hex,amt){
+  const n=parseInt(hex.replace('#',''),16);
+  const r=Math.max(0,Math.min(255,(n>>16)&255+amt));
+  const g=Math.max(0,Math.min(255,((n>>8)&255)+amt));
+  const b=Math.max(0,Math.min(255,(n&255)+amt));
+  return `rgb(${r},${g},${b})`;
+}
 function makeFloorTexture(){
   const c=document.createElement('canvas'); c.width=512; c.height=512;
   const x=c.getContext('2d');
-  const floor=roomConfig.floor||{style:'wood',color:'#c8a878'};
+  const floor=roomConfig.floor||{style:'wood',color:'#c8a878',pattern:'boards'};
   const base=floor.color||'#c8a878';
   const style=floor.style||'wood';
+  const pattern=floor.pattern||(style==='tile'?'check':style==='wood'?'boards':'');
   x.fillStyle=base; x.fillRect(0,0,512,512);
-  const shade=(hex,amt)=>{const n=parseInt(hex.replace('#',''),16);const r=Math.max(0,Math.min(255,(n>>16)&255+amt));const g=Math.max(0,Math.min(255,((n>>8)&255)+amt));const b=Math.max(0,Math.min(255,(n&255)+amt));return `rgb(${r},${g},${b})`;};
   if(style==='wood'){
-    const plankH=38;
-    for(let row=0;row<512/plankH+1;row++){
-      const offset=(row%2)*180;const plankW=180;
-      for(let col=-1;col<512/plankW+2;col++){
-        const px=(col*plankW+offset)%512-2;const py=row*plankH;
-        x.fillStyle=row%3===0?shade(base,18):row%3===1?shade(base,6):base;
-        x.fillRect(px+2,py+2,plankW-4,plankH-4);
-        x.strokeStyle='rgba(80,50,20,0.08)';x.lineWidth=0.5;
-        for(let g=0;g<3;g++){x.beginPath();x.moveTo(px+2,py+8+g*10);x.lineTo(px+plankW-4,py+8+g*10);x.stroke();}
+    if(pattern==='herring'){
+      const piece=(cx,cy,L,H,a,fill)=>{x.save();x.translate(cx,cy);x.rotate(a);x.fillStyle=fill;x.fillRect(-L/2,-H/2,L,H);x.strokeStyle='rgba(60,40,20,0.25)';x.lineWidth=0.6;x.strokeRect(-L/2,-H/2,L,H);x.restore();};
+      const L=92,H=26;
+      for(let row=0;row<512/H+1;row++)for(let col=0;col<512/(L/2)+1;col++){
+        const x0=col*(L/2),y0=row*H;
+        piece(x0+ (row%2===0?0:H/2), y0, L,H, Math.PI/4, (col+row)%3===0?shadeHex(base,16):(col+row)%3===1?shadeHex(base,-10):base);
+        piece(x0+(row%2===0?H/2:0)+L/4, y0+H/2, L,H, -Math.PI/4, (col+row)%3===1?shadeHex(base,16):(col+row)%3===0?shadeHex(base,-10):base);
       }
-      x.fillStyle=shade(base,-22);x.fillRect(0,row*plankH,512,2);
+    }else{
+      const plankH=pattern==='strip'?22:40;
+      const plankW=pattern==='strip'?92:180;
+      for(let row=0;row<512/plankH+1;row++){
+        const offset=(row%2)*(plankW/2);
+        for(let col=-1;col<512/plankW+2;col++){
+          const px=(col*plankW+offset)%512-2,py=row*plankH;
+          const shadeN=(row+col)%3;
+          x.fillStyle=shadeN===0?shadeHex(base,16):shadeN===1?shadeHex(base,-8):base;
+          x.fillRect(px+2,py+2,plankW-4,plankH-4);
+          x.strokeStyle='rgba(70,45,20,0.10)';x.lineWidth=0.6;
+          x.strokeRect(px+2,py+2,plankW-4,plankH-4);
+          for(let g=0;g<3;g++){x.beginPath();x.moveTo(px+3,py+6+g*11);x.bezierCurveTo(px+plankW*0.5,py+4+g*11+((row%2)*4),px+plankW*0.6,py+8+g*11,px+plankW-4,py+6+g*11);x.stroke();}
+        }
+        x.fillStyle=shadeHex(base,-26);x.fillRect(0,row*plankH,512,1.5);
+      }
     }
   } else if(style==='tile'){
-    const size=64;
-    for(let r=0;r<512/size;r++)for(let col=0;col<512/size;col++){
-      x.fillStyle=(r+col)%2===0?shade(base,10):base;
-      x.fillRect(col*size,r*size,size,size);
-      x.strokeStyle='rgba(0,0,0,0.12)';x.lineWidth=1;x.strokeRect(col*size+0.5,r*size+0.5,size,size);
+    if(pattern==='hex'){
+      const side=26,rowH=Math.sqrt(3)*side;
+      const hex=(hx,hy,rad,fill)=>{x.beginPath();for(let k=0;k<6;k++){const a=Math.PI/6+k*Math.PI/3;const vx=hx+rad*Math.cos(a),vy=hy+rad*Math.sin(a);k===0?x.moveTo(vx,vy):x.lineTo(vx,vy);}x.closePath();x.fillStyle=fill;x.fill();x.strokeStyle='rgba(0,0,0,0.18)';x.lineWidth=1;x.stroke();};
+      for(let r=0;r<512/rowH+2;r++)for(let col=0;col<512/(side*1.5)+1;col++){
+        const hx=col*side*1.5+(r%2===0?0:side*0.75),hy=r*rowH;
+        hex(hx,hy,side,(r+col)%2===0?shadeHex(base,8):base);
+      }
+    }else{
+      const size=pattern==='large'?128:64;
+      for(let r=0;r<512/size;r++)for(let col=0;col<512/size;col++){
+        x.fillStyle=(r+col)%2===0?shadeHex(base,10):base;
+        x.fillRect(col*size,r*size,size,size);
+        x.strokeStyle='rgba(0,0,0,0.14)';x.lineWidth=pattern==='large'?2:1;
+        x.strokeRect(col*size+0.5,r*size+0.5,size,size);
+      }
     }
+  } else if(style==='carpet'){
+    x.strokeStyle='rgba(255,255,255,0.05)';
+    for(let i=0;i<512;i+=3){x.beginPath();x.moveTo(0,i);x.lineTo(512,i+((i%2===0)?2:-2));x.stroke();}
+    for(let i=0;i<512;i+=3){x.beginPath();x.moveTo(i,0);x.lineTo(i+((i%2===0)?2:-2),512);x.stroke();}
+    for(let i=0;i<900;i++){x.fillStyle=`rgba(${120+Math.random()*80},${110+Math.random()*70},${100+Math.random()*70},0.12)`;const rx=Math.random()*512,ry=Math.random()*512;x.beginPath();x.arc(rx,ry,0.5+Math.random()*1.2,0,Math.PI*2);x.fill();}
   } else if(style==='concrete'){
     x.fillStyle=base;x.fillRect(0,0,512,512);
-    for(let i=0;i<40;i++){x.fillStyle='rgba(0,0,0,0.05)';const rx=Math.random()*512,ry=Math.random()*512;x.beginPath();x.arc(rx,ry,2+Math.random()*4,0,Math.PI*2);x.fill();}
-    x.strokeStyle='rgba(0,0,0,0.18)';x.lineWidth=2;
+    for(let i=0;i<50;i++){x.fillStyle='rgba(0,0,0,0.05)';const rx=Math.random()*512,ry=Math.random()*512;x.beginPath();x.arc(rx,ry,2+Math.random()*5,0,Math.PI*2);x.fill();}
+    x.strokeStyle='rgba(0,0,0,0.16)';x.lineWidth=3;
     x.strokeRect(30.5,30.5,451,451);
-  } else {
-    x.fillStyle=base;x.fillRect(0,0,512,512);
-    for(let r=0;r<512/24;r++){x.fillStyle='rgba(255,255,255,0.06)';x.fillRect(0,r*24,512,12);}
   }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(4,4); return t;
+}
+function wallFinishCfg(){
+  const wf=roomConfig.wallFinish||{};
+  return{style:wf.style||'solid',color:wf.color||'#ddd0be'};
 }
 function makeWallTexture(){
   const c=document.createElement('canvas'); c.width=256; c.height=256;
   const x=c.getContext('2d');
-  x.fillStyle='#ddd0be'; x.fillRect(0,0,256,256);
-  for(let i=0;i<400;i++){
-    x.fillStyle=`rgba(${180+Math.random()*30},${160+Math.random()*20},${130+Math.random()*20},0.05)`;
-    x.fillRect(Math.random()*256,Math.random()*256,Math.random()*20+4,Math.random()*4+1);
+  const wf=wallFinishCfg();const base=wf.color;const style=wf.style;
+  x.fillStyle=base; x.fillRect(0,0,256,256);
+  if(style==='stripe'){
+    const band=64;
+    for(let s=-16;s<256;s+=band){
+      const g=x.createLinearGradient(s,0,s+band,0);
+      g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(0.28,'rgba(255,255,255,0.16)');g.addColorStop(0.5,'rgba(0,0,0,0)');g.addColorStop(0.72,'rgba(0,0,0,0.08)');g.addColorStop(1,'rgba(255,255,255,0)');
+      x.fillStyle=g;x.fillRect(s,0,band,256);
+    }
+    for(let i=0;i<220;i++){x.fillStyle=`rgba(${0},${0},${0},0.03)`;x.fillRect(Math.random()*256,Math.random()*256,Math.random()*14+2,Math.random()*3+1);}
+  } else if(style==='textured'){
+    for(let i=0;i<900;i++){
+      x.fillStyle=`rgba(${120+Math.random()*60},${110+Math.random()*50},${100+Math.random()*50},0.05)`;
+      x.fillRect(Math.random()*256,Math.random()*256,Math.random()*7+1,Math.random()*5+1);
+    }
+    const g=x.createLinearGradient(0,0,0,256);
+    g.addColorStop(0,'rgba(0,0,0,0.05)');g.addColorStop(0.5,'rgba(255,255,255,0.04)');g.addColorStop(1,'rgba(0,0,0,0.06)');
+    x.fillStyle=g;x.fillRect(0,0,256,256);
+  } else {
+    for(let i=0;i<400;i++){
+      x.fillStyle=`rgba(${180+Math.random()*30},${160+Math.random()*20},${130+Math.random()*20},0.05)`;
+      x.fillRect(Math.random()*256,Math.random()*256,Math.random()*20+4,Math.random()*4+1);
+    }
   }
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(2,1); return t;
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(style==='stripe'?3:2,1); return t;
 }
 function makeFabricTexture(hexColor){
   const c=document.createElement('canvas'); c.width=128; c.height=128;
@@ -2601,32 +2709,66 @@ function buildDoor(f,def){
   const handle=new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8),handleMat);handle.position.set(fw*0.82,fh*0.5,fd/2+0.055);g.add(handle);
   return g;
 }
+function curtainOf(f){
+  const c=f.curtain;
+  if(!c)return null;
+  if(typeof c==='string'){
+    if(c==='none')return null;
+    return{enabled:true,style:c==='sheer'?'sheer':'panel',color:'#c8c4bc',widthScale:1.15,open:false};
+  }
+  if(!c.enabled)return null;
+  return{enabled:true,style:c.style==='sheer'?'sheer':'panel',color:c.color||'#c8c4bc',widthScale:Math.min(1.6,Math.max(1,c.widthScale||1.15)),open:!!c.open};
+}
+function hexInt(hex,fb){const n=parseInt(String(hex||'').replace('#',''),16);return isNaN(n)?fb:n;}
 function buildWindow(f,def){
-  const g=new THREE.Group();const fw=f.w,fd=f.h,fh=f.h3d;
+  const g=new THREE.Group();const fw=f.w,fd=f.h;
+  const silH=typeof f.sillHeight==='number'?f.sillHeight:0.9;
+  const fh=Math.min(Math.max(typeof f.windowHeight==='number'?f.windowHeight:Math.max(1.2,f.h3d||1.2),0.3),3);
   const panels=Math.max(1,Math.min(4,parseInt(f.panels)||2));
   const paneW=fw/panels;
-  const glassCol=parseInt(String(def.color||'').replace('#',''),16)||0xb8d8f0;
+  const glassCol=hexInt(def.color,0xb8d8f0);
   const frameMat=stdMat(0xd8cfc0,0.7);
   const glassMat=new THREE.MeshStandardMaterial({color:glassCol,roughness:0.05,metalness:0.05,transparent:true,opacity:0.22,side:THREE.DoubleSide});
-  const frame=new THREE.Mesh(new THREE.BoxGeometry(fw,fh,0.08),frameMat);frame.position.set(fw/2,fh/2,fd/2);frame.castShadow=true;g.add(frame);
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(fw,fh,0.08),frameMat);frame.position.set(fw/2,silH+fh/2,fd/2);frame.castShadow=true;g.add(frame);
   for(let i=0;i<panels;i++){
     const pane=new THREE.Mesh(new THREE.BoxGeometry(paneW*0.9,fh*0.78,0.02),glassMat);
-    pane.position.set(paneW*i+paneW/2,fh/2,fd/2+0.01);pane.castShadow=true;pane.receiveShadow=true;g.add(pane);
-    if(i<panels-1){const div=new THREE.Mesh(new THREE.BoxGeometry(0.04,fh*0.86,0.09),frameMat);div.position.set(paneW*(i+1),fh/2,fd/2);g.add(div);}
+    pane.position.set(paneW*i+paneW/2,silH+fh/2,fd/2+0.01);pane.castShadow=true;pane.receiveShadow=true;g.add(pane);
+    if(i<panels-1){const div=new THREE.Mesh(new THREE.BoxGeometry(0.04,fh*0.86,0.09),frameMat);div.position.set(paneW*(i+1),silH+fh/2,fd/2);g.add(div);}
   }
-  const sill=new THREE.Mesh(new THREE.BoxGeometry(fw+0.14,0.06,0.12),frameMat);sill.position.set(fw/2,0.03,fd/2);sill.castShadow=true;g.add(sill);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(fw+0.14,0.06,0.12),frameMat);head.position.set(fw/2,fh-0.03,fd/2);head.castShadow=true;g.add(head);
-  if(f.curtain&&f.curtain!=='none'){
-    const cur=new THREE.Group();
-    const dark=stdMat(f.curtain==='sheer'?0xf3e9d8:0x5c6e7b,0.7);
-    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,fw+0.3,8),stdMat(0x3a3028,0.4));
-    rod.rotation.z=Math.PI/2;rod.position.set(fw/2,fh+0.02,fd+0.05);cur.add(rod);
-    const drapeH=fh*0.96;
-    for(let i=0;i<Math.max(3,Math.round(fw/0.28));i++){
-      const fold=new THREE.Mesh(new THREE.BoxGeometry(paneW*0.82,drapeH,0.05),dark);
-      fold.position.set(fw/panels*(i+0.5),drapeH/2,fd+0.02);fold.castShadow=true;cur.add(fold);
+  const sill=new THREE.Mesh(new THREE.BoxGeometry(fw+0.14,0.06,0.12),frameMat);sill.position.set(fw/2,silH-0.03,fd/2);sill.castShadow=true;g.add(sill);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(fw+0.14,0.06,0.12),frameMat);head.position.set(fw/2,silH+fh-0.03,fd/2);head.castShadow=true;g.add(head);
+  const cur=curtainOf(f);
+  if(cur){
+    const curG=new THREE.Group();
+    const ws=cur.widthScale;
+    const span=fw*ws;
+    const off=(span-fw)/2;
+    const col=hexInt(cur.color,0xc8c4bc);
+    const curlMat=new THREE.MeshStandardMaterial({color:col,roughness:cur.style==='sheer'?0.5:0.85,metalness:0,transparent:true,opacity:cur.style==='sheer'?0.55:0.96,side:THREE.DoubleSide});
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,span,8),stdMat(0x3a3028,0.4));
+    rod.rotation.z=Math.PI/2;rod.position.set(fw/2,silH+fh+0.04,fd+0.06);curG.add(rod);
+    const drapeH=Math.min(fh*0.96,silH+fh-0.06);
+    let stacks;
+    if(cur.open){
+      const inner=fw*0.18;
+      stacks=[[-off,inner],[fw-inner,fw+off]];
+    }else{
+      stacks=[[-off,fw+off]];
     }
-    g.add(cur);
+    stacks.forEach(stack=>{
+      const w0=stack[0],w1=stack[1],sw=w1-w0;
+      const folds=Math.max(3,Math.round(sw/0.24));
+      for(let i=0;i<folds;i++){
+        const foldW=sw/folds*0.86;
+        const fold=new THREE.Mesh(new THREE.BoxGeometry(foldW,drapeH,0.04),curlMat);
+        fold.position.set(w0+(i+0.5)*(sw/folds),drapeH/2,fd+0.02);fold.castShadow=true;fold.receiveShadow=true;curG.add(fold);
+      }
+    });
+    if(cur.style==='sheer'){
+      const sheer=new THREE.Mesh(new THREE.BoxGeometry(fw*0.96,fh*0.8,0.015),curlMat);
+      sheer.position.set(fw/2,silH+fh*0.42,fd+0.05);curG.add(sheer);
+    }
+    g.add(curG);
   }
   return g;
 }
@@ -2677,7 +2819,7 @@ function build3d(){
     let cur=0;
     open.forEach(o=>{
       if(o.t0>cur)segs.push({t0:cur,t1:o.t0,full:true});
-      segs.push({t0:o.t0,t1:o.t1,type:o.type});
+      segs.push({t0:o.t0,t1:o.t1,type:o.type,item:o.item});
       cur=o.t1;
     });
     if(cur<1)segs.push({t0:cur,t1:1,full:true});
@@ -2701,7 +2843,9 @@ function build3d(){
         const lintel=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,0.08,t+0.01),crownMat);
         lintel.position.set(w.x1+dx/2+c*ux,doorH-0.04,w.y1+dz/2+c*uz);lintel.rotation.y=-Math.atan2(dz,dx);scene.add(lintel);
       }else if(sg.type==='window'){
-        const sillH=0.9,winH=1.4;
+        const sillH=sg.item&&typeof sg.item.sillHeight==='number'?sg.item.sillHeight:0.9;
+        let winH=sg.item&&typeof sg.item.windowHeight==='number'?sg.item.windowHeight:1.4;
+        winH=Math.max(0.15,Math.min(winH,h-sillH-0.05));
         const below=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,sillH,t),wallMat);
         below.position.set(w.x1+dx/2+c*ux,sillH/2,w.y1+dz/2+c*uz);below.rotation.y=-Math.atan2(dz,dx);below.castShadow=true;below.receiveShadow=true;scene.add(below);
         const above=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,h-(sillH+winH),t),wallMat);
