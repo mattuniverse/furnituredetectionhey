@@ -2643,6 +2643,8 @@ function buildGeneric(f,def){
 const BUILDERS={sofa_2:buildSofa,sofa_3:buildSofa,chair:buildChair,armchair:buildChair,table_rect:buildTable,desk:buildDesk,table_round:buildRoundTable,coffee:buildCoffee,bed_s:buildBed,bed_d:buildBed,bed_k:buildBed,cabinet:buildCabinet,wall_cab:buildCabinet,wardrobe:buildWardrobe,shelf:buildShelf,tv:buildTV,plant:buildPlant,rug:buildRug,sink:buildSink,toilet:buildToilet,bathtub:buildBathtub,door:buildDoor,window:buildWindow,};
 
 function build3d(){
+  console.log('WALLS:', JSON.stringify(walls, null, 2));
+  console.log('FURNITURE:', JSON.stringify(furniture, null, 2));
   sanitizeLayout();
   const c3=document.getElementById('canvas3d');
   c3.width=canvasW;c3.height=canvasH;
