@@ -2643,8 +2643,6 @@ function buildGeneric(f,def){
 const BUILDERS={sofa_2:buildSofa,sofa_3:buildSofa,chair:buildChair,armchair:buildChair,table_rect:buildTable,desk:buildDesk,table_round:buildRoundTable,coffee:buildCoffee,bed_s:buildBed,bed_d:buildBed,bed_k:buildBed,cabinet:buildCabinet,wall_cab:buildCabinet,wardrobe:buildWardrobe,shelf:buildShelf,tv:buildTV,plant:buildPlant,rug:buildRug,sink:buildSink,toilet:buildToilet,bathtub:buildBathtub,door:buildDoor,window:buildWindow,};
 
 function build3d(){
-  console.log('WALLS:', JSON.stringify(walls, null, 2));
-  console.log('FURNITURE:', JSON.stringify(furniture, null, 2));
   sanitizeLayout();
   const c3=document.getElementById('canvas3d');
   c3.width=canvasW;c3.height=canvasH;
@@ -2684,31 +2682,32 @@ function build3d(){
     });
     if(cur<1)segs.push({t0:cur,t1:1,full:true});
     const mid=len/2;
+    const ux=dx/len,uz=dz/len;
     const baseMat=stdMat(0xc8b8a0,0.8),crownMat=stdMat(0xd8ccc0,0.8);
     segs.forEach(sg=>{
       const s0=sg.t0*len,s1=sg.t1*len;if(s1-s0<0.01)return;
       const c=(s0+s1)/2-mid;
       if(sg.full){
         const m=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,h,t),wallMat);
-        m.position.set(w.x1+dx/2+c,h/2,w.y1+dz/2);m.rotation.y=-Math.atan2(dz,dx);m.castShadow=true;m.receiveShadow=true;scene.add(m);
+        m.position.set(w.x1+dx/2+c*ux,h/2,w.y1+dz/2+c*uz);m.rotation.y=-Math.atan2(dz,dx);m.castShadow=true;m.receiveShadow=true;scene.add(m);
         const base=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,0.1,t+0.01),baseMat);
-        base.position.set(w.x1+dx/2+c,0.05,w.y1+dz/2);base.rotation.y=-Math.atan2(dz,dx);scene.add(base);
+        base.position.set(w.x1+dx/2+c*ux,0.05,w.y1+dz/2+c*uz);base.rotation.y=-Math.atan2(dz,dx);scene.add(base);
         const crown=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,0.08,t+0.01),crownMat);
-        crown.position.set(w.x1+dx/2+c,h-0.04,w.y1+dz/2);crown.rotation.y=-Math.atan2(dz,dx);scene.add(crown);
+        crown.position.set(w.x1+dx/2+c*ux,h-0.04,w.y1+dz/2+c*uz);crown.rotation.y=-Math.atan2(dz,dx);scene.add(crown);
       }else if(sg.type==='door'){
         const doorH=2.1;
         const top=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,h-doorH,t),wallMat);
-        top.position.set(w.x1+dx/2+c,doorH+(h-doorH)/2,w.y1+dz/2);top.rotation.y=-Math.atan2(dz,dx);top.castShadow=true;top.receiveShadow=true;scene.add(top);
+        top.position.set(w.x1+dx/2+c*ux,doorH+(h-doorH)/2,w.y1+dz/2+c*uz);top.rotation.y=-Math.atan2(dz,dx);top.castShadow=true;top.receiveShadow=true;scene.add(top);
         const lintel=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,0.08,t+0.01),crownMat);
-        lintel.position.set(w.x1+dx/2+c,doorH-0.04,w.y1+dz/2);lintel.rotation.y=-Math.atan2(dz,dx);scene.add(lintel);
+        lintel.position.set(w.x1+dx/2+c*ux,doorH-0.04,w.y1+dz/2+c*uz);lintel.rotation.y=-Math.atan2(dz,dx);scene.add(lintel);
       }else if(sg.type==='window'){
         const sillH=0.9,winH=1.4;
         const below=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,sillH,t),wallMat);
-        below.position.set(w.x1+dx/2+c,sillH/2,w.y1+dz/2);below.rotation.y=-Math.atan2(dz,dx);below.castShadow=true;below.receiveShadow=true;scene.add(below);
+        below.position.set(w.x1+dx/2+c*ux,sillH/2,w.y1+dz/2+c*uz);below.rotation.y=-Math.atan2(dz,dx);below.castShadow=true;below.receiveShadow=true;scene.add(below);
         const above=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,h-(sillH+winH),t),wallMat);
-        above.position.set(w.x1+dx/2+c,sillH+winH+(h-(sillH+winH))/2,w.y1+dz/2);above.rotation.y=-Math.atan2(dz,dx);above.castShadow=true;above.receiveShadow=true;scene.add(above);
+        above.position.set(w.x1+dx/2+c*ux,sillH+winH+(h-(sillH+winH))/2,w.y1+dz/2+c*uz);above.rotation.y=-Math.atan2(dz,dx);above.castShadow=true;above.receiveShadow=true;scene.add(above);
         const sill=new THREE.Mesh(new THREE.BoxGeometry(s1-s0,0.06,t+0.012),crownMat);
-        sill.position.set(w.x1+dx/2+c,sillH-0.03,w.y1+dz/2);sill.rotation.y=-Math.atan2(dz,dx);scene.add(sill);
+        sill.position.set(w.x1+dx/2+c*ux,sillH-0.03,w.y1+dz/2+c*uz);sill.rotation.y=-Math.atan2(dz,dx);scene.add(sill);
       }
     });
   });
