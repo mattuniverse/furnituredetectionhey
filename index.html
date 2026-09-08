@@ -1152,9 +1152,14 @@ function sanitizeLayout(){
   });
   const seen=new Set(),kept=[];
   known.forEach(f=>{
-    const key=f.defId+'|'+f.x+'|'+f.y+'|'+f.w+'|'+f.h+'|'+(f.rot||0);
-    if(seen.has(key)){notes.push('removed duplicate '+f.defId+' @ ('+f.x+','+f.y+')');return;}
-    seen.add(key);kept.push(f);
+    const dup=kept.find(k=>{
+      if(k.defId!==f.defId)return false;
+      if(Math.abs((k.w||0)-(f.w||0))>0.05||Math.abs((k.h||0)-(f.h||0))>0.05)return false;
+      const a=itemCenter(k),b=itemCenter(f);
+      return Math.hypot(a.x-b.x,a.y-b.y)<=0.05;
+    });
+    if(dup){notes.push('removed duplicate '+f.defId+' @ ('+f.x+','+f.y+')');return;}
+    kept.push(f);
   });
   furniture.length=0;furniture.push(...kept);
   if(walls.length){
@@ -2258,6 +2263,7 @@ function placeDetectedFurniture(result){
     const item={id:uid(),defId:def.id,x:cand.x,y:cand.y,w:def.w,h:def.h,rot:def.rot||0,h3d:def.h3d||0.9};
     furniture.push(item);placed++;
   }
+  sanitizeLayout();
   draw2d();
   return placed;
 }
@@ -2637,6 +2643,7 @@ function buildGeneric(f,def){
 const BUILDERS={sofa_2:buildSofa,sofa_3:buildSofa,chair:buildChair,armchair:buildChair,table_rect:buildTable,desk:buildDesk,table_round:buildRoundTable,coffee:buildCoffee,bed_s:buildBed,bed_d:buildBed,bed_k:buildBed,cabinet:buildCabinet,wall_cab:buildCabinet,wardrobe:buildWardrobe,shelf:buildShelf,tv:buildTV,plant:buildPlant,rug:buildRug,sink:buildSink,toilet:buildToilet,bathtub:buildBathtub,door:buildDoor,window:buildWindow,};
 
 function build3d(){
+  sanitizeLayout();
   const c3=document.getElementById('canvas3d');
   c3.width=canvasW;c3.height=canvasH;
   c3.style.width=canvasW+'px';c3.style.height=canvasH+'px';
@@ -2704,8 +2711,6 @@ function build3d(){
     });
   });
   furniture.forEach(f=>{
-    console.log('[build3d] FURNITURE DUMP — id, defId, x, y, w, h, rot, h3d per item:');
-    console.log(JSON.stringify(furniture,null,2));
     const def=FURNITURE_DEFS.find(d=>d.id===f.defId);
     if(!def){console.warn('[build3d] Skipping furniture item: no FURNITURE_DEFS entry for defId "'+(f.defId||'?')+'" (item '+f.id+'). This usually means the layout was saved against an older def list or an unmapped detection class. Remap defId in the item or re-add the piece.',f);return;}
     const builder=BUILDERS[def.id];
