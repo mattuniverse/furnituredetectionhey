@@ -1046,8 +1046,8 @@ const FLOORPLAN_ENV = {
   DETECT_API_BASE: '__DETECT_API_BASE__'
 };
 const envTok=(v,def)=>(v&&typeof v==='string'&&v.indexOf('__')!==0)?v:def;
-const SUPABASE_URL = envTok(FLOORPLAN_ENV.SUPABASE_URL,'https://binubqetpsugdnwtarvt.supabase.co');
-const SUPABASE_ANON_KEY = envTok(FLOORPLAN_ENV.SUPABASE_ANON_KEY,'sb_publishable_VKcnteRRdeIKlEHTN3DdtA_0IMkXDU0');
+const SUPABASE_URL = envTok(FLOORPLAN_ENV.SUPABASE_URL,'https://labtkuhvvkrlvpfbispd.supabase.co');
+const SUPABASE_ANON_KEY = envTok(FLOORPLAN_ENV.SUPABASE_ANON_KEY,'sb_publishable_2FMdtvqVzsdPU-8xr66irg_Rtt-oylX');
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentProjectId = null;
 
@@ -2590,7 +2590,7 @@ let md3=false,rDrag=false,pm={x:0,y:0};
 function floorDefaultColorFor(style){return ({wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'})[style]||'#c8a878';}
 function shadeHex(hex,amt){
   const n=parseInt(hex.replace('#',''),16);
-  const r=Math.max(0,Math.min(255,(n>>16)&255+amt));
+  const r=Math.max(0,Math.min(255,((n>>16)&255)+amt));
   const g=Math.max(0,Math.min(255,((n>>8)&255)+amt));
   const b=Math.max(0,Math.min(255,(n&255)+amt));
   return `rgb(${r},${g},${b})`;
