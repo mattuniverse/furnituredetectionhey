@@ -99,6 +99,19 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .form-group input, .form-group select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
 .form-group input:focus, .form-group select:focus { border-color: var(--color-border-focus); box-shadow: 0 0 0 3px rgba(140,96,64,.12); }
 .form-group input::placeholder { color: var(--color-text-muted); opacity: .7; }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 42px; }
+.pw-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 30px; height: 30px; border: none; background: transparent; color: var(--color-text-muted);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.pw-toggle:hover { color: var(--color-accent); background: var(--color-accent-light); }
+.pw-toggle svg { width: 17px; height: 17px; }
+.pw-toggle .icon-eye-off { display: none; }
+.pw-toggle.visible .icon-eye { display: none; }
+.pw-toggle.visible .icon-eye-off { display: block; }
 
 .btn-main { width: 100%; padding: 11px 20px; background: var(--color-primary); color: var(--color-text-inverse); border: none; border-radius: var(--radius-md); font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: background var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast); position: relative; }
 .btn-main:hover { background: var(--color-primary-hover); }
@@ -205,6 +218,65 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .scan-loading .scan-dot:nth-child(2) { animation-delay: .2s; }
 .scan-loading .scan-dot:nth-child(3) { animation-delay: .4s; }
 
+/* Quick-remove (X) on uploaded photos */
+.photo-x {
+  position: absolute; top: 6px; right: 6px; z-index: 6;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-secondary); font-size: 13px; line-height: 1;
+  cursor: pointer; display: none; align-items: center; justify-content: center;
+  transition: all var(--transition-fast) var(--ease-soft);
+}
+.photo-slot.uploaded .photo-x { display: flex; }
+.photo-x:hover { background: var(--color-danger-bg); border-color: var(--color-danger); color: var(--color-danger); transform: scale(1.1); }
+.photo-slot .wall-uploaded-label { position: relative; color: var(--color-success); font-weight: 500; font-size: 11px; }
+.photo-slot.scanning .checkmark, .photo-slot.scanning .wall-uploaded-label { opacity: 0; }
+
+/* AI scan overlay on photo previews */
+.photo-slot.scanning { cursor: default; }
+.photo-slot .pick-scan { display: none; }
+.photo-slot.scanning .pick-scan { display: block; position: absolute; inset: 0; z-index: 5; overflow: hidden; }
+.photo-slot.scanning::after {
+  content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background: rgba(10, 8, 6, .42);
+  animation: pks-bright 2.2s ease-in-out infinite;
+}
+.pks-scanline {
+  position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 6; pointer-events: none;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--color-accent) 70%, transparent), 0 0 18px 6px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  animation: pks-sweep 2.2s ease-in-out infinite;
+}
+.pks-corner { position: absolute; width: 14px; height: 14px; z-index: 6; border: 2px solid var(--color-accent); opacity: .95; }
+.pks-corner.c-tl { top: 8px; left: 8px; border-right: none; border-bottom: none; border-radius: 3px 0 0 0; }
+.pks-corner.c-tr { top: 8px; right: 8px; border-left: none; border-bottom: none; border-radius: 0 3px 0 0; }
+.pks-corner.c-bl { bottom: 8px; left: 8px; border-right: none; border-top: none; border-radius: 0 0 0 3px; }
+.pks-corner.c-br { bottom: 8px; right: 8px; border-left: none; border-top: none; border-radius: 0 0 3px 0; }
+.pks-pill {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 7;
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  padding: 5px 12px; border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  border: 1px solid var(--color-border-light);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-md);
+}
+.pks-pill .pks-dots { display: flex; align-items: center; gap: 4px; }
+.pks-pill .pks-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: pulse-dot 1.4s ease-in-out infinite; }
+.pks-pill .pks-dots i:nth-child(2) { animation-delay: .2s; }
+.pks-pill .pks-dots i:nth-child(3) { animation-delay: .4s; }
+.pks-pill .pks-label { font-size: 11px; font-weight: 600; color: var(--color-text-secondary); }
+@keyframes pks-sweep {
+  0% { top: 0%; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes pks-bright {
+  0%, 100% { opacity: .42; }
+  50% { opacity: .6; }
+}
+
 /* Verification Modal */
 .verify-list { max-height: 380px; overflow-y: auto; margin: 16px 0; border: 1px solid var(--color-border-light); border-radius: var(--radius-md); }
 .verify-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--color-bg-sunken); border-bottom: 1px solid var(--color-border-light); font-size: 11px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; position: sticky; top: 0; z-index: 1; }
@@ -283,6 +355,7 @@ canvas { display: block; }
 .empty-prop { font-size: 12px; color: var(--color-text-muted); line-height: 1.7; }
 .sugg-card { background: var(--color-surface-hover); border: 1px solid var(--color-border-light); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
 .sugg-title { font-size: 10px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.sugg-stat { background: var(--color-info-bg); border: 1px solid color-mix(in srgb, var(--color-info) 30%, var(--color-border-light)); border-radius: var(--radius-sm); padding: 9px 12px; margin-bottom: 10px; font-size: 12px; color: var(--color-text-secondary); font-weight: 600; line-height: 1.5; }
 
 .statusbar { padding: 6px 16px; font-size: 11px; color: var(--color-text-muted); background: var(--color-surface); border-top: 1px solid var(--color-border-light); flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
 
@@ -386,6 +459,15 @@ canvas { display: block; }
 .cam-stage video, .cam-stage canvas { width: 100%; height: 100%; object-fit: cover; }
 .cam-stage .cam-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgba(255,255,255,.7); font-size: 13px; gap: 10px; text-align: center; padding: 20px; }
 .cam-stage .cam-placeholder .cp-icon { font-size: 40px; }
+.stage-x {
+  position: absolute; top: 8px; right: 8px; z-index: 10;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.5); color: #fff;
+  font-size: 16px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast) var(--ease-soft);
+}
+.stage-x:hover { background: var(--color-danger); border-color: var(--color-danger); transform: scale(1.1); }
 .scan-dock { border: 1px solid var(--color-border-light); border-radius: var(--radius-md); margin-top: 10px; max-height: 180px; overflow-y: auto; background: var(--color-bg); display: none; }
 .scan-dock.open { display: block; }
 .dock-title { font-size: 11px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; padding: 8px 12px; border-bottom: 1px solid var(--color-border-light); }
@@ -904,7 +986,13 @@ canvas { display: block; }
         </div>
         <div class="form-group">
           <label for="login-pass">Password</label>
-          <input type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password" required aria-required="true" minlength="6">
+          <div class="pw-wrap">
+            <input type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password" required aria-required="true" minlength="6">
+            <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" aria-label="Show or hide password" aria-pressed="false" tabindex="-1">
+              <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="2.8"></circle></svg>
+              <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"></path><path d="M10.6 5.2A10.3 10.3 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.6 3.4M6.6 6.6A16.3 16.3 0 0 0 2 12s3.6 7 10 7a9.4 9.4 0 0 0 4-.9"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>
+            </button>
+          </div>
         </div>
         <div class="login-form-row">
           <button type="button" class="btn-link auth-forgot" onclick="requestPasswordReset()">Forgot password?</button>
@@ -1180,6 +1268,7 @@ canvas { display: block; }
     <div class="modal-title" id="single-cam-title">Add a Piece of Furniture</div>
     <div class="modal-sub" id="single-cam-sub">Photograph one piece of furniture you'd like to place. Center it in the frame, keep some clear space around it.</div>
     <div class="cam-stage" id="cam-stage">
+      <button class="stage-x" id="stage-x-btn" onclick="event.stopPropagation();resetSinglePhoto()" aria-label="Discard this photo" title="Discard photo" style="display:none">&times;</button>
       <video id="single-cam-video" autoplay playsinline style="display:none"></video>
       <canvas id="single-cam-canvas" style="display:none"></canvas>
       <div class="cam-placeholder" id="single-cam-placeholder"><div class="cp-icon">&#x1F4F7;</div><div>No camera active</div></div>
@@ -1384,6 +1473,15 @@ function showAuthMessage(msg,isError){
   const el=document.getElementById('auth-error');
   el.textContent=msg;
   el.className=isError?'auth-msg error':'auth-msg success';
+}
+function togglePasswordVisibility(){
+  const input=document.getElementById('login-pass');
+  const btn=document.querySelector('.pw-toggle');
+  if(!input||!btn)return;
+  const visible=input.type==='text';
+  input.type=visible?'password':'text';
+  btn.classList.toggle('visible',!visible);
+  btn.setAttribute('aria-pressed',String(!visible));
 }
 function setAuthLoading(loading){
   const btn=document.getElementById('auth-submit-btn');
@@ -2465,6 +2563,22 @@ function markWallDone(wall){
     if(next){const nextStep=document.querySelector('.walk-step[data-wall-guide="'+next+'"]');if(nextStep)focusWallGuide(nextStep,next);}
   }
 }
+function clearWallPhoto(wall){
+  const slot=document.getElementById('slot-'+wall);
+  if(!slot)return;
+  stopWallCamera();
+  delete uploadedPhotos[wall];
+  slot.classList.remove('uploaded');
+  slot.classList.remove('scanning');
+  slot.dataset.scanState='';
+  const label=WALL_GUIDES[wall]?WALL_GUIDES[wall].title:'Wall';
+  slot.innerHTML=`<div class="picon">&#x1F4F7;</div><span>${label}</span>`;
+  slot.style.position='';
+  const step=document.querySelector('.walk-step[data-wall-guide="'+wall+'"]');
+  if(step)step.classList.remove('done');
+  roomPhotos=roomPhotos.filter(p=>p.wall!==wall);
+  refreshScanUi();
+}
 document.getElementById('wall-ref-width').addEventListener('change',function(){
   if(uploadedPhotos[currentGuide])uploadedPhotos[currentGuide]._refW=parseFloat(this.value)||4;
 });
@@ -2520,7 +2634,8 @@ function setWallPhoto(slot,file){
   const reader=new FileReader();
   reader.onload=ev=>{
     slot.classList.add('uploaded');
-    slot.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;position:absolute;inset:0" alt="Uploaded ${wall} wall photo"><span class="checkmark" aria-hidden="true">\u2713</span><span style="position:relative;color:var(--color-success);font-weight:500;font-size:11px">Uploaded</span>`;
+    const scanFx=(slot.dataset.scanState==='scanning')?'<div class="pick-scan"><span class="pks-scanline"></span><span class="pks-corner c-tl"></span><span class="pks-corner c-tr"></span><span class="pks-corner c-bl"></span><span class="pks-corner c-br"></span><div class="pks-pill"><span class="pks-dots"><i></i><i></i><i></i></span><span class="pks-label">Detecting furniture\u2026</span></div></div>':'';
+    slot.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;position:absolute;inset:0" alt="Uploaded ${wall} wall photo">${scanFx}<span class="checkmark" aria-hidden="true">\u2713</span><span class="wall-uploaded-label">Uploaded</span><button type="button" class="photo-x" onclick="event.stopPropagation();clearWallPhoto('${wall}')" aria-label="Remove ${wall} wall photo" title="Remove photo">\u2715</button>`;
     slot.style.position='relative';
     markWallDone(wall);
   };
@@ -2552,6 +2667,42 @@ document.querySelectorAll('.photo-slot').forEach(slot=>{
   });
 });
 
+let scanFxTimer=null;
+const SCAN_LABELS=['Detecting furniture\u2026','Identifying items\u2026','Almost done\u2026'];
+function scanFxMarkup(){
+  return '<div class="pick-scan"><span class="pks-scanline"></span><span class="pks-corner c-tl"></span><span class="pks-corner c-tr"></span><span class="pks-corner c-bl"></span><span class="pks-corner c-br"></span><div class="pks-pill"><span class="pks-dots"><i></i><i></i><i></i></span><span class="pks-label">Detecting furniture\u2026</span></div></div>';
+}
+function activateScanFx(){
+  applyActiveScanFx();
+  let idx=1;
+  clearInterval(scanFxTimer);
+  scanFxTimer=setInterval(()=>{
+    document.querySelectorAll('.photo-slot.scanning .pks-label').forEach(l=>l.textContent=SCAN_LABELS[idx%SCAN_LABELS.length]);
+    idx=(idx+1)%SCAN_LABELS.length;
+  },1500);
+}
+function deactivateScanFx(){
+  clearInterval(scanFxTimer);scanFxTimer=null;
+  document.querySelectorAll('.photo-slot.scanning').forEach(slot=>{
+    slot.classList.remove('scanning');
+    slot.dataset.scanState='';
+    const fx=slot.querySelector('.pick-scan');
+    if(fx)fx.remove();
+  });
+}
+function refreshScanUi(){
+  if(scanFxTimer===null)return;
+  applyActiveScanFx();
+}
+function applyActiveScanFx(){
+  Object.keys(uploadedPhotos).forEach(wall=>{
+    const slot=document.getElementById('slot-'+wall);
+    if(!slot)return;
+    slot.dataset.scanState='scanning';
+    slot.classList.add('scanning');
+    if(!slot.querySelector('.pick-scan'))slot.insertAdjacentHTML('beforeend',scanFxMarkup());
+  });
+}
 async function scanFurniture(){
   const entries=Object.entries(uploadedPhotos);
   const statusEl=document.getElementById('scan-status');
@@ -2562,6 +2713,7 @@ async function scanFurniture(){
   btn.classList.add('loading');
   statusEl.innerHTML=`<div class="scan-loading"><div class="scan-dot"></div><div class="scan-dot"></div><div class="scan-dot"></div><span>Detecting furniture in ${entries.length} photo${entries.length>1?'s':''}...</span></div>`;
   setStatus('Scanning furniture\u2026');
+  activateScanFx();
 
   pendingDetections=[];
   let skippedClasses=new Set(),failedCount=0;
@@ -2588,6 +2740,7 @@ async function scanFurniture(){
 
   btn.disabled=false;
   btn.classList.remove('loading');
+  deactivateScanFx();
 
   let msg='';
   if(pendingDetections.length){
@@ -2703,16 +2856,22 @@ function resizeImageToBase64(file,maxDim,quality){
 // ══════════════════════════════════════════
 let singleStream=null,singleChoiceDefs=[];
 const singleCamVideo=()=>document.getElementById('single-cam-video');
-function openSingleCam(){
+function resetSinglePhoto(){
   stopSingleCam();
   singleChoiceDefs=[];
   document.getElementById('single-cam-canvas').style.display='none';
   document.getElementById('single-cam-video').style.display='none';
   document.getElementById('single-cam-placeholder').style.display='flex';
+  document.getElementById('stage-x-btn').style.display='none';
   document.getElementById('btn-single-start').style.display='';
   document.getElementById('btn-single-shot').style.display='none';
   document.getElementById('btn-place-single').style.display='none';
   document.getElementById('scan-dock').classList.remove('open');
+  document.getElementById('scan-dock-items').innerHTML='';
+  document.getElementById('single-cam-sub').textContent='Photograph one piece of furniture you\'d like to place. Center it in the frame, keep some clear space around it.';
+}
+function openSingleCam(){
+  resetSinglePhoto();
   openModal('modal-single-cam');
 }
 function startSingleCam(){
@@ -2735,6 +2894,7 @@ function shootSingle(){
   canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
   canvas.style.display='block';
   video.style.display='none';
+  document.getElementById('stage-x-btn').style.display='flex';
   stopSingleCamStream();
   detectSingleFromFile(dataURLToFile(canvas.toDataURL('image/jpeg',0.9),'furniture-cam.jpg'));
 }
@@ -2756,6 +2916,7 @@ document.getElementById('single-file-input').addEventListener('change',function(
       canvas.width=width;canvas.height=height;
       canvas.getContext('2d').drawImage(img,0,0,width,height);
       canvas.style.display='block';
+      document.getElementById('stage-x-btn').style.display='flex';
       document.getElementById('single-cam-placeholder').style.display='none';
       detectSingleFromFile(file);
     };
@@ -2891,11 +3052,59 @@ function exportPDF(){
   if(wasView!=='2d')switchEditorView(wasView);
 }
 
+function wallMetrics(){
+  if(!walls||walls.length===0)return null;
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  let maxLen=0;
+  walls.forEach(w=>{
+    minX=Math.min(minX,w.x1,w.x2);maxX=Math.max(maxX,w.x1,w.x2);
+    minY=Math.min(minY,w.y1,w.y2);maxY=Math.max(maxY,w.y1,w.y2);
+    maxLen=Math.max(maxLen,Math.hypot(w.x2-w.x1,w.y2-w.y1));
+  });
+  const roomW=maxX-minX,roomH=maxY-minY;
+  const lengths=walls.map(w=>Math.hypot(w.x2-w.x1,w.y2-w.y1)).sort((a,b)=>b-a);
+  return{roomW,roomH,maxLen,longest:lengths[0]||0,second:lengths[1]||0,bbox:{minX,minY,maxX,maxY}};
+}
+function roomCapturedState(){
+  return roomPhotos.length>0||Object.keys(uploadedPhotos).length>0||pendingDetections.length>0;
+}
 function showSuggestions(){
   const el=document.getElementById('prop-content');
   const ww=CLEARANCE_RULES.walkway,bs=CLEARANCE_RULES.bedSide,cp=CLEARANCE_RULES.chairPull,ds=CLEARANCE_RULES.doorSwing;
-  const pairLine=CLEARANCE_RULES.pairs.slice(0,2).map(p=>`${p.min.toFixed(2)}\u2013${p.ideal.toFixed(2)}m between ${p.label}`).join(', ');
-  el.innerHTML=`<div class="sugg-title">Layout Suggestions</div><div class="sugg-card">Place the sofa facing the main wall or TV unit for a natural focal point.</div><div class="sugg-card">Keep between ${ww.min.toFixed(2)}\u2013${ww.ideal.toFixed(2)}m walkway between furniture for comfortable circulation.</div><div class="sugg-card">Ergonomic gaps: ${pairLine}.</div><div class="sugg-card">Keep at least ${cp.min.toFixed(2)}\u2013${cp.ideal.toFixed(2)}m behind chairs so they can be pulled out.</div><div class="sugg-card">Beds need a ${bs.min.toFixed(2)}m clear side; keep ${ds.margin.toFixed(2)}m clear of every door swing and window.</div><hr class="prop-divider"><button class="prop-btn" onclick="updateProps()">&larr; Back to Properties</button>`;
+  const pairs=CLEARANCE_RULES.pairs;
+  const m=wallMetrics();
+  const captured=roomCapturedState();
+
+  if(!m){
+    el.innerHTML=`<div class="sugg-title">Layout Suggestions</div><div class="sugg-card">Draw at least 3 connected walls to define your room, then capture a photo in <strong>Scan Furniture</strong> \u2014 suggestions are scaled from the walls you build.</div><button class="prop-btn" onclick="updateProps()">&larr; Back to Properties</button>`;
+    return;
+  }
+
+  const cards=[];
+  const wMul=m.roomW>=m.roomH?m.roomW:m.roomH;
+  cards.push(`<div class="sugg-stat">Walls \u00B7 ${m.roomW.toFixed(2)} \u00D7 ${m.roomH.toFixed(2)} m &middot; ${(m.roomW*m.roomH).toFixed(1)} m\u00B2 \u00B7 longest wall ${m.longest.toFixed(2)} m</div>`);
+
+  if(!captured){
+    cards.push(`<div class="sugg-card">Capture and scan your room photo below to unlock wall-aware suggestions. Right now the layout is derived from the drawn walls \u2014 ${m.roomW.toFixed(2)} \u00D7 ${m.roomH.toFixed(2)} m &mdash; so clearance numbers stay scaled to that footprint.</div>`);
+    cards.push(`<div class="sugg-card">Walkway keeps ${ww.min.toFixed(2)}\u2013${ww.ideal.toFixed(2)}m between pieces; beds keep a ${bs.min.toFixed(2)}m clear side; chairs need ${cp.min.toFixed(2)}\u2013${cp.ideal.toFixed(2)}m behind to pull out.</div>`);
+    cards.push(`<button class="prop-btn" onclick="updateProps()">&larr; Back to Properties</button>`);
+    el.innerHTML=`<div class="sugg-title">Layout Suggestions</div>${cards.join('')}`;
+    return;
+  }
+
+  const mainWall=m.longest;
+  const sideWall=m.second;
+  const sofaDef=FURNITURE_DEFS.find(d=>d.id==='sofa_3')||FURNITURE_DEFS.length&&{w:2.2,h:0.85};
+  const sofasFit=Math.floor((mainWall-0.2)/(sofaDef?.w||2.2));
+  cards.push(`<div class="sugg-card">Anchor the focal zone on the ${mainWall.toFixed(2)} m wall found in your capture &mdash; center the TV there and float seating opposite, roughly ${(mainWall*0.18).toFixed(2)} m off the wall.</div>`);
+  if(sofasFit>=1){
+    cards.push(`<div class="sugg-card">A ${(sofaDef?.w||2.2).toFixed(2)} m sofa fits your wall with ${sofasFit>1?sofasFit+' of them':'room to spare'}\u2014about ${sofasFit} seat${sofasFit>1?'s':''} along ${mainWall.toFixed(2)} m. Pair it with a coffee table ${(ww.min).toFixed(2)}\u2013${(ww.ideal).toFixed(2)}m away.</div>`);
+  }
+  const diag=Math.sqrt(m.roomW*m.roomW+m.roomH*m.roomH);
+  cards.push(`<div class="sugg-card">Seating depth ${(sideWall>0?sideWall:m.roomW).toFixed(2)} m allows a ${(sofaDef?.h||0.85).toFixed(2)} m sofa plus a ${ww.ideal.toFixed(2)} m walkway behind it \u2014 keep the walk line from the door to the far wall.</div>`);
+  cards.push(`<div class="sugg-card">${pairs.length?pairs.map(p=>`${p.min.toFixed(2)}\u2013${p.ideal.toFixed(2)}m ${p.label.toLowerCase()}`).join(', '):''} keeps traffic flowing; beds keep ${bs.min.toFixed(2)}m clear on the access side; keep ${ds.margin.toFixed(2)}m clear of every door swing.</div>`);
+  cards.push(`<div class="sugg-card">If ${mainWall.toFixed(2)} m wall fronts a window, stop furniture ${(ds.margin).toFixed(2)} m short so the light and access stay open; use the side wall for storage instead.</div>`);
+  el.innerHTML=`<div class="sugg-title">Layout Suggestions \u00B7 from your walls</div>${cards.join('')}<hr class="prop-divider"><button class="prop-btn" onclick="updateProps()">&larr; Back to Properties</button>`;
 }
 
 // ══════════════════════════════════════════
