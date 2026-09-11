@@ -434,7 +434,6 @@ canvas { display: block; }
 .sugg-panel { border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: 14px; margin-bottom: 20px; background: var(--color-surface-hover); }
   .sugg-title { font-size: 13px; font-weight: 600; color: var(--color-text-strong); margin-bottom: 10px; }
 .sugg-canvas { width: 100%; height: auto; aspect-ratio: 22/15; border-radius: var(--radius-sm); background: var(--color-bg-sunken); display: block; margin-bottom: 10px; border: 1px solid var(--color-border-light); }
-.sugg-stats { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 8px; }
 .floor-pattern-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .floor-pattern-row label { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; }
 .floor-pattern-row select { flex: 1; }
@@ -449,8 +448,16 @@ canvas { display: block; }
 .sugg-x { margin-left: auto; border: none; background: transparent; color: var(--color-text-muted); cursor: pointer; padding: 2px 7px; border-radius: 6px; font-size: 15px; line-height: 1.2; }
 .sugg-x:hover { color: var(--color-text-strong); background: var(--color-surface-hover); }
 .sugg-type { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
-.sugg-actions { display: flex; gap: 8px; margin-top: 4px; }
-.sugg-actions button { flex: 1; font-size: 12px; padding: 9px 10px; }
+.sugg-carousel { display: flex; align-items: stretch; gap: 6px; margin-bottom: 8px; }
+.sugg-carousel .sugg-canvas { width: 100%; margin-bottom: 0; flex: 1; }
+.sugg-nav { flex: 0 0 26px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: 16px; line-height: 1; padding: 0; }
+.sugg-nav:hover { background: var(--color-surface-hover); border-color: var(--color-accent); color: var(--color-accent); }
+.sugg-count { font-size: 11.5px; font-weight: 600; color: var(--color-primary); text-align: center; margin-bottom: 6px; letter-spacing: .02em; }
+.sugg-items { font-size: 11px; color: var(--color-text-secondary); line-height: 1.55; margin-bottom: 8px; }
+.sugg-state { font-size: 11px; color: var(--color-accent); line-height: 1.5; margin-bottom: 8px; background: var(--color-accent-light); padding: 7px 9px; border-radius: var(--radius-sm); }
+.sugg-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.sugg-row { display: flex; gap: 8px; }
+.sugg-row button { flex: 1; font-size: 12px; padding: 9px 6px; }
 .walk-active { background: var(--color-accent); color: #fff !important; }
 .floor-color-label { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; }
 
@@ -1341,11 +1348,23 @@ canvas { display: block; }
         <div class="sugg-panel" id="sugg-dock" style="display:none">
           <div class="sugg-head"><div class="sugg-title">Suggested Design</div><button class="sugg-x" onclick="dismissSuggestedDock()" aria-label="Dismiss suggestion" title="Dismiss">&#xD7;</button></div>
           <div class="sugg-type" id="sugg-dock-type">Living Room</div>
-          <canvas id="sugg-canvas" class="sugg-canvas" width="440" height="300" aria-label="Suggested layout preview"></canvas>
-          <div class="sugg-stats" id="sugg-dock-stats"></div>
+          <div class="sugg-carousel">
+            <button class="sugg-nav" onclick="sugStep(-1)" aria-label="Previous layout" title="Previous layout">&#x2039;</button>
+            <canvas id="sugg-canvas" class="sugg-canvas" width="440" height="300" aria-label="Suggested layout preview"></canvas>
+            <button class="sugg-nav" onclick="sugStep(1)" aria-label="Next layout" title="Next layout">&#x203A;</button>
+          </div>
+          <div class="sugg-count" id="sugg-count">Layout 1 of 5</div>
+          <div class="sugg-items" id="sugg-items"></div>
+          <div class="sugg-state" id="sugg-state" style="display:none"></div>
           <div class="sugg-actions">
-            <button class="btn-outline" onclick="applySuggestedDesign(false)">Customize Manually</button>
-            <button class="btn-proceed" onclick="applySuggestedDesign(true)">Use Suggested Design</button>
+            <div class="sugg-row">
+              <button class="btn-outline" id="sugg-back" onclick="sugBack()" style="display:none">&larr; Back</button>
+              <button class="btn-proceed" onclick="sugPreview()">Preview in Editor</button>
+            </div>
+            <div class="sugg-row">
+              <button class="btn-outline" onclick="customizeManually()">Customize Manually</button>
+              <button class="btn-proceed" onclick="applySuggestedDesign(true)">Use Suggested Design</button>
+            </div>
           </div>
         </div>
         <div class="panel-title">Properties</div>
@@ -1925,38 +1944,119 @@ function ColorWheel(container,initialHex,onChange){
   };
   this.setColor(initialHex||'#c8a878');
 }
-let pendingSugType=null;
+// ══════════════════════════════════════════
+//  SUGGESTED DESIGN — 5 layout options
+// ══════════════════════════════════════════
+const sugVariantsCache={};
+const SUG_VARIANT_NAMES=['Classic','Mirrored','Flipped','Rotated','Rotated Alt'];
+let sugVars=[],sugIndex=0,sugPreviewIdx=-1;
+function buildLayoutVariants(type){
+  if(sugVariantsCache[type]!==undefined)return sugVariantsCache[type];
+  const base=SUGGESTED_LAYOUTS[type];
+  const out=[];
+  if(base){
+    const W=base.roomConfig.w||5,H=base.roomConfig.h||4;
+    const deep=()=>JSON.parse(JSON.stringify({roomConfig:base.roomConfig,walls:base.walls,furniture:base.furniture}));
+    const clampIn=(f,Wr,Hr)=>{
+      const cs2=Math.cos(f.rot||0),sn2=Math.sin(f.rot||0);
+      const cc=Math.abs(cs2),ss=Math.abs(sn2);
+      const aw=f.w*cc+f.h*ss,ah=f.w*ss+f.h*cc;
+      const hxc=(f.w*cs2-f.h*sn2)/2,hyc=(f.w*sn2+f.h*cs2)/2;
+      const cx=f.x+hxc,cy=f.y+hyc;
+      const amx=Math.max(aw/2,Math.min(Wr-aw/2,cx));
+      const amy=Math.max(ah/2,Math.min(Hr-ah/2,cy));
+      f.x=amx-hxc;f.y=amy-hyc;
+    };
+    const apply=(v)=>(v.furniture||[]).forEach(f=>clampIn(f,W,H));
+    const v0=deep();apply(v0);out.push({...v0,name:'Classic'});
+    const v1=deep();(v1.furniture||[]).forEach(f=>{f.x=W-(f.x+f.w);f.rot=-(f.rot||0);});apply(v1);out.push({...v1,name:'Mirrored'});
+    const v2=deep();(v2.furniture||[]).forEach(f=>{f.y=H-(f.y+f.h);f.rot=-(f.rot||0);});apply(v2);out.push({...v2,name:'Flipped'});
+    const v3=deep();(v3.furniture||[]).forEach(f=>{const t=Math.PI/2,c=Math.cos(t),s=Math.sin(t);const cx=f.x+f.w/2,cy=f.y+f.h/2;const rx=W/2+(cx-W/2)*c-(cy-H/2)*s,ry=H/2+(cx-W/2)*s+(cy-H/2)*c;const nw=f.h,nh=f.w,r=(f.rot||0)+t;const cs2=Math.cos(r),sn2=Math.sin(r);f.x=rx-(nw*cs2-nh*sn2)/2;f.y=ry-(nw*sn2+nh*cs2)/2;f.w=nw;f.h=nh;f.rot=r;});apply(v3);out.push({...v3,name:'Rotated'});
+    const v4=deep();(v4.furniture||[]).forEach(f=>{const t=-Math.PI/2,c=Math.cos(t),s=Math.sin(t);const cx=f.x+f.w/2,cy=f.y+f.h/2;const rx=W/2+(cx-W/2)*c-(cy-H/2)*s,ry=H/2+(cx-W/2)*s+(cy-H/2)*c;const nw=f.h,nh=f.w,r=(f.rot||0)+t;const cs2=Math.cos(r),sn2=Math.sin(r);f.x=rx-(nw*cs2-nh*sn2)/2;f.y=ry-(nw*sn2+nh*cs2)/2;f.w=nw;f.h=nh;f.rot=r;});apply(v4);out.push({...v4,name:'Rotated Alt'});
+  }
+  sugVariantsCache[type]=out;
+  return out;
+}
 function openSuggestedDock(type){
   const dock=document.getElementById('sugg-dock');
   if(!dock)return;
-  const sug=SUGGESTED_LAYOUTS[type];
-  if(!sug||type==='Custom'){dock.style.display='none';pendingSugType=null;return;}
-  pendingSugType=type;
+  sugVars=buildLayoutVariants(type);
+  if(type==='Custom'||!sugVars.length){dock.style.display='none';sugVars=[];sugIndex=0;sugPreviewIdx=-1;return;}
   dock.style.display='block';
-  document.getElementById('sugg-dock-type').textContent=type;
-  const rc=sug.roomConfig;
-  const fl={wood:'Wood',tile:'Tile',carpet:'Carpet',concrete:'Concrete'}[rc.floor&&rc.floor.style]||'Wood';
-  const pieces=(sug.furniture||[]).length;
-  document.getElementById('sugg-dock-stats').innerHTML=`<b>${rc.w} \u00D7 ${rc.h} m</b> &middot; ${fl} floor &middot; ${pieces} staged piece${pieces===1?'':'s'} &middot; applies walls, finishes and furniture in one click`;
-  drawSuggPreview(sug);
+  sugIndex=0;sugPreviewIdx=-1;
+  document.getElementById('sugg-dock-type').textContent=type||'Living Room';
+  renderSugCard();
 }
-function dismissSuggestedDock(){pendingSugType=null;const d=document.getElementById('sugg-dock');if(d)d.style.display='none';}
-function applySuggestedDesign(useSug){
-  const type=pendingSugType||(roomConfig&&roomConfig.type);
-  if(useSug&&SUGGESTED_LAYOUTS[type]){
-    const sug=SUGGESTED_LAYOUTS[type];
-    roomConfig=JSON.parse(JSON.stringify(sug.roomConfig));
-    walls=JSON.parse(JSON.stringify(sug.walls||[]));
-    furniture=JSON.parse(JSON.stringify(sug.furniture||[])).map(f=>({...f,id:uid()}));
-    walls=walls.map(w=>({...w,id:uid()}));
-    roomPhotos=[];selectedItem=null;wallStart=null;currentProjectId=null;
-    setStatus('Suggested design applied \u2014 edit anything you like.');
-  }else if(useSug){
-    setStatus('No suggested layout for that room type \u2014 starting blank.');
+function renderSugCard(){
+  if(!sugVars.length)return;
+  const v=sugVars[sugIndex];
+  drawSuggPreview(v);
+  const count=document.getElementById('sugg-count');
+  if(count)count.textContent='Layout '+(sugIndex+1)+' of '+sugVars.length+' \u00B7 '+v.name;
+  const items=document.getElementById('sugg-items');
+  if(items)items.textContent=sugFurnNames(v);
+  const state=document.getElementById('sugg-state');
+  if(state){
+    const on=sugPreviewIdx===sugIndex;
+    state.style.display=on?'':'none';
+    if(on)state.textContent='Previewing "Layout '+(sugIndex+1)+' \u00B7 '+v.name+'" in the editor. Use Suggested Design to keep it, or Back to browse the other layouts.';
   }
-  dismissSuggestedDock();
+  const back=document.getElementById('sugg-back');
+  if(back)back.style.display=sugPreviewIdx>=0?'':'none';
+}
+function sugStep(dir){
+  if(!sugVars.length)return;
+  sugIndex=(sugIndex+dir+sugVars.length)%sugVars.length;
+  renderSugCard();
+}
+function sugPreview(){
+  if(!sugVars.length)return;
+  sugLoadLayout(sugVars[sugIndex]);
+  sugPreviewIdx=sugIndex;
+  setStatus('Previewing Layout '+(sugIndex+1)+' \u00B7 '+sugVars[sugIndex].name+' in the editor \u2014 Use Suggested Design to keep it, or Back to browse the other layouts.');
+  renderSugCard();
+}
+function sugBack(){
+  sugPreviewIdx=-1;
+  renderSugCard();
+  setStatus('Browsing suggested layouts \u2014 preview another, keep the current room, or customize manually.');
+}
+function sugLoadLayout(v){
+  if(!v)return;
+  roomConfig=JSON.parse(JSON.stringify(v.roomConfig));
+  walls=JSON.parse(JSON.stringify(v.walls||[])).map(w=>({...w,id:uid()}));
+  furniture=(v.furniture||[]).map(f=>({...f,id:uid()}));
+  roomPhotos=[];selectedItem=null;wallStart=null;currentProjectId=null;
   resizeCanvas();buildFurnList();updateBadge();draw2d();updateProps();
   if(editorView==='3d')build3d();
+}
+function sugFurnNames(v){
+  return (v.furniture||[]).map(f=>{const def=FURNITURE_DEFS.find(d=>d.id===f.defId);return def?def.label:null;}).filter(Boolean).join(', ');
+}
+function dismissSuggestedDock(){
+  const d=document.getElementById('sugg-dock');if(d)d.style.display='none';
+}
+function applySuggestedDesign(useSug){
+  if(!useSug){customizeManually();return;}
+  const vi=sugPreviewIdx>=0?sugPreviewIdx:sugIndex;
+  if(sugVars[vi]){
+    const v=sugVars[vi];
+    if(sugPreviewIdx!==vi)sugLoadLayout(v);
+    dismissSuggestedDock();
+    setStatus('"'+v.name+'" layout applied \u2014 edit anything you like.');
+  }else{
+    dismissSuggestedDock();
+    setStatus('No suggested layouts for that room type \u2014 starting blank.');
+  }
+}
+function customizeManually(){
+  if(sugPreviewIdx>=0){
+    walls=[];furniture=[];roomPhotos=[];selectedItem=null;wallStart=null;
+    resizeCanvas();buildFurnList();updateBadge();draw2d();
+    if(editorView==='3d')build3d();
+  }
+  dismissSuggestedDock();
+  setStatus('Blank room ready \u2014 draw walls and add furniture.');
 }
 function drawSuggPreview(sug){
   const cv=document.getElementById('sugg-canvas');if(!cv)return;
@@ -1970,21 +2070,23 @@ function drawSuggPreview(sug){
   const ox=(W-w*s)/2,oy=(H-h*s)/2;
   const floor=rc.floor||{};
   const fl={wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'}[floor.style]||'#c8a878';
-  const fc=floor.color||fl;
-  x.fillStyle=fc;x.fillRect(ox,oy,w*s,h*s);
+  x.fillStyle=floor.color||fl;x.fillRect(ox,oy,w*s,h*s);
   x.strokeStyle='rgba(70,50,30,.35)';x.lineWidth=2;
   x.strokeRect(ox,oy,w*s,h*s);
   (sug.furniture||[]).forEach(f=>{
     const def=FURNITURE_DEFS.find(d=>d.id===f.defId);
     if(!def)return;
-    const px=f.x*s+ox,py=f.y*s+oy,pw=f.w*s,ph=f.h*s;
-    x.fillStyle=def.color||'#8c6040';x.fillRect(px,py,pw,ph);
-    if(def.type==='door'){x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.arc(px,py,pw,0,Math.PI/2);x.stroke();return;}
-    if(def.type==='window'){x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.moveTo(px+4,py+ph/2);x.lineTo(px+pw-4,py+ph/2);x.stroke();return;}
+    const cx=f.x+f.w/2,cy=f.y+f.h/2;
+    const pw=f.w*s,ph=f.h*s;
+    x.save();x.translate(cx*s+ox,cy*s+oy);x.rotate(f.rot||0);
+    x.fillStyle=def.color||'#8c6040';
+    if(def.type==='circle'){x.beginPath();x.arc(0,0,pw/2,0,Math.PI*2);x.fill();x.stroke();}
+    else{x.fillRect(-pw/2,-ph/2,pw,ph);x.strokeRect(-pw/2,-ph/2,pw,ph);}
     x.fillStyle='rgba(255,255,255,.85)';
-    x.font='600 '+(ph>pw?pw*0.28:ph*0.42)+'px DM Sans, sans-serif';
+    x.font='600 '+Math.max(8,Math.min(pw,ph)*0.38)+'px DM Sans, sans-serif';
     x.textAlign='center';x.textBaseline='middle';
-    x.fillText((def.label.split(' ')[0]||'?').charAt(0),px+pw/2,py+ph/2);
+    x.fillText((def.label.split(' ')[0]||'?').charAt(0),0,0);
+    x.restore();
   });
 }
 function selectShape(s){
@@ -2117,10 +2219,10 @@ const SUGGESTED_LAYOUTS={
     furniture:[
       {defId:'sofa_3',x:0.4,y:1.9,w:2.2,h:0.85,rot:0,h3d:0.8},
       {defId:'coffee',x:2.8,y:2.1,w:1.0,h:0.5,rot:0,h3d:0.4},
-      {defId:'tv',x:5.0,y:1.8,w:1.4,h:0.4,rot:0,h3d:0.5},
+      {defId:'tv',x:4.5,y:1.8,w:1.4,h:0.4,rot:0,h3d:0.5},
       {defId:'chair',x:0.6,y:3.6,w:0.6,h:0.6,rot:0,h3d:0.9},
       {defId:'plant',x:5.3,y:0.4,w:0.5,h:0.5,rot:0,h3d:1.2},
-      {defId:'rug',x:1.5,y:1.5,w:2.6,h:1.8,rot:0,h3d:0.02}]},
+      {defId:'rug',x:2.0,y:2.85,w:2.6,h:1.8,rot:0,h3d:0.02}]},
   'Bedroom':{
     roomConfig:{type:'Bedroom',shape:'rect',w:5,h:4.5,wallH:2.7,wallT:0.15,
       floor:{style:'carpet',color:'#b8aeb0',pattern:'plush'},
@@ -3460,6 +3562,13 @@ function makeFloorTileCanvas(style,pattern,color,size){
   return c;
 }
 const floorTexCache={};
+function texDisplaySetup(t,wrap,repX,repY){
+  if(wrap){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repX,repY);}
+  t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;
+  if(THREE.sRGBEncoding!==undefined)t.encoding=THREE.sRGBEncoding;
+  if(renderer3d&&renderer3d.capabilities&&renderer3d.capabilities.getMaxAnisotropy)t.anisotropy=Math.min(8,renderer3d.capabilities.getMaxAnisotropy());
+  return t;
+}
 function makeFloorTexture(){
   const floor=roomConfig.floor||{style:'wood',color:'#c8a878',pattern:'boards'};
   const style=floor.style||'wood';
@@ -3468,7 +3577,7 @@ function makeFloorTexture(){
   const key=style+'|'+pattern+'|'+base;
   if(!floorTexCache[key]){floorTexCache[key]={c:makeFloorTileCanvas(style,pattern,base,512),style,pattern,base};}
   const tex=new THREE.CanvasTexture(floorTexCache[key].c);
-  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(4,4);
+  texDisplaySetup(tex,true,2,2);
   return tex;
 }
 function wallFinishCfg(){
@@ -3502,7 +3611,7 @@ function makeWallTexture(){
       x.fillRect(Math.random()*256,Math.random()*256,Math.random()*20+4,Math.random()*4+1);
     }
   }
-  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(style==='stripe'?3:2,1); return t;
+  const t=new THREE.CanvasTexture(c); texDisplaySetup(t,true,style==='stripe'?3:2,1); return t;
 }
 function makeFabricTexture(hexColor){
   const c=document.createElement('canvas'); c.width=128; c.height=128;
@@ -3803,7 +3912,7 @@ function build3d(){
   ensureWallAttachment();
   const floorTex=makeFloorTexture();
   const rw=Math.max(roomConfig.w||5,1)/2,rh=Math.max(roomConfig.h||4,1)/2;
-  floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(rw,rh);
+  floorTex.repeat.set(rw,rh);
   const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:0.85,metalness:0.0});
   let floorTemp;const corners3d=roomCorners();
   if(corners3d.length>=3){
@@ -3811,10 +3920,14 @@ function build3d(){
     const loop=corners3d.slice();if(area>0)loop.reverse();
     try{
       const faces=THREE.ShapeUtils.triangulateShape(loop.map(c=>new THREE.Vector2(c.x,c.y)),[]);
-      const verts=[];
-      faces.forEach(tr=>{for(let k=2;k>=0;k--){const c=loop[tr[k]];verts.push(c.x,0,c.y);}});
+      const verts=[];const uvs=[];
+      let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+      loop.forEach(c=>{if(c.x<minX)minX=c.x;if(c.x>maxX)maxX=c.x;if(c.y<minY)minY=c.y;if(c.y>maxY)maxY=c.y;});
+      const invW=1/Math.max(1e-6,maxX-minX),invH=1/Math.max(1e-6,maxY-minY);
+      faces.forEach(tr=>{for(let k=2;k>=0;k--){const c=loop[tr[k]];verts.push(c.x,0,c.y);uvs.push((c.x-minX)*invW,(c.y-minY)*invH);}});
       const geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+      geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
       geo.computeVertexNormals();
       floorTemp=new THREE.Mesh(geo,floorMat);
     }catch(err){console.error('[build3d] floor triangulation failed; using plane fallback:',err);}
@@ -3979,49 +4092,76 @@ function exitWalkMode(){
   document.getElementById('canvas3d').blur();
 }
 function applyWalkCamera(){
+  const wallH=roomConfig.wallH||2.7;
+  walkPos.y=Math.max(0.6,Math.min(wallH-0.25,walkPos.y));
   camera.position.set(walkPos.x,walkPos.y,walkPos.z);
   const cp=Math.cos(walkPitch),sp=Math.sin(walkPitch);
   camera.lookAt(walkPos.x+Math.sin(walkYaw)*cp,walkPos.y+sp,walkPos.z+Math.cos(walkYaw)*cp);
 }
-function resolveCollision(px,pz){
-  const rad=0.26;
-  for(const w of walls){
-    const dx=w.x2-w.x1,dz=w.y2-w.y1;
-    const len2=dx*dx+dz*dz;
-    let t=len2?((px-w.x1)*dx+(pz-w.y1)*dz)/len2:0;
-    t=Math.max(0,Math.min(1,t));
-    const cx=w.x1+t*dx,cz=w.y1+t*dz;
-    const ddx=px-cx,ddz=pz-cz;
-    const d=Math.sqrt(ddx*ddx+ddz*ddz);
-    const minD=(w.t||0.15)/2+rad;
-    if(d<minD&&d>0.0001){px=cx+(ddx/d)*minD;pz=cz+(ddz/d)*minD;}
+const WALK_RADIUS=0.26;
+function resolveOnce(px,pz){
+  let x=px,z=pz;
+  const prevX=walkPos.x,prevZ=walkPos.z;
+  for(let pass=0;pass<2;pass++){
+    for(const w of walls){
+      const dx=w.x2-w.x1,dz=w.y2-w.y1;
+      const len2=dx*dx+dz*dz;if(len2<1e-6)continue;
+      const len=Math.sqrt(len2);
+      let t=((x-w.x1)*dx+(z-w.y1)*dz)/len2;
+      t=Math.max(0,Math.min(1,t));
+      const cx=w.x1+t*dx,cz=w.y1+t*dz;
+      const ddx=x-cx,ddz=z-cz;
+      let d=Math.sqrt(ddx*ddx+ddz*ddz);
+      const minD=(w.t||0.15)/2+WALK_RADIUS;
+      if(d<minD){
+        let ux,uz;
+        if(d>1e-4){ux=ddx/d;uz=ddz/d;}
+        else{
+          const nx2=-dz/len,nz2=dx/len;
+          const side=(prevX-cx)*nx2+(prevZ-cz)*nz2;
+          if(side<0){ux=-nx2;uz=-nz2;}else{ux=nx2;uz=nz2;}
+        }
+        x=cx+ux*minD;z=cz+uz*minD;
+      }
+    }
   }
   for(const f of furniture){
     if(f.defId==='rug'||f.defId==='door'||f.defId==='window')continue;
     if((f.h3d||1)<0.25)continue;
-    const tr=((f.rot||0)*Math.PI)/180;
-    const cs=Math.cos(tr),sn=Math.sin(tr);
-    const lx=(px-f.x)*cs+(pz-f.y)*sn;
-    const lz=-(px-f.x)*sn+(pz-f.y)*cs;
-    const hw=f.w/2,hd=f.h/2;
-    const cxw=Math.max(-hw,Math.min(hw,lx));
-    const czw=Math.max(-hd,Math.min(hd,lz));
+    const cs=Math.cos(f.rot||0),sn=Math.sin(f.rot||0);
+    const lx=(x-f.x)*cs+(z-f.y)*sn;
+    const lz=-(x-f.x)*sn+(z-f.y)*cs;
+    const cxw=Math.max(0,Math.min(f.w,lx));
+    const czw=Math.max(0,Math.min(f.h,lz));
     let ox=lx-cxw,oz=lz-czw;
     let d=Math.sqrt(ox*ox+oz*oz);
-    if(d<rad){
+    if(d<WALK_RADIUS){
       if(d<1e-4){
-        const ex=(hw+rad)-Math.abs(lx),ez=(hd+rad)-Math.abs(lz);
-        if(ex<ez){ox=(lx<0?-1:1)*ex;oz=0;}
-        else{ox=0;oz=(lz<0?-1:1)*ez;}
+        const dl=lx,dr=f.w-lx,dt=lz,db=f.h-lz;
+        if(dl<=dr&&dl<=dt&&dl<=db){ox=-WALK_RADIUS;oz=0;}
+        else if(dr<=dl&&dr<=dt&&dr<=db){ox=WALK_RADIUS;oz=0;}
+        else if(dt<=dl&&dt<=dr&&dt<=db){ox=0;oz=-WALK_RADIUS;}
+        else{ox=0;oz=WALK_RADIUS;}
         d=1;
       }else{
-        const push=(rad-d)/d;ox*=push;oz*=push;
+        const push=(WALK_RADIUS-d)/d;ox*=push;oz*=push;
       }
-      px+=ox*cs-oz*sn;
-      pz+=ox*sn+oz*cs;
+      x+=ox*cs-oz*sn;
+      z+=ox*sn+oz*cs;
     }
   }
-  return {x:px,z:pz};
+  return {x,z};
+}
+function resolveCollision(nx,nz){
+  const dx=nx-walkPos.x,dz=nz-walkPos.z;
+  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/0.05));
+  const ix=dx/steps,iz=dz/steps;
+  let x=walkPos.x,z=walkPos.z;
+  for(let s=0;s<steps;s++){
+    const r=resolveOnce(x+ix,z+iz);
+    x=r.x;z=r.z;
+  }
+  return {x,z};
 }
 document.addEventListener('pointerlockchange',()=>{
   if(!document.pointerLockElement&&walkMode)exitWalkMode();
