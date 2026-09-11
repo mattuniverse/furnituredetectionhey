@@ -89,10 +89,10 @@ frontend deploy.
 1. On [render.com](https://render.com) → **New → Web Service**, import that repo
    (e.g. `mattuniverse/rendereed_floorplan`).
 2. It ships a `Dockerfile` + `render.yaml`, so Render will build and run it as-is.
-3. Render gives a URL like `https://rendereed-floorplan.onrender.com`.
+3. Render gives a URL like `https://rendee-onnx-updated.onrender.com`.
 4. The frontend already points at it by default — in `index.html`:
    ```js
-   const DETECT_API_BASE = window.FLOORPLAN_API_BASE || 'https://rendereed-floorplan.onrender.com';
+   const DETECT_API_BASE = window.FLOORPLAN_API_BASE || 'https://rendee-onnx-updated.onrender.com';
    ```
    Change the default value if your Render URL differs, or override it at runtime with
    `window.FLOORPLAN_API_BASE` before the script runs.
@@ -121,7 +121,7 @@ frontend deploy.
    | ----------------- | ------------------------------------------------ |
    | `SUPABASE_URL`    | `https://binubqetpsugdnwtarvt.supabase.co`        |
    | `SUPABASE_ANON_KEY` | `sb_publishable_...`                            |
-   | `DETECT_API_BASE` | `https://rendereed-floorplan.onrender.com`        |
+   | `DETECT_API_BASE` | `https://rendee-onnx-updated.onrender.com`        |
 
    `build.js` replaces the `__NAME__` placeholders in `index.html` with these values at build
    time; with none set, the built site still works using the hardcoded defaults.

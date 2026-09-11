@@ -946,7 +946,7 @@ canvas { display: block; }
       <button class="cam-btn" id="btn-single-shot" style="display:none" onclick="shootSingle()">&#x1F4CF; Take Photo</button>
     </div>
     <div class="cam-row">
-      <button class="cam-btn" onclick="singleFileInput.click()">&#x1F4CE; Upload a Photo</button>
+      <button class="cam-btn" onclick="document.getElementById('single-file-input').click()">&#x1F4CE; Upload a Photo</button>
     </div>
     <input type="file" id="single-file-input" accept="image/*" style="display:none" aria-hidden="true">
     <div class="scan-dock" id="scan-dock">
@@ -2093,7 +2093,7 @@ function setStatus(msg){document.getElementById('statusbar-text').textContent=ms
 // ══════════════════════════════════════════
 //  FURNITURE DETECTION (Render ONNX backend)
 // ══════════════════════════════════════════
-const DETECT_API_BASE = window.FLOORPLAN_API_BASE || envTok(FLOORPLAN_ENV.DETECT_API_BASE,'https://rendereed-floorplan.onrender.com');
+const DETECT_API_BASE = window.FLOORPLAN_API_BASE || envTok(FLOORPLAN_ENV.DETECT_API_BASE,'https://rendee-onnx-updated.onrender.com');
 const uploadedPhotos={};
 let activePhotoSlot=null;
 
