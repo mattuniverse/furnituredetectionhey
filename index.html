@@ -3542,9 +3542,9 @@ function build3d(){
     let area=0;for(let i=0;i<corners3d.length;i++){const a=corners3d[i],b=corners3d[(i+1)%corners3d.length];area+=a.x*b.y-b.x*a.y;}
     const loop=corners3d.slice();if(area>0)loop.reverse();
     try{
-      const faces=THREE.ShapeUtils.triangulateShape(loop.map(c=>[c.x,c.y]),[]);
+      const faces=THREE.ShapeUtils.triangulateShape(loop.map(c=>new THREE.Vector2(c.x,c.y)),[]);
       const verts=[];
-      faces.forEach(tr=>{for(let k=0;k<3;k++){const c=loop[tr[k]];verts.push(c.x,0,c.y);}});
+      faces.forEach(tr=>{for(let k=2;k>=0;k--){const c=loop[tr[k]];verts.push(c.x,0,c.y);}});
       const geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
       geo.computeVertexNormals();
@@ -3560,7 +3560,21 @@ function build3d(){
   const ceilH=roomConfig.wallH||2.7;const ceilMat=new THREE.MeshStandardMaterial({color:0xf8f4ee,roughness:0.95});
   const ceil=new THREE.Mesh(new THREE.PlaneGeometry(80,80),ceilMat);ceil.rotation.x=Math.PI/2;ceil.position.y=ceilH;scene.add(ceil);
   const wallTex=makeWallTexture();const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:0.9,metalness:0.0});
-  walls.forEach(w=>{
+  const wallMatch=(w,a,b)=>Math.abs(w.x1-a.x)<0.05&&Math.abs(w.y1-a.y)<0.05&&Math.abs(w.x2-b.x)<0.05&&Math.abs(w.y2-b.y)<0.05;
+  let wallList;
+  if(corners3d.length>=3){
+    wallList=[];const matched=new Set();
+    for(let i=0;i<corners3d.length;i++){
+      const A=corners3d[i],B=corners3d[(i+1)%corners3d.length];
+      const orig=walls.find(w=>!matched.has(w.id)&&(wallMatch(w,A,B)||wallMatch(w,B,A)));
+      if(orig){matched.add(orig.id);wallList.push(orig);}
+      else wallList.push({id:'pc'+i,x1:A.x,y1:A.y,x2:B.x,y2:B,t:roomConfig.wallT||0.15,wh:roomConfig.wallH||2.7});
+    }
+    walls.filter(w=>!matched.has(w.id)).forEach(w=>wallList.push(w));
+  }else{
+    wallList=walls;
+  }
+  wallList.forEach(w=>{
     const dx=w.x2-w.x1,dz=w.y2-w.y1,len=Math.sqrt(dx*dx+dz*dz);if(len<0.01)return;
     const h=w.wh||2.7,t=w.t||0.15,th=h;
     const open=wallOpenings(w);
