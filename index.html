@@ -627,11 +627,84 @@ canvas { display: block; }
   }catch(e){}
 })();
 </script>
+/* Landing */
+#screen-landing{align-items:center;justify-content:center;background:linear-gradient(180deg,var(--color-bg) 0%,color-mix(in srgb,var(--color-bg) 92%,var(--color-primary)) 100%);overflow-y:auto;padding:40px 24px;}
+.lp-hero{text-align:center;max-width:680px;margin:0 auto 36px;}
+.lp-hero h1{font-family:var(--font-display);font-size:clamp(28px,5vw,42px);color:var(--color-text);margin:0 0 10px;line-height:1.15;}
+.lp-hero h1 span{color:var(--color-primary);}
+.lp-hero p{font-size:15px;color:var(--color-text-muted);line-height:1.6;margin:0;max-width:520px;margin-inline:auto;}
+.lp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;max-width:720px;width:100%;}
+.lp-card{background:var(--color-surface);border:2px solid var(--color-border-light);border-radius:var(--radius-lg);padding:28px 20px 22px;text-align:center;cursor:pointer;transition:all var(--transition-base) var(--ease-soft);display:flex;flex-direction:column;align-items:center;gap:10px;position:relative;overflow:hidden;}
+.lp-card:hover{border-color:var(--color-primary);transform:translateY(-3px);box-shadow:0 8px 24px color-mix(in srgb,var(--color-primary) 14%,transparent);}
+.lp-card.selected{border-color:var(--color-primary);background:color-mix(in srgb,var(--color-surface) 92%,var(--color-primary));}
+.lp-icon{font-size:36px;line-height:1;}
+.lp-card-name{font-size:14px;font-weight:600;color:var(--color-text);}
+.lp-card-desc{font-size:11.5px;color:var(--color-text-muted);line-height:1.45;}
+.lp-panel{max-width:720px;width:100%;margin-top:24px;overflow:hidden;transition:max-height var(--transition-slow) var(--ease-soft),opacity var(--transition-base);max-height:0;opacity:0;}
+.lp-panel.open{max-height:600px;opacity:1;}
+.lp-inner{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:var(--radius-xl);padding:28px 32px;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
+.lp-preview{flex:1 1 240px;}
+.lp-preview-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted);margin-bottom:10px;}
+.lp-room-type{font-family:var(--font-display);font-size:22px;color:var(--color-text);margin:0 0 4px;}
+.lp-room-size{font-size:13px;color:var(--color-text-secondary);margin:0 0 14px;}
+.lp-floor-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.lp-floor-chip{font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--color-border);background:var(--color-bg);color:var(--color-text-secondary);cursor:default;}
+.lp-items{font-size:12px;color:var(--color-text-muted);line-height:1.55;}
+.lp-items b{color:var(--color-text-secondary);font-weight:500;}
+.lp-actions{flex:1 1 180px;display:flex;flex-direction:column;gap:10px;padding-top:8px;}
+.lp-btn{padding:11px 20px;border-radius:var(--radius-md);font-family:var(--font-body);font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all var(--transition-fast) var(--ease-soft);text-align:center;}
+.lp-btn-primary{background:var(--color-primary);color:var(--color-text-inverse);}
+.lp-btn-primary:hover{background:var(--color-primary-hover);transform:translateY(-1px);box-shadow:0 4px 14px color-mix(in srgb,var(--color-primary) 28%,transparent);}
+.lp-btn-secondary{background:var(--color-bg);border:1.5px solid var(--color-border);color:var(--color-text);}
+.lp-btn-secondary:hover{border-color:var(--color-primary);color:var(--color-primary);}
+.lp-footer{text-align:center;margin-top:40px;font-size:12px;color:var(--color-text-muted);}
+.lp-footer a{color:var(--color-primary);text-decoration:none;font-weight:500;}
+.lp-footer a:hover{text-decoration:underline;}
+@media(max-width:600px){
+  .lp-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .lp-card{padding:20px 14px 16px;}
+  .lp-icon{font-size:28px;}
+  .lp-card-name{font-size:13px;}
+  .lp-card-desc{font-size:10.5px;}
+  .lp-inner{padding:20px;gap:16px;}
+  #screen-landing{padding:28px 16px;}
+}
 </head>
 <body>
 
+<!-- LANDING -->
+<div id="screen-landing" class="screen active">
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme" title="Switch theme">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+  </button>
+  <div class="lp-hero">
+    <h1>Set Up <span>Your Room</span></h1>
+    <p>Choose a room type to get a suggested layout, or customize it yourself.</p>
+  </div>
+  <div class="lp-grid" id="lp-grid"></div>
+  <div class="lp-panel" id="lp-panel">
+    <div class="lp-inner">
+      <div class="lp-preview">
+        <div class="lp-preview-title">Suggested Layout</div>
+        <h3 class="lp-room-type" id="lp-type-name"></h3>
+        <p class="lp-room-size" id="lp-room-size"></p>
+        <div class="lp-floor-chips" id="lp-floor-chips"></div>
+        <div class="lp-items" id="lp-items"></div>
+      </div>
+      <div class="lp-actions">
+        <button class="lp-btn lp-btn-primary" onclick="useSuggestedDesign()">&#x2714; Use Suggested Design</button>
+        <button class="lp-btn lp-btn-secondary" onclick="customizeManually()">&#x270E; Customize Manually</button>
+      </div>
+    </div>
+  </div>
+  <div class="lp-footer">
+    Already have an account? <a href="#" onclick="goTo('login');return false;">Sign in</a>
+  </div>
+</div>
+
 <!-- LOGIN -->
-<div id="screen-login" class="screen active">
+<div id="screen-login" class="screen">
   <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
@@ -1549,6 +1622,79 @@ const ANCHOR_ORDER={
   'Bathroom':['bathtub','toilet','sink','cabinet'],
   'Office':['desk','chair','shelf','cabinet']
 };
+const SUGGESTED_LAYOUTS={
+  'Living Room':{
+    roomConfig:{type:'Living Room',shape:'rect',w:6,h:5,wallH:2.7,wallT:0.15,
+      floor:{style:'wood',color:'#c8a878',pattern:'boards'},
+      wallFinish:{style:'solid',color:'#ddd0be'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:6,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:6,y1:0,x2:6,y2:5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:6,y1:5,x2:0,y2:5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'sofa_3',x:0.4,y:1.9,w:2.2,h:0.85,rot:0,h3d:0.8},
+      {defId:'coffee',x:2.8,y:2.1,w:1.0,h:0.5,rot:0,h3d:0.4},
+      {defId:'tv',x:5.0,y:1.8,w:1.4,h:0.4,rot:0,h3d:0.5},
+      {defId:'chair',x:0.6,y:3.6,w:0.6,h:0.6,rot:0,h3d:0.9},
+      {defId:'plant',x:5.3,y:0.4,w:0.5,h:0.5,rot:0,h3d:1.2},
+      {defId:'rug',x:1.5,y:1.5,w:2.6,h:1.8,rot:0,h3d:0.02}]},
+  'Bedroom':{
+    roomConfig:{type:'Bedroom',shape:'rect',w:5,h:4.5,wallH:2.7,wallT:0.15,
+      floor:{style:'carpet',color:'#b8aeb0',pattern:''},
+      wallFinish:{style:'solid',color:'#e8ddd2'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:5,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:5,y1:0,x2:5,y2:4.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:5,y1:4.5,x2:0,y2:4.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:4.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'bed_k',x:1.3,y:0.3,w:2.0,h:2.2,rot:0,h3d:0.55},
+      {defId:'wardrobe',x:3.8,y:0.3,w:1.0,h:0.6,rot:0,h3d:2.0},
+      {defId:'cabinet',x:0.3,y:3.4,w:0.6,h:0.5,rot:0,h3d:0.9},
+      {defId:'plant',x:4.4,y:3.8,w:0.4,h:0.4,rot:0,h3d:0.7}]},
+  'Kitchen':{
+    roomConfig:{type:'Kitchen',shape:'rect',w:4,h:3.5,wallH:2.7,wallT:0.15,
+      floor:{style:'tile',color:'#d8d4cc',pattern:'check'},
+      wallFinish:{style:'solid',color:'#f0ebe3'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:4,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:4,y1:0,x2:4,y2:3.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:4,y1:3.5,x2:0,y2:3.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:3.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'table_rect',x:1.2,y:1.5,w:1.0,h:0.7,rot:0,h3d:0.75},
+      {defId:'cabinet',x:0.3,y:0.3,w:0.6,h:0.5,rot:0,h3d:0.9},
+      {defId:'sink',x:3.2,y:0.3,w:0.7,h:0.5,rot:0,h3d:0.85}]},
+  'Bathroom':{
+    roomConfig:{type:'Bathroom',shape:'rect',w:3.5,h:2.5,wallH:2.7,wallT:0.15,
+      floor:{style:'tile',color:'#c8c4bc',pattern:'hex'},
+      wallFinish:{style:'solid',color:'#e8e4dc'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:3.5,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:3.5,y1:0,x2:3.5,y2:2.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:3.5,y1:2.5,x2:0,y2:2.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:2.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'bathtub',x:1.6,y:0.3,w:1.7,h:0.8,rot:0,h3d:0.6},
+      {defId:'toilet',x:0.3,y:1.5,w:0.45,h:0.7,rot:0,h3d:0.45},
+      {defId:'sink',x:2.7,y:1.5,w:0.55,h:0.45,rot:0,h3d:0.85}]},
+  'Office':{
+    roomConfig:{type:'Office',shape:'rect',w:4,h:3.5,wallH:2.7,wallT:0.15,
+      floor:{style:'concrete',color:'#a8b0b8',pattern:''},
+      wallFinish:{style:'solid',color:'#d8d4cc'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:4,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:4,y1:0,x2:4,y2:3.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:4,y1:3.5,x2:0,y2:3.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:3.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'desk',x:0.3,y:0.3,w:1.4,h:0.7,rot:0,h3d:0.75},
+      {defId:'chair',x:0.7,y:1.2,w:0.55,h:0.55,rot:0,h3d:0.9},
+      {defId:'shelf',x:3.2,y:0.3,w:0.5,h:1.2,rot:0,h3d:1.8},
+      {defId:'cabinet',x:3.2,y:2.5,w:0.6,h:0.5,rot:0,h3d:0.9}]}
+};
+let landingSelectedRoom=null;
 let dragFrom=null,lastViolations=[];
 function isPassive(f){return PASSIVE_IDS.indexOf(f.defId)!==-1;}
 function isDoorOrWindow(f){return f.defId==='door'||f.defId==='window';}
@@ -2973,8 +3119,25 @@ function build3d(){
   }
   const toRemove=[];scene.children.forEach(c=>{if(!(c instanceof THREE.Light))toRemove.push(c);});toRemove.forEach(c=>scene.remove(c));
   ensureWallAttachment();
-  const floorTex=makeFloorTexture();const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:0.85,metalness:0.0});
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),floorMat);floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+  const floorTex=makeFloorTexture();
+  const rw=Math.max(roomConfig.w||5,1)/2,rh=Math.max(roomConfig.h||4,1)/2;
+  floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(rw,rh);
+  const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:0.85,metalness:0.0});
+  let floorMesh;
+  if(walls.length>=3){
+    const floorShape=new THREE.Shape();
+    floorShape.moveTo(-walls[0].x1, walls[0].y1);
+    for(let i=0;i<walls.length;i++){
+      floorShape.lineTo(-walls[i].x2, walls[i].y2);
+    }
+    floorShape.closePath();
+    floorMesh=new THREE.Mesh(new THREE.ShapeGeometry(floorShape),floorMat);
+  }else{
+    const fw=(roomConfig.w||5)/2,fh=(roomConfig.h||4)/2;
+    floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(fw*2,fh*2),floorMat);
+    floorMesh.rotation.x=-Math.PI/2;
+  }
+  floorMesh.receiveShadow=true;scene.add(floorMesh);
   const ceilH=roomConfig.wallH||2.7;const ceilMat=new THREE.MeshStandardMaterial({color:0xf8f4ee,roughness:0.95});
   const ceil=new THREE.Mesh(new THREE.PlaneGeometry(80,80),ceilMat);ceil.rotation.x=Math.PI/2;ceil.position.y=ceilH;scene.add(ceil);
   const wallTex=makeWallTexture();const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:0.9,metalness:0.0});
@@ -3583,9 +3746,60 @@ if(canvasFp&&fpctx){
 }
 window.addEventListener('resize',()=>{if(currentScreen==='fp-canvas')resizeFpCanvas();});
 
+function renderLandingGrid(){
+  const grid=document.getElementById('lp-grid');
+  const types=[
+    {id:'Living Room',icon:'\u{1F6CB}\uFE0F',desc:'Relax, host, and entertain'},
+    {id:'Bedroom',icon:'\u{1F6CF}\uFE0F',desc:'Rest and recharge'},
+    {id:'Kitchen',icon:'\u{1F373}',desc:'Cook and dine'},
+    {id:'Bathroom',icon:'\u{1F6BF}',desc:'Wash and refresh'},
+    {id:'Office',icon:'\u{1F4BB}',desc:'Focus and create'}
+  ];
+  grid.innerHTML=types.map(t=>
+    '<div class="lp-card" data-room="'+t.id+'" onclick="selectLandingRoom(this,\''+t.id+'\')">'
+    +'<div class="lp-icon">'+t.icon+'</div>'
+    +'<div class="lp-card-name">'+t.id+'</div>'
+    +'<div class="lp-card-desc">'+t.desc+'</div>'
+    +'</div>'
+  ).join('');
+}
+function selectLandingRoom(el,type){
+  landingSelectedRoom=type;
+  document.querySelectorAll('.lp-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  const s=SUGGESTED_LAYOUTS[type];if(!s)return;
+  const rc=s.roomConfig;
+  document.getElementById('lp-type-name').textContent=type;
+  document.getElementById('lp-room-size').textContent=rc.w+'m \u00D7 '+rc.h+'m \u00B7 '+rc.wallH+'m ceiling';
+  const chips=document.getElementById('lp-floor-chips');
+  chips.innerHTML='<span class="lp-floor-chip">'+rc.floor.style+'</span>'
+    +'<span class="lp-floor-chip">'+rc.floor.pattern+'</span>'
+    +'<span class="lp-floor-chip">'+rc.floor.color+'</span>';
+  const defs=s.furniture.map(f=>{const d=FURNITURE_DEFS.find(dd=>dd.id===f.defId);return d?d.label:f.defId;});
+  document.getElementById('lp-items').innerHTML='<b>'+s.furniture.length+' pieces:</b> '+defs.join(', ');
+  document.getElementById('lp-panel').classList.add('open');
+}
+function useSuggestedDesign(){
+  const s=SUGGESTED_LAYOUTS[landingSelectedRoom];if(!s)return;
+  roomConfig=JSON.parse(JSON.stringify(s.roomConfig));
+  walls=s.walls.map(w=>Object.assign({},w));
+  furniture=s.furniture.map(f=>Object.assign({id:uid()},f));
+  nextId=100;
+  goTo('editor');
+  resizeCanvas();draw2d();
+}
+function customizeManually(){
+  if(!landingSelectedRoom)return;
+  roomConfig={type:landingSelectedRoom,shape:'rect',w:5,h:4,wallH:2.7,wallT:0.15,
+    floor:{style:'wood',color:'#c8a878',pattern:'boards'},
+    wallFinish:{style:'solid',color:'#ddd0be'}};
+  walls=[];furniture=[];
+  goTo('room-setup');
+}
+
 window.addEventListener('DOMContentLoaded', async ()=>{
-  const {data:{session}} = await supabaseClient.auth.getSession();
-  if(session){ await enterDashboard(); }
+  renderLandingGrid();
+  goTo('landing');
 });
 </script>
 </body>
