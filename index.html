@@ -2272,13 +2272,19 @@ function drawGrid(){
   for(let x=panOffset.x%ms;x<canvasW;x+=ms){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvasH);ctx.stroke();}
   for(let y=panOffset.y%ms;y<canvasH;y+=ms){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvasW,y);ctx.stroke();}
 }
-function drawRoomFill(){
-  const pts=[];const visited=new Set();let cur=walls[0];pts.push(worldToScreen(cur.x1,cur.y1));
+function roomCorners(){
+  const pts=[];if(!walls.length)return pts;
+  const visited=new Set();let cur=walls[0];pts.push({x:cur.x1,y:cur.y1});
   for(let i=0;i<walls.length;i++){
-    pts.push(worldToScreen(cur.x2,cur.y2));
+    pts.push({x:cur.x2,y:cur.y2});
     const next=walls.find(w=>w!==cur&&!visited.has(w.id)&&(Math.abs(w.x1-cur.x2)<0.05&&Math.abs(w.y1-cur.y2)<0.05));
     visited.add(cur.id);if(next)cur=next;else break;
   }
+  while(pts.length>1){const a=pts[0],b=pts[pts.length-1];if(Math.abs(a.x-b.x)<0.05&&Math.abs(a.y-b.y)<0.05)pts.pop();else break;}
+  return pts;
+}
+function drawRoomFill(){
+  const pts=roomCorners().map(p=>worldToScreen(p.x,p.y));
   ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
   ctx.closePath();
   const fc=roomConfig.floor&&roomConfig.floor.color?roomConfig.floor.color:'#e8d9cc';
@@ -3531,16 +3537,21 @@ function build3d(){
   const rw=Math.max(roomConfig.w||5,1)/2,rh=Math.max(roomConfig.h||4,1)/2;
   floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(rw,rh);
   const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:0.85,metalness:0.0});
-  let floorMesh;
-  if(walls.length>=3){
-    const floorShape=new THREE.Shape();
-    floorShape.moveTo(-walls[0].x1, walls[0].y1);
-    for(let i=0;i<walls.length;i++){
-      floorShape.lineTo(-walls[i].x2, walls[i].y2);
-    }
-    floorShape.closePath();
-    floorMesh=new THREE.Mesh(new THREE.ShapeGeometry(floorShape),floorMat);
-  }else{
+  let floorMesh;const corners3d=roomCorners();
+  if(corners3d.length>=3){
+    let area=0;for(let i=0;i<corners3d.length;i++){const a=corners3d[i],b=corners3d[(i+1)%corners3d.length];area+=a.x*b.y-b.x*a.y;}
+    const loop=corners3d.slice();if(area>0)loop.reverse();
+    try{
+      const faces=THREE.ShapeUtils.triangulateShape(loop.map(c=>[c.x,c.y]),[]);
+      const verts=[];
+      faces.forEach(tr=>{for(let k=0;k<3;k++){const c=loop[tr[k]];verts.push(c.x,0,c.y);}});
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+      geo.computeVertexNormals();
+      floorMesh=new THREE.Mesh(geo,floorMat);
+    }catch(err){console.error('[build3d] floor triangulation failed; using plane fallback:',err);}
+  }
+  if(!floorMesh){
     const fw=(roomConfig.w||5)/2,fh=(roomConfig.h||4)/2;
     floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(fw*2,fh*2),floorMat);
     floorMesh.rotation.x=-Math.PI/2;
