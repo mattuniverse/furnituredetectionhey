@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FloorPlan Studio</title>
+<title>RoomAI — Smart Floor Plan Generator</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -628,47 +628,97 @@ canvas { display: block; }
 })();
 </script>
 <style>
-/* Landing */
-#screen-landing{align-items:center;justify-content:center;background:linear-gradient(180deg,var(--color-bg) 0%,color-mix(in srgb,var(--color-bg) 92%,var(--color-primary)) 100%);overflow-y:auto;padding:40px 24px;}
-.lp-hero{text-align:center;max-width:680px;margin:0 auto 36px;}
-.lp-hero h1{font-family:var(--font-display);font-size:clamp(28px,5vw,42px);color:var(--color-text);margin:0 0 10px;line-height:1.15;}
-.lp-hero h1 span{color:var(--color-primary);}
-.lp-hero p{font-size:15px;color:var(--color-text-muted);line-height:1.6;margin:0;max-width:520px;margin-inline:auto;}
-.lp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;max-width:720px;width:100%;}
-.lp-card{background:var(--color-surface);border:2px solid var(--color-border-light);border-radius:var(--radius-lg);padding:28px 20px 22px;text-align:center;cursor:pointer;transition:all var(--transition-base) var(--ease-soft);display:flex;flex-direction:column;align-items:center;gap:10px;position:relative;overflow:hidden;}
-.lp-card:hover{border-color:var(--color-primary);transform:translateY(-3px);box-shadow:0 8px 24px color-mix(in srgb,var(--color-primary) 14%,transparent);}
-.lp-card.selected{border-color:var(--color-primary);background:color-mix(in srgb,var(--color-surface) 92%,var(--color-primary));}
-.lp-icon{font-size:36px;line-height:1;}
-.lp-card-name{font-size:14px;font-weight:600;color:var(--color-text);}
-.lp-card-desc{font-size:11.5px;color:var(--color-text-muted);line-height:1.45;}
-.lp-panel{max-width:720px;width:100%;margin-top:24px;overflow:hidden;transition:max-height var(--transition-slow) var(--ease-soft),opacity var(--transition-base);max-height:0;opacity:0;}
-.lp-panel.open{max-height:600px;opacity:1;}
-.lp-inner{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:var(--radius-xl);padding:28px 32px;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
-.lp-preview{flex:1 1 240px;}
-.lp-preview-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted);margin-bottom:10px;}
-.lp-room-type{font-family:var(--font-display);font-size:22px;color:var(--color-text);margin:0 0 4px;}
-.lp-room-size{font-size:13px;color:var(--color-text-secondary);margin:0 0 14px;}
-.lp-floor-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
-.lp-floor-chip{font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--color-border);background:var(--color-bg);color:var(--color-text-secondary);cursor:default;}
-.lp-items{font-size:12px;color:var(--color-text-muted);line-height:1.55;}
-.lp-items b{color:var(--color-text-secondary);font-weight:500;}
-.lp-actions{flex:1 1 180px;display:flex;flex-direction:column;gap:10px;padding-top:8px;}
-.lp-btn{padding:11px 20px;border-radius:var(--radius-md);font-family:var(--font-body);font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all var(--transition-fast) var(--ease-soft);text-align:center;}
-.lp-btn-primary{background:var(--color-primary);color:var(--color-text-inverse);}
-.lp-btn-primary:hover{background:var(--color-primary-hover);transform:translateY(-1px);box-shadow:0 4px 14px color-mix(in srgb,var(--color-primary) 28%,transparent);}
-.lp-btn-secondary{background:var(--color-bg);border:1.5px solid var(--color-border);color:var(--color-text);}
-.lp-btn-secondary:hover{border-color:var(--color-primary);color:var(--color-primary);}
-.lp-footer{text-align:center;margin-top:40px;font-size:12px;color:var(--color-text-muted);}
-.lp-footer a{color:var(--color-primary);text-decoration:none;font-weight:500;}
-.lp-footer a:hover{text-decoration:underline;}
+/* ===== RoomAI landing — dark, warm gold, blueprint grid ===== */
+#screen-landing{--lg-gold:#eab572;--lg-gold-hi:#f6cf9a;--lg-bg:#120d08;--lg-panel:#1b140d;--lg-panel-2:#231a11;--lg-border:rgba(234,181,114,.22);--lg-text:#f3e9da;--lg-muted:#a88f76;background:var(--lg-bg);overflow-y:auto;scroll-behavior:smooth;}
+#screen-landing::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(234,181,114,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(234,181,114,.05) 1px,transparent 1px);background-size:44px 44px;}
+.lp-hero,.lp-sec,.lp-cta,.lp-footer{position:relative;z-index:1;}
+.lp-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(16px,4vw,48px);background:linear-gradient(180deg,rgba(18,13,8,.97) 60%,rgba(18,13,8,.55) 80%,transparent);backdrop-filter:blur(6px);}
+.lp-brand{font-family:var(--font-display);font-size:26px;letter-spacing:-.5px;color:var(--lg-gold);}
+.lp-brand b{color:var(--lg-text);font-weight:400;}
+.lp-nav-links{display:flex;gap:26px;}
+.lp-nav-link{color:var(--lg-muted);font-size:14px;text-decoration:none;font-weight:500;transition:color var(--transition-fast);cursor:pointer;background:none;border:none;font-family:var(--font-body);padding:4px 0;}
+.lp-nav-link:hover{color:var(--lg-gold);}
+.lp-nav-right{display:flex;align-items:center;gap:12px;}
+.lp-nav .theme-toggle{border:1.5px solid var(--lg-border);background:var(--lg-panel);color:var(--lg-muted);}
+.lp-nav .theme-toggle:hover{border-color:var(--lg-gold);color:var(--lg-gold);}
+.lp-signin{padding:8px 18px;border:1.5px solid var(--lg-border);border-radius:999px;background:transparent;color:var(--lg-text);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all var(--transition-fast);}
+.lp-signin:hover{border-color:var(--lg-gold);color:var(--lg-gold);background:rgba(234,181,114,.07);}
+
+.lp-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(24px,5vw,64px);align-items:center;padding:clamp(40px,7vh,84px) clamp(16px,4vw,48px) 40px;max-width:1120px;margin:0 auto;min-height:calc(100vh - 74px);}
+.lp-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--lg-gold);background:rgba(234,181,114,.08);border:1px solid rgba(234,181,114,.28);padding:7px 14px;border-radius:999px;margin-bottom:22px;}
+.lp-hero h1{font-family:var(--font-display);font-size:clamp(38px,5.6vw,66px);line-height:1.05;letter-spacing:-1px;color:var(--lg-text);margin:0;}
+.lp-hero h1 span{color:var(--lg-gold);text-shadow:0 0 30px rgba(234,181,114,.35);}
+.lp-sub{font-size:clamp(15px,1.5vw,17.5px);line-height:1.65;color:var(--lg-muted);max-width:520px;margin:20px 0 30px;}
+.lp-hero-cta{display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+.lp-btn-gold{font-family:var(--font-body);font-size:15px;font-weight:700;padding:14px 30px;border:none;border-radius:14px;color:#241505;background:linear-gradient(135deg,#f6cf9a,#e0a75e);cursor:pointer;box-shadow:0 10px 30px rgba(234,181,114,.28),inset 0 1px 0 rgba(255,255,255,.45);transition:all .22s var(--ease-soft);}
+.lp-btn-gold:hover{transform:translateY(-2px);box-shadow:0 16px 42px rgba(234,181,114,.42);}
+.lp-btn-gold:active{transform:translateY(0) scale(.985);}
+.lp-btn-ghost{font-family:var(--font-body);font-size:15px;font-weight:600;padding:13px 26px;border-radius:14px;color:var(--lg-text);background:transparent;border:1.5px solid rgba(234,181,114,.4);cursor:pointer;transition:all var(--transition-fast) var(--ease-soft);}
+.lp-btn-ghost:hover{border-color:var(--lg-gold);color:var(--lg-gold);background:rgba(234,181,114,.06);}
+.lp-hero-mini{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;}
+.lp-hero-mini span{font-size:12px;letter-spacing:.04em;color:var(--lg-muted);border:1px solid var(--lg-border);padding:5px 12px;border-radius:999px;}
+
+.lp-hero-visual{position:relative;height:clamp(300px,48vh,480px);}
+#hero-plan{position:absolute;inset:0;width:100%;height:100%;border-radius:22px;border:1px solid var(--lg-border);box-shadow:0 30px 80px rgba(0,0,0,.55);animation:lpFloat 8s ease-in-out infinite;}
+#hero-room{position:absolute;right:0;bottom:-2%;width:64%;height:84%;border-radius:18px;border:1px solid rgba(234,181,114,.4);box-shadow:0 26px 70px rgba(0,0,0,.6),0 0 60px rgba(234,181,114,.14);animation:lpFloat2 9s ease-in-out infinite;}
+.lp-hero-morph{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:5;font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:#241505;background:linear-gradient(90deg,#f6cf9a,#e0a75e);padding:7px 16px;border-radius:999px;font-weight:800;box-shadow:0 8px 26px rgba(234,181,114,.4);white-space:nowrap;}
+@keyframes lpFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+@keyframes lpFloat2{0%,100%{transform:translateY(6px) rotateX(6deg);}50%{transform:translateY(-4px) rotateX(3deg);}}
+
+.lp-sec{max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,104px) clamp(16px,4vw,48px);}
+.lp-sec-title{font-family:var(--font-display);font-size:clamp(30px,4.4vw,50px);color:var(--lg-text);letter-spacing:-.5px;margin-bottom:10px;}
+.lp-sec-title span{color:var(--lg-gold);}
+.lp-sec-sub{color:var(--lg-muted);font-size:16px;margin-bottom:42px;max-width:560px;line-height:1.6;}
+.lp-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+.lp-step{background:linear-gradient(180deg,var(--lg-panel-2),var(--lg-panel));border:1px solid var(--lg-border);border-radius:20px;padding:30px 26px;position:relative;overflow:hidden;transition:all .25s var(--ease-soft);}
+.lp-step:hover{transform:translateY(-5px);border-color:rgba(234,181,114,.5);box-shadow:0 22px 46px rgba(0,0,0,.5);}
+.lp-step-num{font-family:var(--font-display);font-size:52px;line-height:1;color:rgba(234,181,114,.22);position:absolute;top:18px;right:22px;}
+.lp-step-icon{width:52px;height:52px;border-radius:14px;background:rgba(234,181,114,.1);border:1px solid rgba(234,181,114,.22);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:18px;transition:transform var(--transition-fast) var(--ease-bounce);}
+.lp-step:hover .lp-step-icon{transform:scale(1.08) rotate(-4deg);}
+.lp-step h3{font-family:var(--font-display);font-size:21px;color:var(--lg-text);margin-bottom:8px;letter-spacing:-.2px;}
+.lp-step p{font-size:13.5px;line-height:1.6;color:var(--lg-muted);}
+
+.lp-feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;}
+.lp-feat{background:var(--lg-panel);border:1px solid var(--lg-border);border-radius:18px;padding:26px 22px;transition:all .24s var(--ease-soft);}
+.lp-feat:hover{transform:translateY(-4px);border-color:rgba(234,181,114,.5);box-shadow:0 18px 40px rgba(0,0,0,.45);background:linear-gradient(180deg,var(--lg-panel-2),var(--lg-panel));}
+.lp-feat-icon{font-size:26px;width:52px;height:52px;border-radius:13px;background:rgba(234,181,114,.1);border:1px solid rgba(234,181,114,.22);display:flex;align-items:center;justify-content:center;}
+.lp-feat h3{font-family:var(--font-display);font-size:18px;color:var(--lg-text);margin:14px 0 6px;letter-spacing:-.2px;}
+.lp-feat p{font-size:13px;color:var(--lg-muted);line-height:1.55;}
+
+.cmp-wrap{position:relative;margin-top:8px;}
+.cmp-stage{position:relative;aspect-ratio:16/9;border-radius:20px;overflow:hidden;border:1px solid var(--lg-border);box-shadow:0 30px 70px rgba(0,0,0,.55);}
+.cmp-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+#cmp-room{clip-path:inset(0 0 0 50%);}
+.cmp-divider{position:absolute;top:0;bottom:0;width:2px;left:50%;z-index:3;pointer-events:none;background:linear-gradient(180deg,transparent,var(--lg-gold-hi),transparent);box-shadow:0 0 12px rgba(234,181,114,.5);}
+.cmp-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#f6cf9a,#e0a75e);color:#241505;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;z-index:4;box-shadow:0 6px 22px rgba(234,181,114,.5);pointer-events:none;letter-spacing:-1px;}
+.cmp-range{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:5;margin:0;}
+.cmp-tag{position:absolute;top:12px;z-index:4;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;padding:6px 12px;border-radius:999px;pointer-events:none;}
+.cmp-tag.plan{left:12px;color:var(--lg-gold);background:rgba(18,13,8,.72);border:1px solid var(--lg-border);}
+.cmp-tag.render{right:12px;color:#241505;background:linear-gradient(90deg,#f6cf9a,#e0a75e);}
+.cmp-labels{display:flex;justify-content:space-between;color:var(--lg-muted);font-size:13px;font-weight:600;margin-top:12px;letter-spacing:.04em;}
+
+.lp-cta{max-width:1120px;margin:0 auto;padding:0 clamp(16px,4vw,48px) 96px;}
+.lp-cta-inner{background:radial-gradient(120% 160% at 50% 0%,#3a2a16 0%,#241a10 45%,#1b140d 100%);border:1px solid rgba(234,181,114,.38);border-radius:28px;padding:clamp(42px,7vw,80px) clamp(24px,6vw,72px);text-align:center;box-shadow:inset 0 0 90px rgba(234,181,114,.1),0 30px 80px rgba(0,0,0,.5);position:relative;overflow:hidden;}
+.lp-cta-inner::before{content:"";position:absolute;inset:-40%;pointer-events:none;background:radial-gradient(circle at 50% 120%,rgba(234,181,114,.16),transparent 55%);}
+.lp-cta h2{font-family:var(--font-display);font-size:clamp(30px,5vw,54px);color:var(--lg-text);letter-spacing:-.5px;margin-bottom:12px;position:relative;}
+.lp-cta-inner p{color:var(--lg-muted);margin-bottom:30px;font-size:15px;position:relative;}
+
+.lp-footer{border-top:1px solid rgba(234,181,114,.14);background:#0e0a06;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;padding:32px clamp(16px,4vw,48px);}
+.lp-footer-brand{font-family:var(--font-display);font-size:22px;color:var(--lg-gold);letter-spacing:-.5px;}
+.lp-footer-links{display:flex;gap:24px;}
+.lp-footer-links a{color:var(--lg-muted);text-decoration:none;font-size:14px;font-weight:500;transition:color var(--transition-fast);}
+.lp-footer-links a:hover{color:var(--lg-gold);}
+.lp-footer-note{color:#6f5a44;font-size:12.5px;width:100%;text-align:center;margin-top:8px;}
+
+@media(max-width:860px){
+  .lp-hero{grid-template-columns:1fr;min-height:0;}
+  .lp-hero-visual{order:-1;height:clamp(200px,42vw,300px);}
+  #hero-room{width:58%;height:100%;}
+  .lp-steps{grid-template-columns:1fr;}
+}
 @media(max-width:600px){
-  .lp-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
-  .lp-card{padding:20px 14px 16px;}
-  .lp-icon{font-size:28px;}
-  .lp-card-name{font-size:13px;}
-  .lp-card-desc{font-size:10.5px;}
-  .lp-inner{padding:20px;gap:16px;}
-  #screen-landing{padding:28px 16px;}
+  .lp-nav-links{display:none;}
+  .lp-hero-mini span:nth-child(n+3){display:none;}
 }
   </style>
 </head>
@@ -676,33 +726,135 @@ canvas { display: block; }
 
 <!-- LANDING -->
 <div id="screen-landing" class="screen active">
-  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme" title="Switch theme">
-    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
-    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
-  </button>
-  <div class="lp-hero">
-    <h1>Set Up <span>Your Room</span></h1>
-    <p>Choose a room type to get a suggested layout, or customize it yourself.</p>
-  </div>
-  <div class="lp-grid" id="lp-grid"></div>
-  <div class="lp-panel" id="lp-panel">
-    <div class="lp-inner">
-      <div class="lp-preview">
-        <div class="lp-preview-title">Suggested Layout</div>
-        <h3 class="lp-room-type" id="lp-type-name"></h3>
-        <p class="lp-room-size" id="lp-room-size"></p>
-        <div class="lp-floor-chips" id="lp-floor-chips"></div>
-        <div class="lp-items" id="lp-items"></div>
-      </div>
-      <div class="lp-actions">
-        <button class="lp-btn lp-btn-primary" onclick="useSuggestedDesign()">&#x2714; Use Suggested Design</button>
-        <button class="lp-btn lp-btn-secondary" onclick="customizeManually()">&#x270E; Customize Manually</button>
-      </div>
+  <div class="lp-nav">
+    <div class="lp-brand">Room<b>AI</b></div>
+    <div class="lp-nav-links">
+      <a class="lp-nav-link" href="#lp-how" onclick="lpScrollTo('lp-how');return false;">How it works</a>
+      <a class="lp-nav-link" href="#lp-features" onclick="lpScrollTo('lp-features');return false;">Features</a>
+      <a class="lp-nav-link" href="#lp-demo" onclick="lpScrollTo('lp-demo');return false;">Live demo</a>
+    </div>
+    <div class="lp-nav-right">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+      </button>
+      <button class="lp-signin" onclick="goTo('login')">Sign in</button>
     </div>
   </div>
-  <div class="lp-footer">
-    Already have an account? <a href="#" onclick="goTo('login');return false;">Sign in</a>
-  </div>
+
+  <section class="lp-hero">
+    <div>
+      <div class="lp-eyebrow">&#x2726; AI &#215; Interior Design</div>
+      <h1>Design Your Space, <span>Instantly</span></h1>
+      <p class="lp-sub">Snap a photo of your room and RoomAI&rsquo;s neural detection spots the furniture, drafts a 2D floor plan, and renders it in immersive 3D &mdash; right in your browser.</p>
+      <div class="lp-hero-cta">
+        <button class="lp-btn-gold" onclick="goTo('room-setup')">Get Started</button>
+        <button class="lp-btn-ghost" onclick="lpScrollTo('lp-how')">See How It Works</button>
+      </div>
+      <div class="lp-hero-mini">
+        <span>&#9881; TensorFlow.js</span>
+        <span>&#9608; Fabric.js 2D</span>
+        <span>&#9670; Three.js 3D</span>
+      </div>
+    </div>
+    <div class="lp-hero-visual">
+      <div class="lp-hero-morph">2D &#10230; 3D</div>
+      <canvas id="hero-plan"></canvas>
+      <canvas id="hero-room"></canvas>
+    </div>
+  </section>
+
+  <section class="lp-sec" id="lp-how">
+    <h2 class="lp-sec-title">How it works</h2>
+    <p class="lp-sec-sub">Three steps from a blank space to a furnished 3D room you can explore.</p>
+    <div class="lp-steps">
+      <div class="lp-step">
+        <span class="lp-step-num">01</span>
+        <div class="lp-step-icon">&#x1F3D8;&#xFE0F;</div>
+        <h3>Choose a room type</h3>
+        <p>Pick from living room, bedroom, kitchen, bathroom, office or a fully custom shape and measurements that fit your space.</p>
+      </div>
+      <div class="lp-step">
+        <span class="lp-step-num">02</span>
+        <div class="lp-step-icon">&#x1F9E0;</div>
+        <h3>AI detects your furniture</h3>
+        <p>TensorFlow.js runs COCO-SSD right in the browser, recognizing furniture in your photo and suggesting placement for each piece.</p>
+      </div>
+      <div class="lp-step">
+        <span class="lp-step-num">03</span>
+        <div class="lp-step-icon">&#x1F30F;</div>
+        <h3>Customize in 2D, live in 3D</h3>
+        <p>Drag furniture around your Fabric.js plan while a linked Three.js view renders every change in rich 3D. Export when it&rsquo;s perfect.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-sec" id="lp-features">
+    <h2 class="lp-sec-title">Everything you need to <span>design</span></h2>
+    <p class="lp-sec-sub">A complete toolkit, engineered into one workspace.</p>
+    <div class="lp-feat-grid">
+      <div class="lp-feat">
+        <div class="lp-feat-icon">&#x1F50D;</div>
+        <h3>AI Furniture Detection</h3>
+        <p>On-device COCO-SSD scoring of your room photo &mdash; no uploads, no waiting.</p>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">&#x1F39E;&#xFE0F;</div>
+        <h3>Drag-and-Drop 2D Editor</h3>
+        <p>Fabric.js canvas with grid snap, rotation, nudge and smart clearance rules.</p>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">&#x1F4D0;</div>
+        <h3>Real-Time 3D Visualization</h3>
+        <p>A linked Three.js render mirrors every change as it happens.</p>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">&#x1F4CB;</div>
+        <h3>Room Templates</h3>
+        <p>Studio layouts for living room, bedroom, kitchen and more to start fast.</p>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">&#x1F4BE;</div>
+        <h3>Export &amp; Save Designs</h3>
+        <p>Save your project to the cloud and export 2D and 3D renders anytime.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-sec" id="lp-demo">
+    <h2 class="lp-sec-title">From <span>blueprint</span> to reality</h2>
+    <p class="lp-sec-sub">Drag the slider &mdash; the same room, drawn as a 2D plan on the left and rendered in 3D on the right.</p>
+    <div class="cmp-wrap">
+      <div class="cmp-stage">
+        <canvas id="cmp-plan"></canvas>
+        <canvas id="cmp-room"></canvas>
+        <div class="cmp-divider" id="cmp-divider"></div>
+        <div class="cmp-handle" id="cmp-handle">&#x2039;&#x203A;</div>
+        <span class="cmp-tag plan">2D plan</span>
+        <span class="cmp-tag render">3D render</span>
+        <input type="range" class="cmp-range" id="cmp-range" min="0" max="100" value="50" aria-label="Compare 2D and 3D views" oninput="setCmp(this.value)">
+      </div>
+      <div class="cmp-labels"><span>2D editor</span><span>Real-time 3D</span></div>
+    </div>
+  </section>
+
+  <section class="lp-cta">
+    <div class="lp-cta-inner">
+      <h2>Start Designing Your Room</h2>
+      <p>Free to use &mdash; set up your room and walk through it in 3D in under a minute.</p>
+      <button class="lp-btn-gold" onclick="goTo('room-setup')">Get Started</button>
+    </div>
+  </section>
+
+  <footer class="lp-footer">
+    <div class="lp-footer-brand">Room<b>AI</b></div>
+    <div class="lp-footer-links">
+      <a href="#" onclick="lpScrollTo('lp-how');return false;">About</a>
+      <a href="https://github.com/mattuniverse/furnituredetectionhey" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:hello@roomai.app">Contact</a>
+    </div>
+    <div class="lp-footer-note">&copy; 2026 RoomAI &middot; Smart floor plan generator</div>
+  </footer>
 </div>
 
 <!-- LOGIN -->
@@ -715,7 +867,7 @@ canvas { display: block; }
     <div class="hero-blob blob-a"></div>
     <div class="hero-blob blob-b"></div>
     <div class="hero-inner">
-      <div class="hero-eyebrow">FloorPlan Studio</div>
+      <div class="hero-eyebrow">RoomAI</div>
       <div class="hero-title">Design a room you'll love</div>
       <div class="hero-sub">Snap a photo of your space — AI spots the furniture, drops it onto your floor plan, and brings it to life in 3D.</div>
       <div class="room-scene">
@@ -734,7 +886,7 @@ canvas { display: block; }
   </div>
   <div class="login-panel">
     <div class="login-card" role="main">
-      <div class="brand">FloorPlan Studio</div>
+      <div class="brand">RoomAI</div>
       <div class="brand-sub">Smart Room Layout Planner</div>
       <form id="auth-form" onsubmit="event.preventDefault();handleAuthSubmit();" novalidate>
         <div class="form-group">
@@ -760,7 +912,7 @@ canvas { display: block; }
 <!-- DASHBOARD -->
 <div id="screen-dashboard" class="screen">
   <div class="dash-header">
-    <div class="brand">FloorPlan Studio</div>
+    <div class="brand">RoomAI</div>
     <div class="dash-header-right">
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
@@ -783,7 +935,7 @@ canvas { display: block; }
 <!-- MODE CHOICE (shown right after login) -->
 <div id="screen-start" class="screen">
   <div class="dash-header">
-    <div class="brand">FloorPlan Studio</div>
+    <div class="brand">RoomAI</div>
     <div class="dash-header-right">
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
@@ -816,7 +968,7 @@ canvas { display: block; }
 <!-- ADMIN PANEL -->
 <div id="screen-admin" class="screen">
   <div class="dash-header">
-    <div class="brand">FloorPlan Studio</div>
+    <div class="brand">RoomAI</div>
     <div class="dash-header-right">
       <span class="admin-badge">Admin</span>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
@@ -895,7 +1047,7 @@ canvas { display: block; }
     </div>
     <div id="custom-note" class="irregular-note" style="display:none">Custom shape: use the <strong>Draw Wall</strong> tool in the editor to click-and-drag each wall segment.</div>
     <div class="setup-actions">
-      <button class="btn-back" onclick="goTo('dashboard')">&larr; Back</button>
+      <button class="btn-back" onclick="backFromSetup()">&larr; Back</button>
       <button class="btn-proceed" onclick="startEditor()">Create Room &rarr;</button>
     </div>
   </div>
@@ -924,7 +1076,7 @@ canvas { display: block; }
 <div id="screen-fp-canvas" class="screen">
   <div class="fp-wrap">
     <div class="editor-topbar" role="toolbar" aria-label="Floor plan toolbar">
-      <div class="brand">FloorPlan Studio</div>
+      <div class="brand">RoomAI</div>
       <div class="topbar-sep"></div>
       <div class="fp-title" id="fp-title">Floor Plan</div>
       <div class="topbar-right" style="position:relative">
@@ -1052,7 +1204,7 @@ canvas { display: block; }
 <div id="screen-editor" class="screen">
   <div class="editor-wrap">
     <div class="editor-topbar" role="toolbar" aria-label="Editor toolbar">
-      <div class="brand">FloorPlan Studio</div>
+      <div class="brand">RoomAI</div>
       <div class="topbar-sep"></div>
       <button class="tab-btn active" id="btn-2d" onclick="switchEditorView('2d')" aria-pressed="true">2D Edit</button>
       <button class="tab-btn" id="btn-3d" onclick="switchEditorView('3d')" aria-pressed="false">3D View</button>
@@ -1229,6 +1381,7 @@ async function handleAuthSubmit(){
     if(authMode==='signin'){
       const {error}=await supabaseClient.auth.signInWithPassword({email,password});
       if(error) throw error;
+      sessionStorage.setItem('roomai_signed_in','1');
       await enterDashboard();
     }else{
       const {error}=await supabaseClient.auth.signUp({email,password});
@@ -1244,6 +1397,7 @@ async function handleAuthSubmit(){
 }
 async function logout(){
   await supabaseClient.auth.signOut();
+  sessionStorage.removeItem('roomai_signed_in');
   currentProjectId=null;
   goTo('login');
 }
@@ -1481,6 +1635,11 @@ function backToDashboard(){
 //  NAVIGATION
 // ══════════════════════════════════════════
 function goTo(s){document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));document.getElementById('screen-'+s).classList.add('active');currentScreen=s;}
+function backFromSetup(){
+  const hadUser=sessionStorage.getItem('roomai_signed_in')==='1';
+  if(hadUser){goTo('dashboard');loadProjects();}
+  else goTo('landing');
+}
 function openModal(id){
   const overlay=document.getElementById(id);
   overlay.classList.add('open');
@@ -1492,6 +1651,16 @@ function selectRoomType(btn,type){
   document.querySelectorAll('.room-type-btn').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-checked','false');});
   btn.classList.add('active');btn.setAttribute('aria-checked','true');
   roomConfig.type=type;
+  const sug=SUGGESTED_LAYOUTS[type];
+  if(sug&&sug.roomConfig){
+    const rc=sug.roomConfig;
+    document.getElementById('room-w').value=rc.w;
+    document.getElementById('room-h').value=rc.h;
+    document.getElementById('room-wall-h').value=rc.wallH;
+    document.getElementById('room-wall-t').value=rc.wallT;
+    const shapeBtn=document.getElementById('shape-'+(rc.shape||'rect'));
+    if(shapeBtn)selectShape(shapeBtn.id.replace('shape-',''));
+  }
 }
 function selectFloorStyle(btn,style){
   document.querySelectorAll('.floor-style-btn').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-checked','false');});
@@ -1696,7 +1865,6 @@ const SUGGESTED_LAYOUTS={
       {defId:'shelf',x:3.2,y:0.3,w:0.5,h:1.2,rot:0,h3d:1.8},
       {defId:'cabinet',x:3.2,y:2.5,w:0.6,h:0.5,rot:0,h3d:0.9}]}
 };
-let landingSelectedRoom=null;
 let dragFrom=null,lastViolations=[];
 function isPassive(f){return PASSIVE_IDS.indexOf(f.defId)!==-1;}
 function isDoorOrWindow(f){return f.defId==='door'||f.defId==='window';}
@@ -3748,60 +3916,110 @@ if(canvasFp&&fpctx){
 }
 window.addEventListener('resize',()=>{if(currentScreen==='fp-canvas')resizeFpCanvas();});
 
-function renderLandingGrid(){
-  const grid=document.getElementById('lp-grid');
-  const types=[
-    {id:'Living Room',icon:'\u{1F6CB}\uFE0F',desc:'Relax, host, and entertain'},
-    {id:'Bedroom',icon:'\u{1F6CF}\uFE0F',desc:'Rest and recharge'},
-    {id:'Kitchen',icon:'\u{1F373}',desc:'Cook and dine'},
-    {id:'Bathroom',icon:'\u{1F6BF}',desc:'Wash and refresh'},
-    {id:'Office',icon:'\u{1F4BB}',desc:'Focus and create'}
+function lpScrollTo(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const top=el.getBoundingClientRect().top+document.getElementById('screen-landing').scrollTop-74;
+  document.getElementById('screen-landing').scrollTo({top,behavior:'smooth'});
+}
+function setCmp(v){
+  const vv=Math.max(0,Math.min(100,v));
+  document.getElementById('cmp-room').style.clipPath='inset(0 0 0 '+vv+'%)';
+  document.getElementById('cmp-divider').style.left=vv+'%';
+  document.getElementById('cmp-handle').style.left=vv+'%';
+}
+function drawPlanCv(cv){
+  const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+  const w=cv.clientWidth||300,h=cv.clientHeight||200;
+  cv.width=w*dpr;cv.height=h*dpr;
+  const g=cv.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,w,h);
+  g.fillStyle='rgba(27,20,13,.9)';g.fillRect(0,0,w,h);
+  g.strokeStyle='rgba(234,181,114,.16)';g.lineWidth=1;
+  for(let x=0;x<=w;x+=Math.max(18,w/16)){
+    g.beginPath();g.moveTo(x+0.5,0);g.lineTo(x+0.5,h);g.stroke();
+  }
+  for(let y=0;y<=h;y+=Math.max(18,h/11)){
+    g.beginPath();g.moveTo(0,y+0.5);g.lineTo(w,y+0.5);g.stroke();
+  }
+  const pad=Math.min(w,h)*0.09;
+  const rw=w-pad*2,rht=h-pad*2;
+  g.strokeStyle='rgba(234,181,114,.85)';g.lineWidth=2;g.strokeRect(pad,pad,rw,rht);
+  g.fillStyle='rgba(234,181,114,.25)';
+  g.fillRect(pad,pad,rw,6);g.fillRect(pad,pad,6,rht);g.fillRect(pad+rw-6,pad,6,rht);g.fillRect(pad,pad+rht-6,rw,6);
+  const items=[
+    {x:.18,y:.14,w:.32,h:.2,l:'Sofa',fill:'rgba(210,167,127,.5)'},
+    {x:.56,y:.16,w:.2,h:.14,l:'TV',fill:'rgba(210,167,127,.38)'},
+    {x:.24,y:.46,w:.2,h:.14,l:'Table',fill:'rgba(210,167,127,.5)'},
+    {x:.66,y:.42,w:.18,h:.24,l:'Bed',fill:'rgba(210,167,127,.42)'},
+    {x:.14,y:.72,w:.18,h:.12,l:'Plant',fill:'rgba(210,167,127,.38)'},
+    {x:.72,y:.72,w:.14,h:.14,l:'Chair',fill:'rgba(210,167,127,.5)'}
   ];
-  grid.innerHTML=types.map(t=>
-    '<div class="lp-card" data-room="'+t.id+'" onclick="selectLandingRoom(this,\''+t.id+'\')">'
-    +'<div class="lp-icon">'+t.icon+'</div>'
-    +'<div class="lp-card-name">'+t.id+'</div>'
-    +'<div class="lp-card-desc">'+t.desc+'</div>'
-    +'</div>'
-  ).join('');
+  items.forEach(it=>{
+    const x=pad+rw*it.x,y=pad+rht*it.y,w2=rw*it.w,h2=rht*it.h;
+    g.fillStyle=it.fill;g.fillRect(x,y,w2,h2);
+    g.strokeStyle='rgba(234,181,114,.8)';g.lineWidth=1;g.strokeRect(x,y,w2,h2);
+    g.fillStyle='rgba(243,233,218,.85)';g.font='10px DM Sans';g.textBaseline='middle';g.textAlign='left';
+    g.fillText(it.l,x+w2/2-g.measureText(it.l).width/2,y+h2/2);
+  });
+  g.fillStyle='rgba(234,181,114,.7)';g.font='11px DM Sans';
+  g.textAlign='right';g.fillText('6.0 m',pad+rw,pad-8);
+  g.textAlign='left';g.fillText('5.0 m',pad,pad+rht+16);
+  g.fillStyle='rgba(234,181,114,.35)';g.font='10px DM Sans';
+  g.fillText('ROOMAI \u00B7 2D PLAN',pad,h-pad);
 }
-function selectLandingRoom(el,type){
-  landingSelectedRoom=type;
-  document.querySelectorAll('.lp-card').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-  const s=SUGGESTED_LAYOUTS[type];if(!s)return;
-  const rc=s.roomConfig;
-  document.getElementById('lp-type-name').textContent=type;
-  document.getElementById('lp-room-size').textContent=rc.w+'m \u00D7 '+rc.h+'m \u00B7 '+rc.wallH+'m ceiling';
-  const chips=document.getElementById('lp-floor-chips');
-  chips.innerHTML='<span class="lp-floor-chip">'+rc.floor.style+'</span>'
-    +'<span class="lp-floor-chip">'+rc.floor.pattern+'</span>'
-    +'<span class="lp-floor-chip">'+rc.floor.color+'</span>';
-  const defs=s.furniture.map(f=>{const d=FURNITURE_DEFS.find(dd=>dd.id===f.defId);return d?d.label:f.defId;});
-  document.getElementById('lp-items').innerHTML='<b>'+s.furniture.length+' pieces:</b> '+defs.join(', ');
-  document.getElementById('lp-panel').classList.add('open');
+function drawRoomCv(cv){
+  const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+  const w=cv.clientWidth||300,h=cv.clientHeight||200;
+  cv.width=w*dpr;cv.height=h*dpr;
+  const g=cv.getContext('2d');g.scale(dpr,dpr);
+  const sky=g.createLinearGradient(0,0,0,h);
+  sky.addColorStop(0,'#241a10');sky.addColorStop(1,'#120d08');
+  g.fillStyle=sky;g.fillRect(0,0,w,h);
+  const p=Math.min(w,h);
+  const cx=w*0.5,cy=h*0.52,rz=p*0.4,rz2=p*0.17;
+  g.save();g.translate(cx,cy);g.scale(1,0.44);g.rotate(-0.05);
+  g.fillStyle='rgba(234,181,114,.12)';
+  g.beginPath();g.arc(0,0,rz*0.62,0,7);g.fill();
+  g.restore();
+  g.save();g.translate(cx,cy);g.scale(1,0.44);g.rotate(0.04);
+  g.fillStyle='rgba(210,167,127,.22)';
+  g.beginPath();g.arc(0,10,rz*0.5,0,7);g.fill();
+  g.restore();
+  g.strokeStyle='rgba(234,181,114,.2)';g.lineWidth=1;
+  g.strokeRect(cx-p*0.16,cy-p*0.3,p*0.32,p*0.2);
+  g.fillStyle='rgba(210,167,127,.4)';
+  g.fillRect(cx-p*0.15,cy-p*0.28,p*0.3,p*0.18);
+  g.strokeStyle='rgba(234,181,114,.4)';
+  g.beginPath();g.moveTo(cx-p*0.1,cy-p*0.28);g.lineTo(cx-p*0.1,cy-p*0.1);g.moveTo(cx+p*0.06,cy-p*0.28);g.lineTo(cx+p*0.06,cy-p*0.1);g.moveTo(cx-p*0.02,cy-p*0.28);g.lineTo(cx-p*0.02,cy-p*0.1);g.stroke();
+  const lg=g.createLinearGradient(cx-p*0.14,cy+p*0.14,cx+p*0.14,cy+p*0.14);
+  lg.addColorStop(0,'rgba(234,181,114,.0)');lg.addColorStop(.5,'rgba(210,167,127,.55)');lg.addColorStop(1,'rgba(234,181,114,.0)');
+  g.strokeStyle=lg;g.lineWidth=2;
+  g.beginPath();g.moveTo(0,cy+p*0.02);g.lineTo(w,cy+p*0.02);g.stroke();
+  g.fillStyle='rgba(243,233,218,.85)';g.font='10px DM Sans';g.textAlign='left';
+  g.fillText('ROOMAI \u00B7 3D RENDER',p*0.1,h-p*0.1);
+  g.fillStyle='rgba(234,181,114,.45)';g.font='11px DM Sans';
+  g.textAlign='right';g.fillText('Sunset study \u00B7 wood',w-p*0.1,h-p*0.1);
+  g.strokeStyle='rgba(234,181,114,.35)';g.lineWidth=1;
+  g.beginPath();g.ellipse(cx,cy+p*0.14,rz*0.3,rz2*0.3,0,0,3.14);g.stroke();
+  g.fillStyle='rgba(234,181,114,.85)';
+  g.beginPath();g.arc(cx,cy-p*0.22,3,0,7);g.fill();
+  g.fillStyle='rgba(234,181,114,.7)';
+  g.beginPath();g.arc(cx+p*0.06,cy-p*0.17,2,0,7);g.fill();
+  g.beginPath();g.arc(cx-p*0.12,cy+p*0.09,4,0,7);g.fill();
 }
-function useSuggestedDesign(){
-  const s=SUGGESTED_LAYOUTS[landingSelectedRoom];if(!s)return;
-  roomConfig=JSON.parse(JSON.stringify(s.roomConfig));
-  walls=s.walls.map(w=>Object.assign({},w));
-  furniture=s.furniture.map(f=>Object.assign({id:uid()},f));
-  nextId=100;
-  goTo('editor');
-  resizeCanvas();draw2d();
+function setupLandingVisuals(){
+  const plan=document.getElementById('hero-plan'),room=document.getElementById('hero-room'),
+    cplan=document.getElementById('cmp-plan'),croom=document.getElementById('cmp-room');
+  const draw=()=>{
+    drawPlanCv(plan);drawRoomCv(room);drawPlanCv(cplan);drawRoomCv(croom);setCmp(document.getElementById('cmp-range').value);
+  };
+  draw();
+  let t;
+  window.addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(draw,120);});
 }
-function customizeManually(){
-  if(!landingSelectedRoom)return;
-  roomConfig={type:landingSelectedRoom,shape:'rect',w:5,h:4,wallH:2.7,wallT:0.15,
-    floor:{style:'wood',color:'#c8a878',pattern:'boards'},
-    wallFinish:{style:'solid',color:'#ddd0be'}};
-  walls=[];furniture=[];
-  goTo('room-setup');
-}
-
-window.addEventListener('DOMContentLoaded', async ()=>{
-  renderLandingGrid();
+window.addEventListener('DOMContentLoaded',()=>{
   goTo('landing');
+  setupLandingVisuals();
 });
 </script>
 </body>
