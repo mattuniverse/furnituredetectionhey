@@ -438,8 +438,19 @@ canvas { display: block; }
 .floor-pattern-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .floor-pattern-row label { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; }
 .floor-pattern-row select { flex: 1; }
-#floor-palette, #fp-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-#fp-swatches { margin-bottom: 12px; }
+#floor-wheel { margin-bottom: 18px; }
+#fp-swatches, #wp-wheel { width: 100%; }
+.cw-canvas { width: 100%; max-width: 224px; height: auto; border-radius: 12px; cursor: crosshair; touch-action: none; display: block; margin-bottom: 8px; }
+.cw-foot { display: flex; align-items: center; gap: 10px; }
+.cw-swatch { width: 28px; height: 28px; border-radius: 9px; border: 2px solid var(--color-border-light); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+.cw-hex { width: 86px; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 6px 8px; border: 1.5px solid var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); letter-spacing: .03em; font-family: var(--font-body); }
+.cw-hex:focus { border-color: var(--color-border-focus); }
+.sugg-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.sugg-x { margin-left: auto; border: none; background: transparent; color: var(--color-text-muted); cursor: pointer; padding: 2px 7px; border-radius: 6px; font-size: 15px; line-height: 1.2; }
+.sugg-x:hover { color: var(--color-text-strong); background: var(--color-surface-hover); }
+.sugg-type { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
+.sugg-actions { display: flex; gap: 8px; margin-top: 4px; }
+.sugg-actions button { flex: 1; font-size: 12px; padding: 9px 10px; }
 .walk-active { background: var(--color-accent); color: #fff !important; }
 .floor-color-label { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; }
 
@@ -769,9 +780,9 @@ canvas { display: block; }
 .lp-hero-mini{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;}
 .lp-hero-mini span{font-size:12px;letter-spacing:.04em;color:var(--lg-muted);border:1px solid var(--lg-border);padding:5px 12px;border-radius:999px;}
 
-.lp-hero-visual{position:relative;align-self:center;justify-self:center;width:min(520px,100%);}
-#hero-plan{display:block;width:100%;height:auto;aspect-ratio:4/3.2;border-radius:22px;border:1px solid var(--lg-border);box-shadow:var(--lg-shadow);}
-.lp-hero-morph{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:5;font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:#241505;background:linear-gradient(90deg,#f6cf9a,#e0a75e);padding:7px 16px;border-radius:999px;font-weight:800;box-shadow:0 8px 26px var(--lg-glow);white-space:nowrap;}
+.lp-hero-visual{position:relative;align-self:center;justify-self:center;width:min(540px,100%);}
+  .lp-hero-visual .room-scene{max-width:none;width:100%;margin-top:0;aspect-ratio:16/10;box-shadow:var(--lg-shadow);}
+  .rs-sofa-swap{position:absolute;right:-6px;top:-8px;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:14px;font-weight:800;color:#241505;background:linear-gradient(135deg,#f6cf9a,#e0a75e);box-shadow:0 6px 16px color-mix(in srgb,var(--color-accent) 45%,transparent);z-index:4;border:2px solid color-mix(in srgb,var(--color-accent-light) 55%,#fff);}
 
 .lp-sec{max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,104px) clamp(16px,4vw,48px);}
 .lp-sec-title{font-family:var(--font-display);font-size:clamp(30px,4.4vw,50px);color:var(--lg-text);letter-spacing:-.5px;margin-bottom:10px;}
@@ -793,15 +804,6 @@ canvas { display: block; }
 .lp-feat h3{font-family:var(--font-display);font-size:18px;color:var(--lg-text);margin:14px 0 6px;letter-spacing:-.2px;}
 .lp-feat p{font-size:13px;color:var(--lg-muted);line-height:1.55;}
 
-.lp-design{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center;}
-.lp-design-visual{position:relative;align-self:center;justify-self:center;width:min(560px,100%);}
-.lp-design-visual .room-scene{max-width:none;width:100%;margin-top:0;box-shadow:var(--lg-shadow);}
-.lp-design-copy h3{font-family:var(--font-display);font-size:clamp(24px,3vw,38px);color:var(--lg-text);letter-spacing:-.5px;line-height:1.12;margin-bottom:16px;}
-.lp-design-copy p{color:var(--lg-muted);font-size:15.5px;line-height:1.7;margin-bottom:22px;max-width:480px;}
-.lp-design-list{list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:12px;}
-.lp-design-list li{display:flex;gap:10px;align-items:flex-start;color:var(--lg-text);font-size:14.5px;line-height:1.55;}
-.lp-design-list li::before{content:"✦";color:var(--lg-gold);flex-shrink:0;}
-
 .lp-cta{max-width:1120px;margin:0 auto;padding:0 clamp(16px,4vw,48px) 96px;}
 .lp-cta-inner{background:radial-gradient(120% 160% at 50% 0%,var(--lg-panel-2) 0%,var(--lg-panel) 45%,var(--lg-bg) 100%);border:1px solid var(--lg-glow-border);border-radius:28px;padding:clamp(42px,7vw,80px) clamp(24px,6vw,72px);text-align:center;box-shadow:inset 0 0 90px var(--lg-glow-soft),var(--lg-shadow);position:relative;overflow:hidden;}
 .lp-cta-inner::before{content:"";position:absolute;inset:-40%;pointer-events:none;background:radial-gradient(circle at 50% 120%,var(--lg-glow),transparent 55%);}
@@ -819,8 +821,6 @@ canvas { display: block; }
   .lp-hero{grid-template-columns:1fr;min-height:0;}
   .lp-hero-visual{order:-1;margin:0 auto;}
   .lp-steps{grid-template-columns:1fr;}
-  .lp-design{grid-template-columns:1fr;}
-  .lp-design-visual{order:1;}
 }
 @media(max-width:600px){
   .lp-nav-links{display:none;}
@@ -837,7 +837,6 @@ canvas { display: block; }
     <div class="lp-nav-links">
       <a class="lp-nav-link" href="#lp-how" onclick="lpScrollTo('lp-how');return false;">How it works</a>
       <a class="lp-nav-link" href="#lp-features" onclick="lpScrollTo('lp-features');return false;">Features</a>
-      <a class="lp-nav-link" href="#lp-demo" onclick="lpScrollTo('lp-demo');return false;">Live demo</a>
     </div>
     <div class="lp-nav-right">
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
@@ -854,7 +853,7 @@ canvas { display: block; }
       <h1>Design Your Space, <span>Instantly</span></h1>
       <p class="lp-sub">Snap a photo of your room and RoomAI&rsquo;s neural detection spots the furniture, drafts a 2D floor plan, and renders it in immersive 3D &mdash; right in your browser.</p>
       <div class="lp-hero-cta">
-        <button class="lp-btn-gold" onclick="goTo('room-setup')">Get Started</button>
+        <button class="lp-btn-gold" onclick="goTo('login')">Get Started</button>
         <button class="lp-btn-ghost" onclick="lpScrollTo('lp-how')">See How It Works</button>
       </div>
       <div class="lp-hero-mini">
@@ -864,8 +863,18 @@ canvas { display: block; }
       </div>
     </div>
     <div class="lp-hero-visual">
-      <canvas id="hero-plan"></canvas>
-      <div class="lp-hero-morph">2D &#10230; 3D</div>
+      <div class="room-scene">
+        <div class="rs-floor"></div>
+        <div class="rs-rug"></div>
+        <div class="rs-window"><span class="rs-sun"></span></div>
+        <div class="rs-pic p1"></div>
+        <div class="rs-pic p2"></div>
+        <div class="rs-tv"></div>
+        <div class="rs-sofa">&#x1F6CB;<span class="rs-sofa-swap" aria-hidden="true">&#8646;</span></div>
+        <div class="rs-table"></div>
+        <div class="rs-lamp"><span class="rs-lamp-glow"></span><span class="rs-lamp-shade"></span><span class="rs-lamp-pole"></span></div>
+        <span class="rs-plant">&#x1FAB4;</span>
+      </div>
     </div>
   </section>
 
@@ -922,37 +931,6 @@ canvas { display: block; }
         <div class="lp-feat-icon">&#x1F4BE;</div>
         <h3>Export &amp; Save Designs</h3>
         <p>Save your project to the cloud and export 2D and 3D renders anytime.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="lp-sec" id="lp-demo">
-    <h2 class="lp-sec-title">Design a Room You&rsquo;ll <span>Love</span></h2>
-    <p class="lp-sec-sub">A styled, furnished bedroom brought to life from a single plan &mdash; furniture, lighting and textures placed automatically.</p>
-    <div class="lp-design">
-      <div class="lp-design-visual">
-        <div class="room-scene">
-          <div class="rs-floor"></div>
-          <div class="rs-rug"></div>
-          <div class="rs-window"><span class="rs-sun"></span></div>
-          <div class="rs-pic p1"></div>
-          <div class="rs-pic p2"></div>
-          <div class="rs-tv"></div>
-          <span class="rs-sofa">&#x1F6CB;</span>
-          <div class="rs-table"></div>
-          <div class="rs-lamp"><span class="rs-lamp-glow"></span><span class="rs-lamp-shade"></span><span class="rs-lamp-pole"></span></div>
-          <span class="rs-plant">&#x1FAB4;</span>
-        </div>
-      </div>
-      <div class="lp-design-copy">
-        <h3>One blueprint, endless styles</h3>
-        <p>RoomAI fills your room with a cohesive look &mdash; detecting furniture, snapping it into a clearance-safe layout, then rendering the whole space in real-time 3D.</p>
-        <ul class="lp-design-list">
-          <li>Furniture detected and placed from your photo</li>
-          <li>Gold-accented materials tuned to your taste</li>
-          <li>Live 2D plan synced to a full 3D walkthrough</li>
-        </ul>
-        <button class="lp-btn-gold" onclick="goTo('room-setup')">Set up your room</button>
       </div>
     </div>
   </section>
@@ -1158,16 +1136,7 @@ canvas { display: block; }
     <div class="floor-color-row">
       <span class="floor-color-label">Color:</span>
     </div>
-    <div id="floor-palette"></div>
-    <div id="sugg-panel" class="sugg-panel" style="display:none">
-      <div class="sugg-title">Suggested Design &middot; <span id="sugg-type-label">Living Room</span></div>
-      <canvas id="sugg-canvas" class="sugg-canvas" width="440" height="300" aria-label="Suggested layout preview"></canvas>
-      <div class="sugg-stats" id="sugg-stats"></div>
-      <div class="setup-actions" style="margin-top:6px">
-        <button class="btn-back" style="flex:1" onclick="applySuggestedDesign(false)">Customize Manually</button>
-        <button class="btn-proceed" style="flex:1" onclick="applySuggestedDesign(true)">Use Suggested Design &rarr;</button>
-      </div>
-    </div>
+    <div id="floor-wheel"></div>
     <div id="custom-note" class="irregular-note" style="display:none">Custom shape: use the <strong>Draw Wall</strong> tool in the editor to click-and-drag each wall segment.</div>
     <div class="setup-actions">
       <button class="btn-back" onclick="backFromSetup()">&larr; Back</button>
@@ -1361,7 +1330,7 @@ canvas { display: block; }
       <div class="canvas-area" id="canvas-area">
         <canvas id="canvas2d" aria-label="2D floor plan canvas"></canvas>
         <canvas id="canvas3d" aria-label="3D room view canvas"></canvas>
-        <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><button class="view-btn" id="btn-walk" onclick="toggleWalkMode()" aria-label="Toggle first-person walkthrough mode" title="Walk around the room at eye level">Walkthrough</button><span id="hint-orbit">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</span><span id="hint-walk" style="display:none">Click canvas to capture mouse &middot; WASD to move &middot; Mouse to look &middot; Esc to exit</span></div>
+        <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><button class="view-btn" id="btn-walk" onclick="toggleWalkMode()" aria-label="Toggle first-person walkthrough mode" title="Walk around the room at eye level">Walkthrough</button><span id="hint-orbit">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</span><span id="hint-walk" style="display:none">WASD to move (follows look direction) &middot; Mouse to look &middot; Esc to exit</span></div>
         <div class="vio-tip" id="vio-tip" hidden aria-live="polite"></div>
         <div class="canvas-overlay">
           <div class="overlay-badge" id="badge-room"></div>
@@ -1369,6 +1338,16 @@ canvas { display: block; }
         </div>
       </div>
       <div class="right-panel">
+        <div class="sugg-panel" id="sugg-dock" style="display:none">
+          <div class="sugg-head"><div class="sugg-title">Suggested Design</div><button class="sugg-x" onclick="dismissSuggestedDock()" aria-label="Dismiss suggestion" title="Dismiss">&#xD7;</button></div>
+          <div class="sugg-type" id="sugg-dock-type">Living Room</div>
+          <canvas id="sugg-canvas" class="sugg-canvas" width="440" height="300" aria-label="Suggested layout preview"></canvas>
+          <div class="sugg-stats" id="sugg-dock-stats"></div>
+          <div class="sugg-actions">
+            <button class="btn-outline" onclick="applySuggestedDesign(false)">Customize Manually</button>
+            <button class="btn-proceed" onclick="applySuggestedDesign(true)">Use Suggested Design</button>
+          </div>
+        </div>
         <div class="panel-title">Properties</div>
         <div id="prop-content"><p class="empty-prop">Select a wall or furniture piece to edit its properties here.</p></div>
       </div>
@@ -1411,8 +1390,6 @@ function applyTheme(t){
   else document.documentElement.removeAttribute('data-theme');
   try{localStorage.setItem('fps-theme',t);}catch(e){}
   refreshCanvasTheme();
-  const heroPlan=document.getElementById('hero-plan');
-  if(heroPlan&&currentScreen==='landing')drawPlanCv(heroPlan);
 }
 function toggleTheme(){applyTheme(currentTheme()==='dark'?'light':'dark');}
 function cssVar(name){return (getComputedStyle(document.documentElement).getPropertyValue(name)||'').trim();}
@@ -1780,7 +1757,7 @@ function backToDashboard(){
 // ══════════════════════════════════════════
 //  NAVIGATION
 // ══════════════════════════════════════════
-function goTo(s){document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));document.getElementById('screen-'+s).classList.add('active');currentScreen=s;if(s==='room-setup'){roomConfig=roomConfig||{};roomConfig.type=roomConfig.type||'Living Room';renderSetupFloorControls();refreshSuggestedPanel(roomConfig.type);}}
+function goTo(s){document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));document.getElementById('screen-'+s).classList.add('active');currentScreen=s;if(s==='room-setup'){roomConfig=roomConfig||{};roomConfig.type=roomConfig.type||'Living Room';renderSetupFloorControls();}}
 function backFromSetup(){
   const hadUser=sessionStorage.getItem('roomai_signed_in')==='1';
   if(hadUser){goTo('dashboard');loadProjects();}
@@ -1806,11 +1783,11 @@ function selectRoomType(btn,type){
     document.getElementById('room-wall-t').value=rc.wallT;
     const shapeBtn=document.getElementById('shape-'+(rc.shape||'rect'));
     if(shapeBtn)selectShape(shapeBtn.id.replace('shape-',''));
-    if(rc.floor&&rc.floor.color){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.color=rc.floor.color;}
+    if(rc.floor){roomConfig.floor=JSON.parse(JSON.stringify(rc.floor));}
   }
   renderSetupFloorControls();
-  refreshSuggestedPanel(type);
 }
+let setupFloorWheel=null,propFloorWheel=null,propWallWheel=null;
 function renderSetupFloorControls(){
   const floor=roomConfig.floor||{style:'wood'};
   const style=floor.style||'wood';
@@ -1825,9 +1802,12 @@ function renderSetupFloorControls(){
   }else{
     patRow.style.display='none';
   }
-  const palette=FLOOR_PALETTES[style]||FLOOR_PALETTES.wood;
-  const cur=floor.color||floorDefaultColorFor(style);
-  document.getElementById('floor-palette').innerHTML=palette.map(c=>`<button class="floor-color-swatch ${cur.toLowerCase()===c.toLowerCase()?'active':''}" data-fc="${c}" style="background:${c}" onclick="selectFloorColor(this)" aria-label="Floor color ${c}"></button>`).join('');
+  const wheelEl=document.getElementById('floor-wheel');
+  if(wheelEl){
+    const cur=floor.color||floorDefaultColorFor(style);
+    if(!wheelEl.dataset.mounted){wheelEl.dataset.mounted='1';setupFloorWheel=new ColorWheel(wheelEl,cur,hx=>{roomConfig.floor=roomConfig.floor||{};roomConfig.floor.color=hx;});}
+    else if(setupFloorWheel)setupFloorWheel.setColor(cur);
+  }
 }
 function selectFloorStyle(btn,style){
   roomConfig.floor=roomConfig.floor||{};
@@ -1836,36 +1816,147 @@ function selectFloorStyle(btn,style){
   if(!roomConfig.floor.pattern||!patternForStyle(style,roomConfig.floor.pattern))roomConfig.floor.pattern=defaultPatternFor(style);
   renderSetupFloorControls();
 }
-function selectFloorColor(btn){
-  document.querySelectorAll('.floor-color-swatch').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  roomConfig.floor=roomConfig.floor||{};
-  roomConfig.floor.color=btn.dataset.fc;
+// ── Color wheel picker (hue ring + saturation/value square) ──
+function hsvRgb(h,s,v){
+  h=((h%360)+360)%360;
+  const c=v*s,hp=h/60,X=c*(1-Math.abs(hp%2-1));
+  let r=0,g=0,b=0;
+  if(hp<1){r=c;g=X;}else if(hp<2){r=X;g=c;}else if(hp<3){g=c;b=X;}else if(hp<4){g=X;b=c;}else if(hp<5){r=X;b=c;}else{r=c;b=X;}
+  const m=v-c;
+  return [Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)];
 }
-function selectPropFloorColor(btn){
-  roomConfig.floor=roomConfig.floor||{};
-  roomConfig.floor.color=btn.dataset.fc;
-  const pack=document.getElementById('fp-swatches');
-  if(pack)pack.querySelectorAll('.floor-color-swatch').forEach(b=>b.classList.toggle('active',b===btn));
-  const col=document.getElementById('fp-color');
-  if(col)col.value=btn.dataset.fc;
-  draw2d();
+function hsvToHex(h,s,v){const c=hsvRgb(h,s,v);return '#'+((c[0]<<16)|(c[1]<<8)|c[2]).toString(16).padStart(6,'0');}
+function hexToHsv(hex){
+  const h=hex.replace('#','');
+  const n=parseInt(h.length===3?h.split('').map(ch=>ch+ch).join(''):h,16);
+  const r=((n>>16)&255)/255,g=((n>>8)&255)/255,b=(n&255)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
+  let hh=0;
+  if(d){if(mx===r)hh=60*(((g-b)/d)%6);else if(mx===g)hh=60*((b-r)/d+2);else hh=60*((r-g)/d+4);}
+  return {h:((hh%360)+360)%360,s:mx?d/mx:0,v:mx};
 }
-function refreshSuggestedPanel(type){
-  const panel=document.getElementById('sugg-panel');
-  const sug=SUGGESTED_LAYOUTS[type];
-  if(!sug||type==='Custom'){
-    panel.style.display='none';
-    return;
+function clamp01(v){return Math.max(0,Math.min(1,v));}
+function ColorWheel(container,initialHex,onChange){
+  const W=224,H=224,C=112,R=108,ringW=26,rIn=R-ringW,half=Math.floor((rIn-8)*0.7071);
+  const cv=document.createElement('canvas');cv.className='cw-canvas';cv.width=W;cv.height=H;cv.setAttribute('aria-label','Color picker wheel');
+  const foot=document.createElement('div');foot.className='cw-foot';
+  const sw=document.createElement('span');sw.className='cw-swatch';
+  const hex=document.createElement('input');hex.className='cw-hex';hex.type='text';hex.maxLength=7;hex.spellcheck=false;hex.setAttribute('aria-label','Hex color');
+  foot.appendChild(sw);foot.appendChild(hex);
+  container.appendChild(cv);container.appendChild(foot);
+  const g=cv.getContext('2d');
+  const base=document.createElement('canvas');base.width=W;base.height=H;
+  const bg=base.getContext('2d');
+  let hue=0,sat=0.5,val=0.5,cur='#c8a878';
+  const midR=rIn+ringW/2;
+  function drawRing(){
+    bg.clearRect(0,0,W,H);
+    bg.lineWidth=ringW;
+    for(let a=0;a<360;a+=4){
+      bg.strokeStyle='hsl('+a+',100%,50%)';
+      bg.beginPath();bg.arc(C,C,midR,a*Math.PI/180,(a+4.2)*Math.PI/180);bg.stroke();
+    }
   }
-  panel.style.display='block';
-  document.getElementById('sugg-type-label').textContent=type;
+  function drawSV(){
+    const q=half,sq=q*2;
+    const img=bg.createImageData(sq,sq);
+    for(let y=0;y<sq;y++){
+      for(let x0=0;x0<sq;x0++){
+        const c=hsvRgb(hue,x0/(sq-1),1-y/(sq-1));
+        const i=(y*sq+x0)*4;
+        img.data[i]=c[0];img.data[i+1]=c[1];img.data[i+2]=c[2];img.data[i+3]=255;
+      }
+    }
+    bg.putImageData(img,C-q,C-q);
+  }
+  function paint(){
+    g.clearRect(0,0,W,H);
+    g.drawImage(base,0,0);
+    const ha=(hue)*Math.PI/180;
+    g.beginPath();g.arc(C+midR*Math.cos(ha),C+midR*Math.sin(ha),5,0,Math.PI*2);
+    g.fillStyle='#fff';g.fill();g.strokeStyle='#2a2218';g.lineWidth=2;g.stroke();
+    const sx=C-half+2*half*sat,sy=C-half+2*half*(1-val);
+    g.beginPath();g.arc(sx,sy,6,0,Math.PI*2);
+    g.fillStyle=cur;g.fill();g.strokeStyle='#2a2218';g.lineWidth=2;g.stroke();
+  }
+  function updateColor(){
+    cur=hsvToHex(hue,sat,val);
+    sw.style.background=cur;
+    hex.value=cur;
+    paint();
+    if(typeof onChange==='function')onChange(cur);
+  }
+  function setHue(h){const hh=((h%360)+360)%360;if(Math.abs(hh-hue)>0.5){hue=hh;drawSV();}paint();}
+  function pickAt(clientX,clientY){
+    const rect=cv.getBoundingClientRect();
+    const px=(clientX-rect.left)*(W/rect.width);
+    const py=(clientY-rect.top)*(H/rect.height);
+    const dx=px-C,dy=py-C,dist=Math.hypot(dx,dy);
+    if(dist>=rIn-4&&dist<=R){
+      let a=Math.atan2(dy,dx)*180/Math.PI;if(a<0)a+=360;
+      setHue(a);updateColor();
+    }else if(Math.abs(dx)<=half+10&&Math.abs(dy)<=half+10){
+      sat=clamp01((dx+half)/(2*half));
+      val=clamp01(1-(dy+half)/(2*half));
+      updateColor();
+    }
+  }
+  let dragging=false;
+  cv.addEventListener('pointerdown',e=>{dragging=true;cv.setPointerCapture(e.pointerId);pickAt(e.clientX,e.clientY);});
+  cv.addEventListener('pointermove',e=>{if(dragging)pickAt(e.clientX,e.clientY);});
+  cv.addEventListener('pointerup',()=>{dragging=false;});
+  cv.addEventListener('pointercancel',()=>{dragging=false;});
+  hex.addEventListener('input',()=>{
+    let v=hex.value.trim();
+    if(!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v))return;
+    const hsv=hexToHsv(v);
+    const hChanged=Math.abs(hsv.h-hue)>0.5;
+    hue=hsv.h;sat=hsv.s;val=hsv.v;
+    if(hChanged)drawSV();
+    updateColor();
+  });
+  this.setColor=function(hx){
+    const hsv=hexToHsv(hx);
+    const hChanged=Math.abs(hsv.h-hue)>0.5;
+    hue=hsv.h;sat=hsv.s;val=hsv.v;
+    if(hChanged||!base._drawn){drawRing();drawSV();base._drawn=1;}
+    cur=hsvToHex(hue,sat,val);
+    sw.style.background=cur;hex.value=cur;paint();
+  };
+  this.setColor(initialHex||'#c8a878');
+}
+let pendingSugType=null;
+function openSuggestedDock(type){
+  const dock=document.getElementById('sugg-dock');
+  if(!dock)return;
+  const sug=SUGGESTED_LAYOUTS[type];
+  if(!sug||type==='Custom'){dock.style.display='none';pendingSugType=null;return;}
+  pendingSugType=type;
+  dock.style.display='block';
+  document.getElementById('sugg-dock-type').textContent=type;
   const rc=sug.roomConfig;
-  const floor=rc.floor||{};
-  const fl={wood:'Wood',tile:'Tile',carpet:'Carpet',concrete:'Concrete'}[floor.style]||'Wood';
+  const fl={wood:'Wood',tile:'Tile',carpet:'Carpet',concrete:'Concrete'}[rc.floor&&rc.floor.style]||'Wood';
   const pieces=(sug.furniture||[]).length;
-  document.getElementById('sugg-stats').innerHTML=`<b>${rc.w} \u00D7 ${rc.h} m</b> &middot; floor: <b>${fl}</b> &middot; ${pieces} staged piece${pieces===1?'':'s'} &middot; suggested finishes applied with one click`;
+  document.getElementById('sugg-dock-stats').innerHTML=`<b>${rc.w} \u00D7 ${rc.h} m</b> &middot; ${fl} floor &middot; ${pieces} staged piece${pieces===1?'':'s'} &middot; applies walls, finishes and furniture in one click`;
   drawSuggPreview(sug);
+}
+function dismissSuggestedDock(){pendingSugType=null;const d=document.getElementById('sugg-dock');if(d)d.style.display='none';}
+function applySuggestedDesign(useSug){
+  const type=pendingSugType||(roomConfig&&roomConfig.type);
+  if(useSug&&SUGGESTED_LAYOUTS[type]){
+    const sug=SUGGESTED_LAYOUTS[type];
+    roomConfig=JSON.parse(JSON.stringify(sug.roomConfig));
+    walls=JSON.parse(JSON.stringify(sug.walls||[]));
+    furniture=JSON.parse(JSON.stringify(sug.furniture||[])).map(f=>({...f,id:uid()}));
+    walls=walls.map(w=>({...w,id:uid()}));
+    roomPhotos=[];selectedItem=null;wallStart=null;currentProjectId=null;
+    setStatus('Suggested design applied \u2014 edit anything you like.');
+  }else if(useSug){
+    setStatus('No suggested layout for that room type \u2014 starting blank.');
+  }
+  dismissSuggestedDock();
+  resizeCanvas();buildFurnList();updateBadge();draw2d();updateProps();
+  if(editorView==='3d')build3d();
 }
 function drawSuggPreview(sug){
   const cv=document.getElementById('sugg-canvas');if(!cv)return;
@@ -1896,24 +1987,6 @@ function drawSuggPreview(sug){
     x.fillText((def.label.split(' ')[0]||'?').charAt(0),px+pw/2,py+ph/2);
   });
 }
-function applySuggestedDesign(useSug){
-  const type=roomConfig.type||'Living Room';
-  if(useSug){
-    const sug=SUGGESTED_LAYOUTS[type];
-    if(sug){
-      roomConfig=JSON.parse(JSON.stringify(sug.roomConfig));
-      walls=JSON.parse(JSON.stringify(sug.walls||[]));
-      furniture=JSON.parse(JSON.stringify(sug.furniture||[])).map(f=>({...f,id:uid()}));
-      walls=walls.map((w,i)=>({...w,id:uid()}));
-      roomPhotos=[];selectedItem=null;wallStart=null;currentProjectId=null;
-      goTo('editor');
-      setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();},50);
-      return;
-    }
-    setStatus('No suggested design for that room type \u2014 opening a blank room instead.');
-  }
-  startEditor();
-}
 function selectShape(s){
   document.querySelectorAll('.shape-btn').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-checked','false');});
   const btn=document.getElementById('shape-'+s);
@@ -1931,7 +2004,7 @@ function startEditor(){
   walls=[];furniture=[];roomPhotos=[];selectedItem=null;wallStart=null;currentProjectId=null;
   if(roomConfig.shape!=='custom') buildRectRoom();
   goTo('editor');
-  setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();},50);
+  setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();openSuggestedDock(roomConfig.type);},50);
 }
 function loadDemo(){
   roomConfig={type:'Living Room',shape:'rect',w:6,h:5,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878',pattern:'boards'},wallFinish:{style:'solid',color:'#ddd0be'}};
@@ -2589,24 +2662,22 @@ function updateProps(_fullRerender){
     const defs=FLOOR_DEFS[floor.style||'wood']||FLOOR_DEFS.wood;
     const curPat=defs.patterns||[];
     const patHtml=curPat.length?`<div class="prop-group" id="fp-patw"><div class="prop-label">Pattern / sub-style</div><select class="prop-input" id="fp-pat">${curPat.map(([v,l])=>`<option value="${v}" ${(floor.pattern||curPat[0][0])===v?'selected':''}>${l}</option>`).join('')}</select></div>`:'';
-    const palette=FLOOR_PALETTES[floor.style||'wood']||FLOOR_PALETTES.wood;
     const fcur=floor.color||floorDefaultColorFor(floor.style||'wood');
-    const swatches=palette.map(c=>`<button class="floor-color-swatch ${fcur.toLowerCase()===c.toLowerCase()?'active':''}" data-fc="${c}" style="background:${c}" onclick="selectPropFloorColor(this)" aria-label="Floor color ${c}"></button>`).join('');
+    const wcur=wf.color||'#ddd0be';
     el.innerHTML=`<div class="prop-group" style="font-size:13px;font-weight:600;color:var(--color-text-secondary);margin-bottom:12px">Room Style</div>
     <div class="prop-group"><div class="prop-label">Floor</div><select class="prop-input" id="fp-style"><option value="wood" ${(floor.style||'wood')==='wood'?'selected':''}>Wood</option><option value="tile" ${floor.style==='tile'?'selected':''}>Tile</option><option value="carpet" ${floor.style==='carpet'?'selected':''}>Carpet</option><option value="concrete" ${floor.style==='concrete'?'selected':''}>Concrete</option></select></div>
     ${patHtml}
-    <div class="prop-group"><div class="prop-label">Floor color</div><div id="fp-swatches">${swatches}</div><input class="prop-input" type="color" id="fp-color" value="${floor.color||'#c8a878'}" style="margin-top:6px"></div>
+    <div class="prop-group"><div class="prop-label">Floor color</div><div id="fp-swatches"></div></div>
     <hr class="prop-divider">
     <div class="prop-group"><div class="prop-label">Wall finish</div><select class="prop-input" id="wp-style"><option value="solid" ${(wf.style||'solid')==='solid'?'selected':''}>Solid</option><option value="stripe" ${wf.style==='stripe'?'selected':''}>Vertical stripe</option><option value="textured" ${wf.style==='textured'?'selected':''}>Textured paint</option></select></div>
-    <div class="prop-group"><div class="prop-label">Wall color</div><input class="prop-input" type="color" id="wp-color" value="${wf.color||'#ddd0be'}"></div>
+    <div class="prop-group"><div class="prop-label">Wall color</div><div id="wp-wheel"></div></div>
     <p class="empty-prop" style="margin-top:12px">Or select a wall or furniture piece to edit its properties.</p>`;
     const fp=document.getElementById('fp-style');
-    fp.onchange=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.style=this.value;if(!roomConfig.floor.color)roomConfig.floor.color=floorDefaultColorFor(this.value);if(!roomConfig.floor.pattern||!patternForStyle(this.value,roomConfig.floor.pattern))roomConfig.floor.pattern=defaultPatternFor(this.value);updateProps();};
-    if(document.getElementById('fp-pat'))document.getElementById('fp-pat').onchange=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.pattern=this.value;draw2d();};
-    if(document.getElementById('fp-swatches'))document.getElementById('fp-swatches').querySelectorAll('.floor-color-swatch').forEach(b=>{b.onclick=function(){selectPropFloorColor(b);};});
-    document.getElementById('fp-color').oninput=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.color=this.value;const sw=document.getElementById('fp-swatches');if(sw)sw.querySelectorAll('.floor-color-swatch').forEach(b=>b.classList.toggle('active',b.dataset.fc.toLowerCase()===this.value.toLowerCase()));draw2d();};
-    document.getElementById('wp-style').onchange=function(){roomConfig.wallFinish=roomConfig.wallFinish||{};roomConfig.wallFinish.style=this.value;draw2d();};
-    document.getElementById('wp-color').oninput=function(){roomConfig.wallFinish=roomConfig.wallFinish||{};roomConfig.wallFinish.color=this.value;draw2d();};
+    fp.onchange=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.style=this.value;if(!roomConfig.floor.color)roomConfig.floor.color=floorDefaultColorFor(this.value);if(!roomConfig.floor.pattern||!patternForStyle(this.value,roomConfig.floor.pattern))roomConfig.floor.pattern=defaultPatternFor(this.value);updateProps();if(editorView==='3d'){refreshFloor3d();}};
+    if(document.getElementById('fp-pat'))document.getElementById('fp-pat').onchange=function(){roomConfig.floor=roomConfig.floor||{};roomConfig.floor.pattern=this.value;draw2d();if(editorView==='3d')refreshFloor3d();};
+    propFloorWheel=new ColorWheel(document.getElementById('fp-swatches'),fcur,hx=>{roomConfig.floor=roomConfig.floor||{};roomConfig.floor.color=hx;draw2d();if(editorView==='3d')refreshFloor3d();});
+    document.getElementById('wp-style').onchange=function(){roomConfig.wallFinish=roomConfig.wallFinish||{};roomConfig.wallFinish.style=this.value;draw2d();if(editorView==='3d')refreshWalls3d();};
+    propWallWheel=new ColorWheel(document.getElementById('wp-wheel'),wcur,hx=>{roomConfig.wallFinish=roomConfig.wallFinish||{};roomConfig.wallFinish.color=hx;draw2d();if(editorView==='3d')refreshWalls3d();});
     draw2d();return;
   }
   if(walls.includes(selectedItem)){
@@ -3254,10 +3325,11 @@ document.addEventListener('keydown',e=>{
 //  THREE.JS 3D
 // ══════════════════════════════════════════
 let scene,camera,renderer3d,animId;
+let floorMesh=null,wallMat=null;
 let sph={theta:0.7,phi:1.0,radius:10};
 let tgt={x:0,y:0,z:0};
 let md3=false,rDrag=false,pm={x:0,y:0};
-let walkMode=false,walkYaw=0,walkPitch=0,walkPos={x:0,z:0},walkEyeHeight=1.55;
+let walkMode=false,walkYaw=0,walkPitch=0,walkPos={x:0,y:1.55,z:0};
 let clock=null;
 
 function floorDefaultColorFor(style){return ({wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'})[style]||'#c8a878';}
@@ -3691,6 +3763,21 @@ function buildGeneric(f,def){
 
 const BUILDERS={sofa_2:buildSofa,sofa_3:buildSofa,chair:buildChair,armchair:buildChair,table_rect:buildTable,desk:buildDesk,table_round:buildRoundTable,coffee:buildCoffee,bed_s:buildBed,bed_d:buildBed,bed_k:buildBed,cabinet:buildCabinet,wall_cab:buildCabinet,wardrobe:buildWardrobe,shelf:buildShelf,tv:buildTV,plant:buildPlant,rug:buildRug,sink:buildSink,toilet:buildToilet,bathtub:buildBathtub,door:buildDoor,window:buildWindow,};
 
+function refreshFloor3d(){
+  if(!scene||!floorMesh)return;
+  const tex=makeFloorTexture();
+  const rw=Math.max(roomConfig.w||5,1)/2,rh=Math.max(roomConfig.h||4,1)/2;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(rw,rh);
+  if(floorMesh.material.map)floorMesh.material.map.dispose();
+  floorMesh.material.map=tex;
+  floorMesh.material.needsUpdate=true;
+}
+function refreshWalls3d(){
+  if(!wallMat)return;
+  if(wallMat.map)wallMat.map.dispose();
+  wallMat.map=makeWallTexture();
+  wallMat.needsUpdate=true;
+}
 function build3d(){
   sanitizeLayout();
   const c3=document.getElementById('canvas3d');
@@ -3718,7 +3805,7 @@ function build3d(){
   const rw=Math.max(roomConfig.w||5,1)/2,rh=Math.max(roomConfig.h||4,1)/2;
   floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(rw,rh);
   const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:0.85,metalness:0.0});
-  let floorMesh;const corners3d=roomCorners();
+  let floorTemp;const corners3d=roomCorners();
   if(corners3d.length>=3){
     let area=0;for(let i=0;i<corners3d.length;i++){const a=corners3d[i],b=corners3d[(i+1)%corners3d.length];area+=a.x*b.y-b.x*a.y;}
     const loop=corners3d.slice();if(area>0)loop.reverse();
@@ -3729,18 +3816,19 @@ function build3d(){
       const geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
       geo.computeVertexNormals();
-      floorMesh=new THREE.Mesh(geo,floorMat);
+      floorTemp=new THREE.Mesh(geo,floorMat);
     }catch(err){console.error('[build3d] floor triangulation failed; using plane fallback:',err);}
   }
-  if(!floorMesh){
+  if(!floorTemp){
     const fw=(roomConfig.w||5)/2,fh=(roomConfig.h||4)/2;
-    floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(fw*2,fh*2),floorMat);
-    floorMesh.rotation.x=-Math.PI/2;
+    floorTemp=new THREE.Mesh(new THREE.PlaneGeometry(fw*2,fh*2),floorMat);
+    floorTemp.rotation.x=-Math.PI/2;
   }
+  floorMesh=floorTemp;
   floorMesh.receiveShadow=true;scene.add(floorMesh);
   const ceilH=roomConfig.wallH||2.7;const ceilMat=new THREE.MeshStandardMaterial({color:0xf8f4ee,roughness:0.95});
   const ceil=new THREE.Mesh(new THREE.PlaneGeometry(80,80),ceilMat);ceil.rotation.x=Math.PI/2;ceil.position.y=ceilH;scene.add(ceil);
-  const wallTex=makeWallTexture();const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:0.9,metalness:0.0});
+  const wallTex=makeWallTexture();wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:0.9,metalness:0.0});
   const wallMatch=(w,a,b)=>Math.abs(w.x1-a.x)<0.05&&Math.abs(w.y1-a.y)<0.05&&Math.abs(w.x2-b.x)<0.05&&Math.abs(w.y2-b.y)<0.05;
   let wallList;
   if(corners3d.length>=3){
@@ -3871,7 +3959,7 @@ function toggleWalkMode(){
   if(!walkMode){
     if(!c3)return;
     walkMode=true;walkYaw=-Math.PI/2;walkPitch=0;
-    walkPos={x:tgt.x,z:tgt.z};
+    walkPos={x:tgt.x,y:1.55,z:tgt.z};
     document.getElementById('hint-orbit').style.display='none';
     document.getElementById('hint-walk').style.display='';
     document.getElementById('btn-walk').classList.add('walk-active');
@@ -3891,28 +3979,49 @@ function exitWalkMode(){
   document.getElementById('canvas3d').blur();
 }
 function applyWalkCamera(){
-  const eye=walkEyeHeight||1.55;
-  camera.position.set(walkPos.x,eye,walkPos.z);
-  const cp=Math.cos(walkPitch);
-  camera.lookAt(walkPos.x+Math.sin(walkYaw)*cp,eye+Math.sin(walkPitch),walkPos.z+Math.cos(walkYaw)*cp);
+  camera.position.set(walkPos.x,walkPos.y,walkPos.z);
+  const cp=Math.cos(walkPitch),sp=Math.sin(walkPitch);
+  camera.lookAt(walkPos.x+Math.sin(walkYaw)*cp,walkPos.y+sp,walkPos.z+Math.cos(walkYaw)*cp);
 }
-function collideWall(px,pz){
-  const r=0.28;
+function resolveCollision(px,pz){
+  const rad=0.26;
   for(const w of walls){
     const dx=w.x2-w.x1,dz=w.y2-w.y1;
     const len2=dx*dx+dz*dz;
-    let t=len2?( (px-w.x1)*dx+(pz-w.y1)*dz )/len2:0;
+    let t=len2?((px-w.x1)*dx+(pz-w.y1)*dz)/len2:0;
     t=Math.max(0,Math.min(1,t));
     const cx=w.x1+t*dx,cz=w.y1+t*dz;
     const ddx=px-cx,ddz=pz-cz;
     const d=Math.sqrt(ddx*ddx+ddz*ddz);
-    const minD=( w.t||0.15 )/2+0.19;
-    if(d<minD){
-      const nx=ddx/(d||0.0001),nz=ddz/(d||0.0001);
-      return {x:cx+nx*minD,z:cz+nz*minD};
+    const minD=(w.t||0.15)/2+rad;
+    if(d<minD&&d>0.0001){px=cx+(ddx/d)*minD;pz=cz+(ddz/d)*minD;}
+  }
+  for(const f of furniture){
+    if(f.defId==='rug'||f.defId==='door'||f.defId==='window')continue;
+    if((f.h3d||1)<0.25)continue;
+    const tr=((f.rot||0)*Math.PI)/180;
+    const cs=Math.cos(tr),sn=Math.sin(tr);
+    const lx=(px-f.x)*cs+(pz-f.y)*sn;
+    const lz=-(px-f.x)*sn+(pz-f.y)*cs;
+    const hw=f.w/2,hd=f.h/2;
+    const cxw=Math.max(-hw,Math.min(hw,lx));
+    const czw=Math.max(-hd,Math.min(hd,lz));
+    let ox=lx-cxw,oz=lz-czw;
+    let d=Math.sqrt(ox*ox+oz*oz);
+    if(d<rad){
+      if(d<1e-4){
+        const ex=(hw+rad)-Math.abs(lx),ez=(hd+rad)-Math.abs(lz);
+        if(ex<ez){ox=(lx<0?-1:1)*ex;oz=0;}
+        else{ox=0;oz=(lz<0?-1:1)*ez;}
+        d=1;
+      }else{
+        const push=(rad-d)/d;ox*=push;oz*=push;
+      }
+      px+=ox*cs-oz*sn;
+      pz+=ox*sn+oz*cs;
     }
   }
-  return null;
+  return {x:px,z:pz};
 }
 document.addEventListener('pointerlockchange',()=>{
   if(!document.pointerLockElement&&walkMode)exitWalkMode();
@@ -3939,18 +4048,25 @@ window.addEventListener('keyup',e=>{
 function stepWalk(dt){
   if(!walkMode)return;
   const fwd=(walkKeys.w||walkKeys.up)?1:0,sbk=(walkKeys.s||walkKeys.down)?1:0,str=(walkKeys.d||walkKeys.right)?1:0,slf=(walkKeys.a||walkKeys.left)?1:0;
-  const speed=2.6;
-  let vx=0,vz=0;
-  if(fwd||sbk){const d=fwd-sbk;vx+=Math.sin(walkYaw)*d;vz+=Math.cos(walkYaw)*d;}
-  if(str||slf){const d=str-slf;vx+=Math.sin(walkYaw+Math.PI/2)*d;vz+=Math.cos(walkYaw+Math.PI/2)*d;}
-  if(vx||vz){
-    const m=Math.sqrt(vx*vx+vz*vz);vx/=m;vz/=m;
-    let nx=walkPos.x+vx*speed*dt,nz=walkPos.z+vz*speed*dt;
-    const hit=collideWall(nx,nz);
-    if(hit){nx=hit.x;nz=hit.z;}
-    walkPos.x=nx;walkPos.z=nz;
-    applyWalkCamera();
+  const fb=fwd-sbk,sd=str-slf;
+  if(!fb&&!sd){
+    if(walkKeys.space&&document.pointerLockElement){exitWalkMode();}
+    return;
   }
+  const speed=2.2;
+  const sy=Math.sin(walkYaw),cy=Math.cos(walkYaw);
+  const cp=Math.cos(walkPitch),sp=Math.sin(walkPitch);
+  let vx=0,vy=0,vz=0;
+  if(fb){vx+=sy*cp*fb;vy+=sp*fb;vz+=cy*cp*fb;}
+  if(sd){vx+=cy*sd;vz+=-sy*sd;}
+  const m=Math.sqrt(vx*vx+vy*vy+vz*vz);vx/=m;vy/=m;vz/=m;
+  let nx=walkPos.x+vx*speed*dt,ny=walkPos.y+vy*speed*dt,nz=walkPos.z+vz*speed*dt;
+  const res=resolveCollision(nx,nz);
+  const wallH=roomConfig.wallH||2.7;
+  walkPos.x=res.x;
+  walkPos.y=Math.max(0.6,Math.min(wallH-0.25,ny));
+  walkPos.z=res.z;
+  applyWalkCamera();
   if(walkKeys.space&&document.pointerLockElement){exitWalkMode();}
 }
 function setup3dMouse(){
@@ -4481,83 +4597,8 @@ function lpScrollTo(id){
   const top=el.getBoundingClientRect().top+document.getElementById('screen-landing').scrollTop-74;
   document.getElementById('screen-landing').scrollTo({top,behavior:'smooth'});
 }
-function planColors(){
-  const d=currentTheme()==='dark';
-  return d?{
-    bg:'#1d160f',
-    grid:'rgba(234,181,114,.16)',
-    border:'rgba(234,181,114,.85)',
-    borderFill:'rgba(234,181,114,.25)',
-    item:'rgba(210,167,127,.5)',
-    itemAlt:'rgba(210,167,127,.38)',
-    itemStroke:'rgba(234,181,114,.8)',
-    label:'rgba(243,233,218,.85)',
-    dim:'rgba(234,181,114,.7)',
-    faint:'rgba(234,181,114,.35)'
-  }:{
-    bg:'#faf4ea',
-    grid:'rgba(140,96,64,.14)',
-    border:'rgba(140,96,64,.85)',
-    borderFill:'rgba(140,96,64,.2)',
-    item:'rgba(196,164,130,.6)',
-    itemAlt:'rgba(196,164,130,.45)',
-    itemStroke:'rgba(140,96,64,.8)',
-    label:'rgba(56,42,32,.9)',
-    dim:'rgba(140,96,64,.75)',
-    faint:'rgba(140,96,64,.4)'
-  };
-}
-function drawPlanCv(cv){
-  const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
-  const w=cv.clientWidth||300,h=cv.clientHeight||200;
-  cv.width=w*dpr;cv.height=h*dpr;
-  const g=cv.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,w,h);
-  const c=planColors();
-  g.fillStyle=c.bg;g.fillRect(0,0,w,h);
-  g.strokeStyle=c.grid;g.lineWidth=1;
-  for(let x=0;x<=w;x+=Math.max(18,w/16)){
-    g.beginPath();g.moveTo(x+0.5,0);g.lineTo(x+0.5,h);g.stroke();
-  }
-  for(let y=0;y<=h;y+=Math.max(18,h/11)){
-    g.beginPath();g.moveTo(0,y+0.5);g.lineTo(w,y+0.5);g.stroke();
-  }
-  const pad=Math.min(w,h)*0.09;
-  const rw=w-pad*2,rht=h-pad*2;
-  g.strokeStyle=c.border;g.lineWidth=2;g.strokeRect(pad,pad,rw,rht);
-  g.fillStyle=c.borderFill;
-  g.fillRect(pad,pad,rw,6);g.fillRect(pad,pad,6,rht);g.fillRect(pad+rw-6,pad,6,rht);g.fillRect(pad,pad+rht-6,rw,6);
-  const items=[
-    {x:.18,y:.14,w:.32,h:.2,l:'Sofa',alt:false},
-    {x:.56,y:.16,w:.2,h:.14,l:'TV',alt:true},
-    {x:.24,y:.46,w:.2,h:.14,l:'Table',alt:false},
-    {x:.66,y:.42,w:.18,h:.24,l:'Bed',alt:true},
-    {x:.14,y:.72,w:.18,h:.12,l:'Plant',alt:true},
-    {x:.72,y:.72,w:.14,h:.14,l:'Chair',alt:false}
-  ];
-  items.forEach(it=>{
-    const x=pad+rw*it.x,y=pad+rht*it.y,w2=rw*it.w,h2=rht*it.h;
-    g.fillStyle=it.alt?c.itemAlt:c.item;g.fillRect(x,y,w2,h2);
-    g.strokeStyle=c.itemStroke;g.lineWidth=1;g.strokeRect(x,y,w2,h2);
-    g.fillStyle=c.label;g.font='10px DM Sans';g.textBaseline='middle';g.textAlign='left';
-    g.fillText(it.l,x+w2/2-g.measureText(it.l).width/2,y+h2/2);
-  });
-  g.fillStyle=c.dim;g.font='11px DM Sans';
-  g.textAlign='right';g.fillText('6.0 m',pad+rw,pad-8);
-  g.textAlign='left';g.fillText('5.0 m',pad,pad+rht+16);
-  g.fillStyle=c.faint;g.font='10px DM Sans';
-  g.fillText('ROOMAI \u00B7 2D PLAN',pad,h-pad);
-}
-function setupLandingVisuals(){
-  const plan=document.getElementById('hero-plan');
-  if(!plan)return;
-  const draw=()=>drawPlanCv(plan);
-  draw();
-  let t;
-  window.addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(draw,120);});
-}
 window.addEventListener('DOMContentLoaded',()=>{
   goTo('landing');
-  setupLandingVisuals();
 });
 </script>
 </body>
