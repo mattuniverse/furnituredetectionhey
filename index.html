@@ -1348,7 +1348,7 @@ canvas { display: block; }
       <div class="canvas-area" id="canvas-area">
         <canvas id="canvas2d" aria-label="2D floor plan canvas"></canvas>
         <canvas id="canvas3d" aria-label="3D room view canvas"></canvas>
-        <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><button class="view-btn" id="btn-walk" onclick="toggleWalkMode()" aria-label="Toggle first-person walkthrough mode" title="Walk around the room at eye level">Walkthrough</button><button class="view-btn" id="btn-ghost" onclick="toggleGhostMode()" aria-label="Toggle ghost view" title="Ghost mode \u2014 fly freely through walls and furniture" aria-pressed="false">Ghost: Off</button><span id="hint-orbit">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</span><span id="hint-walk" style="display:none">WASD to move &middot; Mouse to look &middot; <span id="ghost-status">Ghost Mode: Off</span> &middot; Esc to exit</span></div>
+        <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><span id="hint-walk">WASD to fly &middot; Mouse to look &middot; Click canvas to lock mouse</span></div>
         <div class="vio-tip" id="vio-tip" hidden aria-live="polite"></div>
         <div class="sugg-panel sugg-popover" id="sugg-dock" style="display:none">
           <div class="sugg-head"><div class="sugg-title">Suggested Design</div><button class="sugg-x" onclick="dismissSuggestedDock()" aria-label="Dismiss suggestion" title="Dismiss">&#xD7;</button></div>
@@ -1511,13 +1511,6 @@ function syncUndoBtns(){
 }
 function resetEditHistory(){
   undoStack.length=0;redoStack.length=0;syncUndoBtns();
-  if(ghostMode){
-    ghostMode=false;
-    const b=document.getElementById('btn-ghost');
-    if(b){b.textContent='Ghost Mode: Off';b.classList.remove('walk-active');b.setAttribute('aria-pressed','false');b.style.background=null;}
-    const gs=document.getElementById('ghost-status');
-    if(gs)gs.textContent='Ghost Mode: Off';
-  }
 }
 let propUndoHourglass=null,propUndoDue=true;
 function propEditStart(){
@@ -2354,7 +2347,7 @@ function resizeCanvas(){
   canvasW=area.clientWidth;canvasH=area.clientHeight;
   canvas2d.width=canvasW;canvas2d.height=canvasH;
   canvas2d.style.width=canvasW+'px';canvas2d.style.height=canvasH+'px';
-  if(renderer3d){renderer3d.setSize(canvasW,canvasH);const c3=document.getElementById('canvas3d');if(c3){c3.style.width=canvasW+'px';c3.style.height=canvasH+'px';}camera.aspect=canvasW/Math.max(canvasH,1);camera.updateProjectionMatrix();if(editorView==='3d'&&!walkMode)frameRoom3d();}
+  if(renderer3d){renderer3d.setSize(canvasW,canvasH);const c3=document.getElementById('canvas3d');if(c3){c3.style.width=canvasW+'px';c3.style.height=canvasH+'px';}camera.aspect=canvasW/Math.max(canvasH,1);camera.updateProjectionMatrix();}
   if(editorView==='2d')fitRoom2D();
   draw2d();
 }
@@ -2375,14 +2368,20 @@ function zoom2D(cx,cy,f){
   SCALE=n;
   if(editorView==='2d')draw2d();
 }
+function flyDolly(d){
+  if(!walkMode||editorView!=='3d')return;
+  const sy=Math.sin(walkYaw),cy=Math.cos(walkYaw);
+  const cp=Math.cos(walkPitch),sp=Math.sin(walkPitch);
+  walkPos.x+=sy*cp*d;
+  walkPos.y=Math.max(0.1,Math.min(40,walkPos.y+sp*d));
+  walkPos.z+=cy*cp*d;
+  applyWalkCamera();
+}
 function toolbarZoom(dir){
-  const f=dir>0?1.15:1/1.15;
   if(editorView==='3d'){
-    if(walkMode)return;
-    sph.radius=Math.max(1.2,Math.min(80,sph.radius*f));
-    updateCam3d();
+    flyDolly(dir>0?1.2:-1.2);
   }else{
-    zoom2D(canvasW/2,canvasH/2,f);
+    zoom2D(canvasW/2,canvasH/2,dir>0?1.15:1/1.15);
   }
 }
 const screenToWorld=(sx,sy)=>({x:(sx-panOffset.x)/SCALE,y:(sy-panOffset.y)/SCALE});
@@ -3838,6 +3837,7 @@ function switchEditorView(v){
   if(v==='3d'){
     resizeCanvas();
     build3d();
+    enterFreeFly();
   }
   else {if(walkMode)exitWalkMode();if(animId){cancelAnimationFrame(animId);animId=null;}resizeCanvas();}
 }
@@ -3856,11 +3856,7 @@ document.addEventListener('keydown',e=>{
 // ══════════════════════════════════════════
 let scene,camera,renderer3d,animId;
 let floorMesh=null,wallMat=null;
-let sph={theta:0.7,phi:1.0,radius:10};
-let tgt={x:0,y:0,z:0};
-let md3=false,rDrag=false,pm={x:0,y:0};
 let walkMode=false,walkYaw=0,walkPitch=0,walkPos={x:0,y:1.55,z:0};
-let ghostMode=false;
 let clock=null;
 
 function floorDefaultColorFor(style){return ({wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'})[style]||'#c8a878';}
@@ -4451,101 +4447,48 @@ function build3d(){
   });
   const allX=walls.flatMap(w=>[w.x1,w.x2]).concat(furniture.flatMap(f=>[f.x,f.x+f.w]));
   const allZ=walls.flatMap(w=>[w.y1,w.y2]).concat(furniture.flatMap(f=>[f.y,f.y+f.h]));
-  if(allX.length){tgt.x=(Math.min(...allX)+Math.max(...allX))/2;tgt.z=(Math.min(...allZ)+Math.max(...allZ))/2;
-    const pt=new THREE.PointLight(0xffe8c0,1.2,20,1.5);pt.position.set(tgt.x,ceilH-0.1,tgt.z);scene.add(pt);}
-  updateCam3d();
+  if(allX.length){
+    const cx=(Math.min(...allX)+Math.max(...allX))/2,cz=(Math.min(...allZ)+Math.max(...allZ))/2;
+    const pt=new THREE.PointLight(0xffe8c0,1.2,20,1.5);pt.position.set(cx,ceilH-0.1,cz);scene.add(pt);}
   if(animId)cancelAnimationFrame(animId);
   (function loop(){animId=requestAnimationFrame(loop);const dt=clock.getDelta();stepWalk(dt);if(camera&&renderer3d){const nextAspect=canvasW/Math.max(canvasH,1);if(Math.abs(camera.aspect-nextAspect)>0.0001){camera.aspect=nextAspect;camera.updateProjectionMatrix();}renderer3d.render(scene,camera);}})();
-  frameRoom3d();
+  if(walkMode)applyWalkCamera();
 }
-function updateCam3d(){
-  if(!camera)return;
-  camera.position.set(tgt.x+sph.radius*Math.sin(sph.phi)*Math.cos(sph.theta),sph.radius*Math.cos(sph.phi),tgt.z+sph.radius*Math.sin(sph.phi)*Math.sin(sph.theta));
-  camera.lookAt(tgt.x,tgt.y,tgt.z);camera.aspect=canvasW/canvasH;camera.updateProjectionMatrix();
-}
-function view3dTop(){
-  if(editorView!=='3d')return;
-  sph.theta=-Math.PI/2;       // orbit right-vector=+X so 2D east points screen-right
-  sph.phi=1.35;               // steep tilt, north (z small) reads as screen-top
-  updateCam3d();
-}
-function frameRoom3d(){
-  const xs=[],zs=[];
-  const push=P=>{xs.push(P.x);zs.push(P.y);};
-  walls.forEach(w=>{push({x:w.x1,y:w.y1});push({x:w.x2,y:w.y2});});
-  furniture.forEach(f=>{push({x:f.x-f.w/2,y:f.y-f.h/2});push({x:f.x+f.w/2,y:f.y+f.h/2});});
-  if(!xs.length){xs.push(0,roomConfig.w||5);zs.push(0,roomConfig.h||4);}
-  let xMin=Math.min(...xs),xMax=Math.max(...xs),zMin=Math.min(...zs),zMax=Math.max(...zs);
-  const wallH=roomConfig.wallH||2.7;
-  const pad=Math.max(0.8,Math.max(xMax-xMin,zMax-zMin)*0.12,wallH*0.25);
-  xMin-=pad;xMax+=pad;zMin-=pad;zMax+=pad;
-  const bw=xMax-xMin,bz=zMax-zMin;
-  const halfDiag=Math.sqrt(bw*bw+bz*bz)/2;
-  tgt.x=(xMin+xMax)/2;
-  tgt.z=(zMin+zMax)/2;
-  tgt.y=wallH*0.35;
-  const vHalf=Math.PI*(camera?camera.fov:48)/360;
-  if(camera)camera.aspect=canvasW/Math.max(canvasH,1);
-  const aspect=canvasW/Math.max(canvasH,1);
-  const hHalf=Math.atan(Math.tan(vHalf)*aspect);
-  const distFit=halfDiag/Math.max(Math.tan(vHalf)*0.96,0.001);
-  const vertFit=Math.max(tgt.y,wallH-tgt.y)/Math.max(Math.tan(vHalf)*0.96,0.001);
-  const horizFit=halfDiag/Math.max(Math.tan(hHalf)*0.96,0.001);
-  sph.radius=Math.max(1.6,Math.min(60,Math.max(distFit,vertFit,horizFit)));
-  sph.theta=0.7;sph.phi=1.0;
-  updateCam3d();
-}
-function toggleGhostMode(){
-  if(editorView!=='3d')return;
-  ghostMode=!ghostMode;
-  const b=document.getElementById('btn-ghost');
-  if(b){
-    b.textContent=ghostMode?'Ghost Mode: On':'Ghost Mode: Off';
-    b.classList.toggle('walk-active',ghostMode);
-    b.setAttribute('aria-pressed',ghostMode?'true':'false');
-    b.style.background=ghostMode?'#2e7d32':null;
-  }
-  const gs=document.getElementById('ghost-status');
-  if(gs)gs.textContent='Ghost Mode: '+(ghostMode?'On':'Off');
-setStatus(ghostMode?'Ghost Mode ON \u2014 fly through walls and furniture (W/S follow look direction).':'Ghost Mode OFF \u2014 normal walking collision restored. D strafes right, A strafes left.');
-}
-function toggleWalkMode(){
+function enterFreeFly(){
   const c3=document.getElementById('canvas3d');
-  if(editorView!=='3d')return;
-  if(!walkMode){
-    if(!c3)return;
-    walkMode=true;walkPitch=0;
-    if(ghostMode){
-      ghostMode=false;
-      const gb=document.getElementById('btn-ghost');
-      if(gb){gb.textContent='Ghost Mode: Off';gb.classList.remove('walk-active');gb.setAttribute('aria-pressed','false');gb.style.background=null;}
-      const gs=document.getElementById('ghost-status');
-      if(gs)gs.textContent='Ghost Mode: Off';
-    }
-    const sp=computeWalkSpawn();
-    walkPos={x:sp.x,y:sp.y,z:sp.z};
-    walkYaw=sp.yaw;
-    document.getElementById('hint-orbit').style.display='none';
-    document.getElementById('hint-walk').style.display='';
-    document.getElementById('btn-walk').classList.add('walk-active');
-    applyWalkCamera();
-    c3.requestPointerLock();
-  }else{
-    exitWalkMode();
-  }
+  if(!c3||editorView!=='3d')return;
+  walkMode=true;walkPitch=0;
+  const sp=computeWalkSpawn();
+  walkPos={x:sp.x,y:sp.y,z:sp.z};
+  walkYaw=sp.yaw;
+  applyWalkCamera();
+  try{c3.requestPointerLock();}catch(err){console.warn('[freefly] pointer lock unavailable:',err.message);}
 }
 function exitWalkMode(){
   if(document.pointerLockElement)document.exitPointerLock();
+  for(const k in walkKeys)walkKeys[k]=false;
   walkMode=false;
-  document.getElementById('hint-orbit').style.display='';
-  document.getElementById('hint-walk').style.display='none';
-  document.getElementById('btn-walk').classList.remove('walk-active');
-  updateCam3d();
-  document.getElementById('canvas3d').blur();
+  const c3=document.getElementById('canvas3d');
+  if(c3)c3.blur();
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+}
+function flyLookSet(yaw,pitch){
+  walkYaw=yaw;walkPitch=pitch;
+  applyWalkCamera();
+}
+function view3dTop(){
+  if(editorView!=='3d'||!walkMode)return;
+  const pts=roomCorners();
+  let cx=(roomConfig.w||5)/2,cz=(roomConfig.h||4)/2;
+  if(pts.length){cx=pts.reduce((s,p)=>s+p.x,0)/pts.length;cz=pts.reduce((s,p)=>s+p.y,0)/pts.length;}
+  const span=Math.max(roomConfig.w||5,roomConfig.h||4,6);
+  const wallH=roomConfig.wallH||2.7;
+  walkPos.x=cx;walkPos.y=Math.max(span*1.25+1,wallH*1.6+1);
+  walkPos.z=cz;
+  walkYaw=0;walkPitch=-Math.PI/2;
+  applyWalkCamera();
 }
 function applyWalkCamera(){
-  const wallH=roomConfig.wallH||2.7;
-  walkPos.y=Math.max(0.6,Math.min(wallH-0.25,walkPos.y));
   camera.position.set(walkPos.x,walkPos.y,walkPos.z);
   const cp=Math.cos(walkPitch),sp=Math.sin(walkPitch);
   camera.lookAt(walkPos.x+Math.sin(walkYaw)*cp,walkPos.y+sp,walkPos.z+Math.cos(walkYaw)*cp);
@@ -4645,12 +4588,14 @@ function resolveCollision(nx,nz){
   return {x,z};
 }
 document.addEventListener('pointerlockchange',()=>{
-  if(!document.pointerLockElement&&walkMode)exitWalkMode();
+  if(editorView==='3d'&&!document.pointerLockElement){
+    for(const k in walkKeys)walkKeys[k]=false;
+  }
 });
 document.addEventListener('mousemove',e=>{
   if(walkMode&&document.pointerLockElement&&editorView==='3d'){
     walkYaw-=e.movementX*0.0025;
-    walkPitch=Math.max(-1.45,Math.min(1.45,walkPitch-e.movementY*0.0025));
+    walkPitch=Math.max(-1.50,Math.min(1.50,walkPitch-e.movementY*0.0025));
     applyWalkCamera();
   }
 });
@@ -4659,56 +4604,37 @@ window.addEventListener('keydown',e=>{
   if(!walkMode||document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT'||document.activeElement.tagName==='TEXTAREA'))return;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){walkKeys[e.key.replace('Arrow','')]=true;e.preventDefault();}
   if(['w','a','s','d','W','A','S','D'].includes(e.key)){walkKeys[e.key.toLowerCase()]=true;}
-  if(e.code==='Space'){walkKeys.space=true;}
 });
 window.addEventListener('keyup',e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){walkKeys[e.key.replace('Arrow','')]=false;}
   if(['w','a','s','d','W','A','S','D'].includes(e.key)){walkKeys[e.key.toLowerCase()]=false;}
-  if(e.code==='Space'){walkKeys.space=false;}
 });
 function stepWalk(dt){
   if(!walkMode)return;
   const fwd=(walkKeys.w||walkKeys.up)?1:0,sbk=(walkKeys.s||walkKeys.down)?1:0,str=(walkKeys.d||walkKeys.right)?1:0,slf=(walkKeys.a||walkKeys.left)?1:0;
   const fb=fwd-sbk,sd=str-slf;
-  if(!fb&&!sd){
-    if(walkKeys.space&&document.pointerLockElement){exitWalkMode();}
-    return;
-  }
+  if(!fb&&!sd)return;
   const speed=2.2;
   const sy=Math.sin(walkYaw),cy=Math.cos(walkYaw);
-  const cp=Math.cos(ghostMode?walkPitch:0),sp=Math.sin(ghostMode?walkPitch:0);
+  const cp=Math.cos(walkPitch),sp=Math.sin(walkPitch);
   let vx=0,vy=0,vz=0;
   if(fb){vx+=sy*cp*fb;vy+=sp*fb;vz+=cy*cp*fb;}
   if(sd){vx+=-cy*sd;vz+=sy*sd;}
   const m=Math.sqrt(vx*vx+vy*vy+vz*vz);vx/=m;vy/=m;vz/=m;
-  let nx=walkPos.x+vx*speed*dt,ny=walkPos.y+vy*speed*dt,nz=walkPos.z+vz*speed*dt;
-  const wallH=roomConfig.wallH||2.7;
-  if(ghostMode){
-    walkPos.x=nx;
-    walkPos.y=Math.max(0.1,Math.min(40,ny));
-    walkPos.z=nz;
-  }else{
-    const res=resolveCollision(nx,nz);
-    walkPos.x=res.x;
-    walkPos.y=Math.max(0.6,Math.min(wallH-0.25,ny));
-    walkPos.z=res.z;
-  }
+  walkPos.x+=vx*speed*dt;
+  walkPos.y=Math.max(0.1,Math.min(40,walkPos.y+vy*speed*dt));
+  walkPos.z+=vz*speed*dt;
   applyWalkCamera();
-  if(walkKeys.space&&document.pointerLockElement){exitWalkMode();}
 }
 function setup3dMouse(){
   const c3=document.getElementById('canvas3d');
-  c3.addEventListener('mousedown',e=>{md3=true;rDrag=e.button===2;pm={x:e.clientX,y:e.clientY};});
-  c3.addEventListener('contextmenu',e=>e.preventDefault());
-  window.addEventListener('mouseup',()=>md3=false);
-  window.addEventListener('mousemove',e=>{
-    if(walkMode||!md3||editorView!=='3d')return;
-    const dx=e.clientX-pm.x,dy=e.clientY-pm.y;pm={x:e.clientX,y:e.clientY};
-    if(rDrag){const ps=0.008*sph.radius;tgt.x-=dx*ps*Math.cos(sph.theta);tgt.z-=dx*ps*Math.sin(sph.theta);tgt.y+=dy*ps;}
-    else{sph.theta+=dx*0.007;sph.phi=Math.max(0.08,Math.min(Math.PI/2-0.02,sph.phi-dy*0.007));}
-    updateCam3d();
+  c3.addEventListener('click',()=>{
+    if(editorView==='3d'&&walkMode&&!document.pointerLockElement){
+      try{c3.requestPointerLock();}catch(err){console.warn('[freefly] pointer lock unavailable:',err.message);}
+    }
   });
-  c3.addEventListener('wheel',e=>{if(walkMode)return;sph.radius=Math.max(1.5,Math.min(40,sph.radius+e.deltaY*0.02));updateCam3d();e.preventDefault();},{passive:false});
+  c3.addEventListener('contextmenu',e=>e.preventDefault());
+  c3.addEventListener('wheel',e=>{if(editorView!=='3d')return;flyDolly(-e.deltaY*0.012);e.preventDefault();},{passive:false});
 }
 
 window.addEventListener('resize',resizeCanvas);
