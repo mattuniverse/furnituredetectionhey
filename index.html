@@ -730,6 +730,189 @@ canvas { display: block; }
 .fp-ed-banner b { color: var(--color-primary); }
 .project-type-tag { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 10px; background: var(--color-accent-light); color: var(--color-accent); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; vertical-align: middle; }
 
+/* ══════════════════════════════════════════
+   RESPONSIVE OVERHAUL — fluid layouts, drawers,
+   bottom sheets, and touch-friendly controls.
+   ══════════════════════════════════════════ */
+#canvas2d { touch-action: none; }
+#canvas3d { touch-action: none; }
+
+/* Editor drawers/panels: positioning context */
+.editor-main { position: relative; }
+.fp-main { position: relative; }
+
+/* Panel headers for collapsed sheets (mobile) */
+.side-head, .rp-head { display: none; }
+
+/* Virtual joystick (3D walk on touch) */
+.joy-base { position: absolute; left: 0; top: 0; width: 104px; height: 104px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent); background: color-mix(in srgb, var(--color-surface) 42%, transparent); box-shadow: inset 0 0 22px color-mix(in srgb, var(--color-accent) 16%, transparent); pointer-events: none; z-index: 22; display: none; transform: translate(-50%, -50%); }
+.joy-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--color-accent-light) 88%, #fff 10%), var(--color-accent)); box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent) 55%, transparent); transform: translate(-50%, -50%); }
+
+/* Floating toggle buttons (hidden on desktop) */
+.canvas-side-toggle { display: none; }
+
+@media (max-width: 1024px) {
+  .editor-topbar { gap: 5px; }
+}
+
+@media (max-width: 900px) {
+  .right-panel { width: 200px; padding: 12px 12px 16px; }
+}
+
+@media (max-width: 700px) {
+  /* 2D left sidebar becomes a toggleable off-canvas drawer */
+  .left-sidebar {
+    position: absolute; top: 0; bottom: 0; left: 0; z-index: 40;
+    width: 208px; transform: translateX(-106%);
+    transition: transform var(--transition-base) var(--ease-soft);
+    box-shadow: var(--shadow-xl);
+    overflow-y: auto; background: var(--color-surface);
+    border-right: 1px solid var(--color-border-light);
+  }
+  .left-sidebar.open { transform: translateX(0); }
+  .left-sidebar .sidebar-section { padding: 10px 12px 8px; }
+  .left-sidebar .sidebar-label, .furn-cat, .tool-btn span:not(.ticon), .furn-chip span:not(.fchip-icon) { display: block; }
+  .left-sidebar .sidebar-section:first-of-type .sidebar-label { display: none; }
+  .tool-btn, .furn-chip { justify-content: flex-start; padding: 11px 10px; gap: 8px; min-height: 44px; font-size: 13px; }
+  .side-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 14px; border-bottom: 1px solid var(--color-border-light);
+    position: sticky; top: 0; background: var(--color-surface); z-index: 2;
+  }
+  .side-head .rp-close { position: static; }
+
+  /* Right properties panel becomes a bottom sheet */
+  .right-panel {
+    position: absolute; top: auto; right: 0; bottom: 0; left: 0; z-index: 40;
+    width: 100%; max-width: 100%; padding: 14px 16px 18px;
+    display: block;
+    transform: translateY(106%);
+    transition: transform var(--transition-base) var(--ease-soft);
+    box-shadow: 0 -10px 28px color-mix(in srgb, rgba(20,15,10,.28) 82%, transparent);
+    border-radius: 18px 18px 0 0; border: 1px solid var(--color-border-light); border-bottom: none;
+    background: var(--color-surface); overflow-y: auto;
+    max-height: 62vh;
+  }
+  .right-panel.open { transform: translateY(0); }
+  .right-panel .panel-title { margin-bottom: 8px; }
+  .rp-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding-bottom: 8px; margin-bottom: 6px; border-bottom: 1px solid var(--color-border-light);
+  }
+  .rp-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1.5px solid var(--color-border); background: var(--color-surface);
+    color: var(--color-text-secondary); font-size: 15px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .rp-close:hover { background: var(--color-surface-hover); border-color: var(--color-text-muted); color: var(--color-text); }
+
+  /* Floating drawer/panel toggles over the canvas */
+  .canvas-side-toggle {
+    display: inline-flex; position: absolute; z-index: 28;
+    width: 44px; height: 44px; font-size: 17px;
+    background: var(--color-surface); border: 1px solid var(--color-border-light);
+    border-radius: 12px; box-shadow: 0 4px 16px color-mix(in srgb, rgba(20,15,10,.22) 88%, transparent);
+    cursor: pointer; align-items: center; justify-content: center;
+    color: var(--color-text-secondary);
+  }
+  .canvas-side-toggle:hover { color: var(--color-text); border-color: var(--color-text-muted); }
+  .canvas-side-toggle.side { top: 96px; left: 10px; }
+  .canvas-side-toggle.rp { top: auto; bottom: 14px; right: 14px; }
+  .canvas-side-toggle.fpside { top: 14px; left: 14px; }
+
+  /* Suggested-design popover becomes a bottom sheet */
+  .sugg-panel.sugg-popover {
+    top: auto; right: 0; bottom: 0; left: 0;
+    width: 100%; max-width: 100%;
+    max-height: 74vh; border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 28px color-mix(in srgb, rgba(20,15,10,.28) 82%, transparent);
+    border: 1px solid var(--color-border-light); border-bottom: none;
+  }
+  .sugg-panel.sugg-popover .sugg-head { position: sticky; top: 0; background: var(--color-surface-hover); padding: 10px 12px; z-index: 2; }
+  .sugg-row button { min-height: 44px; }
+
+  /* Canvas overlay + controls get touch-sized and reflowed */
+  .canvas-controls { top: 10px; right: 10px; gap: 5px; padding: 5px; border-radius: 14px; }
+  .canvas-controls .btn-icon { width: 44px; height: 44px; font-size: 19px; }
+  .canvas-overlay { top: 10px; left: 10px; gap: 6px; flex-direction: column; align-items: flex-start; }
+  .overlay-badge { font-size: 11px; padding: 5px 10px; }
+
+  /* Editor toolbar scrolls horizontally instead of overflowing the page */
+  .editor-topbar { overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap; scrollbar-width: none; padding: 0 8px; }
+  .editor-topbar::-webkit-scrollbar { display: none; }
+  .editor-topbar > * { flex-shrink: 0; }
+  .editor-topbar .brand { display: none; }
+  .topbar-right { display: flex; align-items: center; gap: 6px; }
+  .editor-topbar .export-menu, .editor-topbar #export-menu-fp { position: fixed; top: 52px; right: 6px; width: min(224px, 84vw); }
+  .topbar-right { position: static !important; }
+  .export-menu button { min-height: 44px; }
+
+  /* Floor-plan sidebar becomes a drawer too */
+  .fp-sidebar {
+    position: absolute; top: 0; bottom: 0; left: 0; z-index: 40;
+    width: 240px; transform: translateX(-106%);
+    transition: transform var(--transition-base) var(--ease-soft);
+    box-shadow: var(--shadow-xl);
+  }
+  .fp-sidebar.open { transform: translateX(0); }
+  .fp-sidebar .sidebar-section:first-of-type .sidebar-label { display: none; }
+  .fp-sidebar .tool-btn { min-height: 44px; }
+
+  /* Modal + dash polish */
+  .modal { padding: 22px 18px 18px; }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-ok, .modal-cancel, .btn-proceed, .btn-outline, .cam-btn { min-height: 44px; }
+  .admin-table-wrap { overflow-x: auto; }
+  .admin-table { min-width: 480px; }
+
+  /* Touch targets */
+  .tab-btn { min-height: 40px; }
+  .theme-toggle { width: 40px; height: 40px; }
+  #screen-editor .theme-toggle, #screen-fp-canvas .theme-toggle { padding: 0; }
+  .sugg-nav { min-width: 40px; min-height: 44px; }
+  .room-type-btn, .shape-btn, .floor-style-btn { min-height: 44px; }
+
+  .statusbar { padding: 6px 10px; font-size: 12px; }
+  .hint3d { white-space: normal; max-width: 92vw; font-size: 11px; line-height: 1.6; padding: 8px 14px; }
+  .hint3d .view-btn { min-height: 40px; padding: 7px 14px; font-size: 13px; }
+}
+
+@media (max-width: 480px) {
+  /* Login */
+  #screen-login { overflow-y: auto; }
+  .login-topbar { padding: 12px 14px; }
+  .login-card { padding: 38px 22px 30px; }
+  .login-center { padding: 68px 12px 28px; }
+
+  /* Room setup reflows to single-column friendly grids */
+  .setup-card { padding: 26px 16px 20px; }
+  .setup-card h2.setup-title { font-size: 21px; }
+  .room-type-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .meas-row { grid-template-columns: 1fr; gap: 10px; }
+  .shape-row { gap: 8px; }
+  .floor-style-grid { grid-template-columns: repeat(2, 1fr); }
+  .stepper-val { font-size: 32px; min-width: 52px; }
+
+  /* Dashboard */
+  .dash-header { flex-wrap: wrap; }
+  .dash-title { font-size: 22px; }
+  .dash-header-right { flex-wrap: wrap; }
+
+  .pw-wrap input { padding-right: 46px; }
+  .pw-toggle { width: 40px; height: 40px; }
+}
+
+@media (max-width: 380px) {
+  .room-type-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-height: 620px) and (max-width: 700px) {
+  .login-card { max-height: calc(100vh - 56px); overflow-y: auto; }
+  .login-center { justify-content: flex-start; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -833,14 +1016,40 @@ canvas { display: block; }
 .lp-footer-links a:hover{color:var(--lg-gold);}
 .lp-footer-note{color:var(--lg-footer-note);font-size:12.5px;width:100%;text-align:center;margin-top:8px;}
 
+/* Landing: hamburger nav (tablet/mobile) */
+.lp-burger{display:none;width:44px;height:44px;border:1.5px solid var(--lg-border);border-radius:12px;background:var(--lg-panel);color:var(--lg-text);font-size:20px;line-height:1;align-items:center;justify-content:center;cursor:pointer;transition:all var(--transition-fast) var(--ease-soft);flex-shrink:0;}
+.lp-burger:hover{border-color:var(--lg-gold);color:var(--lg-gold);background:var(--lg-glow-soft);}
+.lp-mobile-menu{display:none;position:fixed;top:70px;left:0;right:0;z-index:19;flex-direction:column;gap:2px;padding:10px clamp(16px,4vw,32px) 16px;background:var(--lg-panel);border-bottom:1px solid var(--lg-glow-border);box-shadow:var(--lg-shadow-sm);max-height:calc(100vh - 70px);overflow-y:auto;}
+.lp-mobile-menu.open{display:flex;animation:drop-in var(--transition-base) var(--ease-soft) both;}
+.lp-mmenu-item{display:flex;align-items:center;gap:10px;background:none;border:none;border-bottom:1px solid var(--lg-border);font-family:var(--font-body);font-size:16px;font-weight:600;color:var(--lg-text);text-align:left;padding:14px 4px;cursor:pointer;text-decoration:none;transition:color var(--transition-fast);}
+.lp-mmenu-item:last-of-type{border-bottom:none;}
+.lp-mmenu-item:hover{color:var(--lg-gold);}
+.lp-mmenu-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 4px 2px;}
+
+@media(max-width:1024px){
+  .lp-nav{flex-wrap:nowrap;}
+  .lp-burger{display:inline-flex;}
+}
 @media(max-width:860px){
-  .lp-hero{grid-template-columns:1fr;min-height:0;}
-  .lp-hero-visual{order:-1;margin:0 auto;}
+  .lp-hero{grid-template-columns:1fr;min-height:0;padding-top:clamp(28px,5vh,44px);gap:34px;}
+  .lp-hero-visual{width:min(540px,100%);}
   .lp-steps{grid-template-columns:1fr;}
+}
+@media(max-width:768px){
+  .lp-nav{padding:12px clamp(14px,4vw,24px);}
+  .lp-hero h1{font-size:clamp(32px,9vw,44px);}
+  .lp-btn-gold{min-height:52px;padding:15px 26px;font-size:16px;width:100%;}
+  .lp-btn-ghost{min-height:52px;padding:15px 26px;font-size:16px;width:100%;}
+  .lp-hero-cta{flex-direction:column;align-items:stretch;}
+  .lp-sec{padding-top:clamp(44px,7vh,72px);padding-bottom:clamp(44px,7vh,72px);}
+  .lp-feat-grid{grid-template-columns:1fr 1fr;}
+  .lp-cta-inner{padding:clamp(34px,8vw,56px) clamp(20px,6vw,40px);}
 }
 @media(max-width:600px){
   .lp-nav-links{display:none;}
   .lp-hero-mini span:nth-child(n+3){display:none;}
+  .lp-feat-grid{grid-template-columns:1fr;}
+  .lp-footer{flex-direction:column;align-items:flex-start;padding:24px clamp(16px,4vw,28px);}
 }
   </style>
 </head>
@@ -853,6 +1062,7 @@ canvas { display: block; }
     <div class="lp-nav-links">
       <a class="lp-nav-link" href="#lp-how" onclick="lpScrollTo('lp-how');return false;">How it works</a>
       <a class="lp-nav-link" href="#lp-features" onclick="lpScrollTo('lp-features');return false;">Features</a>
+      <a class="lp-nav-link" href="#" onclick="goTo('login');return false;">Live demo</a>
     </div>
     <div class="lp-nav-right">
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
@@ -860,8 +1070,22 @@ canvas { display: block; }
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
       </button>
       <button class="lp-signin" onclick="goTo('login')">Sign in</button>
+      <button class="lp-burger" id="lp-burger" onclick="toggleLpMenu()" aria-label="Open navigation menu" aria-expanded="false" aria-controls="lp-mobile-menu" title="Menu">&#9776;</button>
     </div>
   </div>
+
+  <nav class="lp-mobile-menu" id="lp-mobile-menu" aria-label="Mobile navigation">
+    <a class="lp-mmenu-item" href="#lp-how" onclick="lpNav();lpScrollTo('lp-how');return false;">How it works</a>
+    <a class="lp-mmenu-item" href="#lp-features" onclick="lpNav();lpScrollTo('lp-features');return false;">Features</a>
+    <button class="lp-mmenu-item" onclick="lpNav();goTo('login');">Live demo</button>
+    <div class="lp-mmenu-row">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+      </button>
+      <button class="lp-signin" onclick="lpNav();goTo('login')">Sign in</button>
+    </div>
+  </nav>
 
   <section class="lp-hero">
     <div>
@@ -1202,7 +1426,11 @@ canvas { display: block; }
       </div>
     </div>
     <div class="fp-main">
-      <div class="fp-sidebar">
+      <div class="fp-sidebar" id="fp-sidebar">
+        <div class="side-head">
+          <div class="sidebar-label">Rooms &amp; Tools</div>
+          <button class="rp-close" onclick="toggleFpSidebar(false)" aria-label="Close rooms and tools panel" title="Close">&#xD7;</button>
+        </div>
         <div class="sidebar-section">
           <div class="sidebar-label">Tools</div>
           <button class="tool-btn active" id="fp-tool-room" onclick="setFpTool('room')" aria-label="Draw room tool"><span class="ticon">&#x25AD;</span><span>Draw Room</span></button>
@@ -1214,6 +1442,7 @@ canvas { display: block; }
       </div>
       <div class="fp-canvas-area" id="fp-canvas-area">
         <canvas id="canvas-fp" aria-label="Floor plan layout canvas"></canvas>
+        <button class="btn-icon canvas-side-toggle fpside" id="btn-fp-side-toggle" onclick="toggleFpSidebar()" aria-label="Open rooms and tools panel" title="Rooms &amp; Tools" aria-expanded="false" aria-controls="fp-sidebar">&#9776;</button>
         <div class="fp-overlay">
           <div class="fp-hint" id="fp-hint">Draw Room: click and drag on the canvas to sketch each room.</div>
           <div class="fp-hint" id="fp-done">All <span id="fp-done-count">0</span> rooms drawn &#x2014; switch to Edit Room to open and customize each one, then save.</div>
@@ -1340,6 +1569,10 @@ canvas { display: block; }
     </div>
     <div class="editor-main">
       <div class="left-sidebar" id="sidebar-2d">
+        <div class="side-head">
+          <div class="sidebar-label">Tools &amp; Furniture</div>
+          <button class="rp-close" onclick="toggleSidebar2D(false)" aria-label="Close tools and furniture panel" title="Close">&#xD7;</button>
+        </div>
         <div class="sidebar-section">
           <div class="sidebar-label">Tools</div>
           <button class="tool-btn active" id="tool-select" onclick="setTool('select')" aria-label="Select and move tool"><span class="ticon">&#x2196;</span><span>Select &amp; Move</span></button>
@@ -1350,6 +1583,9 @@ canvas { display: block; }
       <div class="canvas-area" id="canvas-area">
         <canvas id="canvas2d" aria-label="2D floor plan canvas"></canvas>
         <canvas id="canvas3d" aria-label="3D room view canvas"></canvas>
+        <button class="btn-icon canvas-side-toggle side" id="btn-sidebar-toggle" onclick="toggleSidebar2D()" aria-label="Open tools and furniture panel" title="Tools &amp; Furniture" aria-expanded="false" aria-controls="sidebar-2d">&#9776;</button>
+        <button class="btn-icon canvas-side-toggle rp" id="btn-prop-toggle" onclick="togglePropPanel()" aria-label="Open properties panel" title="Properties" aria-expanded="false" aria-controls="right-panel">&#9881;</button>
+        <div class="joy-base" id="joy-base" aria-hidden="true"><div class="joy-knob" id="joy-knob"></div></div>
         <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><span id="hint-walk">WASD to fly &middot; Mouse to look &middot; Click canvas to lock mouse</span></div>
         <div class="vio-tip" id="vio-tip" hidden aria-live="polite"></div>
         <div class="sugg-panel sugg-popover" id="sugg-dock" style="display:none">
@@ -1393,7 +1629,10 @@ canvas { display: block; }
         </div>
       </div>
       <div class="right-panel" id="right-panel">
-        <div class="panel-title">Properties</div>
+        <div class="rp-head">
+          <div class="panel-title" id="panel-title">Properties</div>
+          <button class="rp-close" onclick="togglePropPanel(false)" aria-label="Close properties panel" title="Close">&#xD7;</button>
+        </div>
         <div id="prop-content"><p class="empty-prop">Select a wall or furniture piece to edit its properties here.</p></div>
       </div>
     </div>
@@ -2218,6 +2457,27 @@ function dismissSuggestedDock(){
   const d=document.getElementById('sugg-dock');if(d)d.style.display='none';
   const btn=document.getElementById('btn-design');
   if(btn){btn.classList.remove('active');btn.classList.remove('design-ready');btn.setAttribute('aria-expanded','false');}
+}
+function toggleSidebar2D(force){
+  const sb=document.getElementById('sidebar-2d');if(!sb)return;
+  const now=typeof force==='boolean'?force:!sb.classList.contains('open');
+  sb.classList.toggle('open',now);
+  const b=document.getElementById('btn-sidebar-toggle');
+  if(b)b.setAttribute('aria-expanded',String(now));
+}
+function togglePropPanel(force){
+  const rp=document.getElementById('right-panel');if(!rp)return;
+  const now=typeof force==='boolean'?force:!rp.classList.contains('open');
+  rp.classList.toggle('open',now);
+  const b=document.getElementById('btn-prop-toggle');
+  if(b)b.setAttribute('aria-expanded',String(now));
+}
+function toggleFpSidebar(force){
+  const sb=document.getElementById('fp-sidebar');if(!sb)return;
+  const now=typeof force==='boolean'?force:!sb.classList.contains('open');
+  sb.classList.toggle('open',now);
+  const b=document.getElementById('btn-fp-side-toggle');
+  if(b)b.setAttribute('aria-expanded',String(now));
 }
 function applySuggestedDesign(useSug){
   if(!useSug){customizeManually();return;}
@@ -3187,6 +3447,58 @@ canvas2d.addEventListener('wheel',e=>{
   panOffset.x-=e.deltaX;panOffset.y-=e.deltaY;
   draw2d();
 },{passive:false});
+
+/* Touch support for the 2D editor:
+   1 finger = edit (mirrors the mouse), 2 fingers = pan + pinch zoom. */
+let touchPinch2D=null;
+canvas2d.addEventListener('touchstart',e=>{
+  if(editorView!=='2d')return;
+  e.preventDefault();
+  if(e.touches.length===2){
+    touchPinch2D={d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY),scale:SCALE,px:(e.touches[0].clientX+e.touches[1].clientX)/2,py:(e.touches[0].clientY+e.touches[1].clientY)/2,ox:panOffset.x,oy:panOffset.y};
+    if(dragging||wallResizing||rotating)endDrag();
+    isPanning=false;
+    canvas2d.dispatchEvent(new MouseEvent('mouseup',{button:0}));
+    return;
+  }
+  if(touchPinch2D)return;
+  const t=e.touches[0];
+  const m=new MouseEvent('mousedown',{clientX:t.clientX,clientY:t.clientY,button:0,bubbles:true});
+  canvas2d.dispatchEvent(m);
+},{passive:false});
+canvas2d.addEventListener('touchmove',e=>{
+  if(editorView!=='2d')return;
+  e.preventDefault();
+  if(touchPinch2D&&e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2;
+    const rect=canvas2d.getBoundingClientRect();
+    const n=Math.max(20,Math.min(120,touchPinch2D.scale*(d/Math.max(touchPinch2D.d,1))));
+    const k=n/touchPinch2D.scale;
+    const cx=mx-rect.left,cy=my-rect.top;
+    const dx=touchPinch2D.px-rect.left,dy=touchPinch2D.py-rect.top;
+    panOffset.x=(touchPinch2D.ox-dx)*k+cx;
+    panOffset.y=(touchPinch2D.oy-dy)*k+cy;
+    SCALE=n;
+    draw2d();
+    return;
+  }
+  if(!touchPinch2D){
+    const t=e.touches[0];
+    canvas2d.dispatchEvent(new MouseEvent('mousemove',{clientX:t.clientX,clientY:t.clientY,bubbles:true}));
+  }
+},{passive:false});
+canvas2d.addEventListener('touchend',e=>{
+  if(editorView!=='2d')return;
+  e.preventDefault();
+  if(touchPinch2D){
+    if(e.touches.length===0){touchPinch2D=null;return;}
+    if(e.touches.length<2){touchPinch2D=null;canvas2d.dispatchEvent(new MouseEvent('mouseup',{button:0}));}
+    return;
+  }
+  canvas2d.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true}));
+},{passive:false});
+canvas2d.addEventListener('touchcancel',()=>{touchPinch2D=null;canvas2d.dispatchEvent(new MouseEvent('mouseup',{button:0}));},{passive:false});
 canvas2d.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
 canvas2d.addEventListener('drop',e=>{
   e.preventDefault();const defId=e.dataTransfer.getData('furnId');if(!defId)return;
@@ -3211,7 +3523,15 @@ window.addEventListener('keydown',e=>{
 // ══════════════════════════════════════════
 //  PROPERTIES
 // ══════════════════════════════════════════
-function selectItem(item){selectedItem=item;updateProps();}
+function selectItem(item){
+  selectedItem=item;updateProps();
+  if(editorView==='2d'&&typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(max-width: 700px)').matches&&item&&(walls.includes(item)||furniture.includes(item))){
+    const rp=document.getElementById('right-panel');
+    if(rp&&rp.classList)rp.classList.add('open');
+    const btn=document.getElementById('btn-prop-toggle');
+    if(btn&&btn.setAttribute)btn.setAttribute('aria-expanded','true');
+  }
+}
 function updateProps(_fullRerender){
   const el=document.getElementById('prop-content');
   if(!selectedItem){
@@ -3870,7 +4190,14 @@ function switchEditorView(v){
   document.getElementById('hint3d').style.display=v==='3d'?'block':'none';
   document.getElementById('sidebar-2d').style.display=v==='2d'?'flex':'none';
   const rp=document.getElementById('right-panel');
-  if(rp&&!window.matchMedia('(max-width: 768px)').matches)rp.style.display=v==='3d'?'none':'block';
+  if(rp){
+    rp.classList.remove('open');
+    const mob=window.matchMedia('(max-width: 700px)').matches;
+    rp.style.display=(!mob&&v==='3d')?'none':'block';
+  }
+  const sb=document.getElementById('sidebar-2d');if(sb)sb.classList.remove('open');
+  const b1=document.getElementById('btn-sidebar-toggle'),b2=document.getElementById('btn-prop-toggle');
+  if(b1)b1.setAttribute('aria-expanded','false');if(b2)b2.setAttribute('aria-expanded','false');
   if(v==='3d'){
     panMode=false;document.getElementById('badge-pan').style.display='none';
     resizeCanvas();
@@ -3895,6 +4222,7 @@ document.addEventListener('keydown',e=>{
 let scene,camera,renderer3d,animId;
 let floorMesh=null,wallMat=null;
 let walkMode=false,walkYaw=0,walkPitch=0,walkPos={x:0,y:1.55,z:0};
+const isTouchDev=(typeof window!=='undefined')&&(('ontouchstart' in window)||(navigator.maxTouchPoints>0));
 let clock=null;
 
 function floorDefaultColorFor(style){return ({wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'})[style]||'#c8a878';}
@@ -4500,11 +4828,12 @@ function enterFreeFly(){
   walkPos={x:sp.x,y:sp.y,z:sp.z};
   walkYaw=sp.yaw;
   applyWalkCamera();
-  try{c3.requestPointerLock();}catch(err){console.warn('[freefly] pointer lock unavailable:',err.message);}
+  if(!isTouchDev)requestLock(c3);
 }
 function exitWalkMode(){
   if(document.pointerLockElement)document.exitPointerLock();
   for(const k in walkKeys)walkKeys[k]=false;
+  joyHide();touchLook.active=false;
   walkMode=false;
   const c3=document.getElementById('canvas3d');
   if(c3)c3.blur();
@@ -4648,8 +4977,11 @@ window.addEventListener('keyup',e=>{
 });
 function stepWalk(dt){
   if(!walkMode)return;
+  const joyOn=typeof touchJoy!=='undefined'&&!!touchJoy.active;
+  const jf=joyOn?Math.max(-1,Math.min(1,-touchJoy.y)):0;
+  const js=joyOn?Math.max(-1,Math.min(1,touchJoy.x)):0;
   const fwd=(walkKeys.w||walkKeys.up)?1:0,sbk=(walkKeys.s||walkKeys.down)?1:0,str=(walkKeys.d||walkKeys.right)?1:0,slf=(walkKeys.a||walkKeys.left)?1:0;
-  const fb=fwd-sbk,sd=str-slf;
+  const fb=fwd-sbk+jf,sd=str-slf+js;
   if(!fb&&!sd)return;
   const speed=2.2;
   const sy=Math.sin(walkYaw),cy=Math.cos(walkYaw);
@@ -4663,18 +4995,89 @@ function stepWalk(dt){
   walkPos.z+=vz*speed*dt;
   applyWalkCamera();
 }
+function requestLock(c3){
+  try{
+    const p=c3.requestPointerLock();
+    if(p&&typeof p.catch==='function')p.catch(()=>{});
+  }catch(err){
+    try{console.warn('[freefly] pointer lock unavailable:',err&&err.message);}catch(_){}
+  }
+}
 function setup3dMouse(){
   const c3=document.getElementById('canvas3d');
+  const hintEl=document.getElementById('hint-walk');
+  if(hintEl)hintEl.textContent=isTouchDev?'Drag the left half to move \u00B7 drag the right half to look \u00B7 tap Top view for a plan view':'WASD to fly \u00B7 Mouse to look \u00B7 Click canvas to lock mouse';
   c3.addEventListener('click',()=>{
-    if(editorView==='3d'&&walkMode&&!document.pointerLockElement){
-      try{c3.requestPointerLock();}catch(err){console.warn('[freefly] pointer lock unavailable:',err.message);}
-    }
+    if(editorView==='3d'&&walkMode&&!document.pointerLockElement){requestLock(c3);}
   });
   c3.addEventListener('contextmenu',e=>e.preventDefault());
   c3.addEventListener('wheel',e=>{if(editorView!=='3d')return;flyDolly(-e.deltaY*0.012);e.preventDefault();},{passive:false});
 }
+const touchJoy={active:false,x:0,y:0,sx:0,sy:0};
+const touchLook={active:false,lx:0,ly:0};
+const joyBase=document.getElementById('joy-base');
+const joyKnob=document.getElementById('joy-knob');
+function joyShow(lx,ly){
+  if(!joyBase)return;
+  joyBase.style.left=lx+'px';joyBase.style.top=ly+'px';
+  joyBase.style.display='block';
+}
+function joyMove(x,y){
+  if(!joyKnob)return;
+  joyKnob.style.transform=`translate(calc(-50% + ${touchJoy.x*30}px), calc(-50% + ${-touchJoy.y*30}px))`;
+}
+function joyHide(){
+  touchJoy.active=false;touchJoy.x=0;touchJoy.y=0;
+  if(joyBase)joyBase.style.display='none';
+}
+function setup3dTouch(){
+  const c3=document.getElementById('canvas3d');
+  if(!c3)return;
+  c3.addEventListener('touchstart',e=>{
+    if(editorView!=='3d'||!walkMode)return;
+    e.preventDefault();
+    if(e.touches.length!==1)return;
+    const t=e.touches[0];
+    if(t.clientX<window.innerWidth/2&&!touchLook.active){
+      touchJoy.active=true;touchJoy.sx=t.clientX;touchJoy.sy=t.clientY;touchJoy.x=0;touchJoy.y=0;
+      const rect=c3.getBoundingClientRect();
+      joyShow(t.clientX-rect.left,t.clientY-rect.top);joyMove();
+    }else{
+      touchLook.active=true;touchLook.lx=t.clientX;touchLook.ly=t.clientY;
+    }
+  },{passive:false});
+  c3.addEventListener('touchmove',e=>{
+    if(editorView!=='3d'||!walkMode)return;
+    e.preventDefault();
+    if(e.touches.length!==1)return;
+    const t=e.touches[0];
+    if(touchJoy.active){
+      touchJoy.x=Math.max(-1,Math.min(1,(t.clientX-touchJoy.sx)/62));
+      touchJoy.y=Math.max(-1,Math.min(1,-(t.clientY-touchJoy.sy)/62));
+      joyMove();
+    }else if(touchLook.active){
+      walkYaw-=(t.clientX-touchLook.lx)*0.008;
+      walkPitch=Math.max(-1.50,Math.min(1.50,walkPitch-(t.clientY-touchLook.ly)*0.008));
+      touchLook.lx=t.clientX;touchLook.ly=t.clientY;
+      applyWalkCamera();
+    }
+  },{passive:false});
+  const stopTouches=e=>{
+    if(editorView!=='3d'||!walkMode)return;
+    e.preventDefault();
+    if(e.touches.length===0){joyHide();touchLook.active=false;}
+    else{
+      const t=e.touches[0];
+      if(touchLook.active){touchLook.lx=t.clientX;touchLook.ly=t.clientY;}
+    }
+  };
+  c3.addEventListener('touchend',stopTouches,{passive:false});
+  c3.addEventListener('touchcancel',stopTouches,{passive:false});
+}
+setup3dTouch();
 
 window.addEventListener('resize',resizeCanvas);
+window.addEventListener('orientationchange',()=>setTimeout(()=>{if(currentScreen==='editor')resizeCanvas();if(currentScreen==='fp-canvas')resizeFpCanvas();},120));
 
 // ══════════════════════════════════════════
 //  FLOOR PLAN MODE
@@ -5188,6 +5591,15 @@ function lpScrollTo(id){
   if(!el)return;
   const top=el.getBoundingClientRect().top+document.getElementById('screen-landing').scrollTop-74;
   document.getElementById('screen-landing').scrollTo({top,behavior:'smooth'});
+}
+function lpNav(){
+  const m=document.getElementById('lp-mobile-menu');if(m)m.classList.remove('open');
+  const b=document.getElementById('lp-burger');if(b){b.setAttribute('aria-expanded','false');b.innerHTML='&#9776;';}
+}
+function toggleLpMenu(){
+  const m=document.getElementById('lp-mobile-menu');if(!m)return;
+  const open=m.classList.toggle('open');
+  const b=document.getElementById('lp-burger');if(b){b.setAttribute('aria-expanded',String(open));b.innerHTML=open?'&#215;':'&#9776;';}
 }
 window.addEventListener('DOMContentLoaded',async()=>{
   goTo('landing');
