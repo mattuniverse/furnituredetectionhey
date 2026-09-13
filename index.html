@@ -447,6 +447,10 @@ canvas { display: block; }
 .sugg-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .sugg-x { margin-left: auto; border: none; background: transparent; color: var(--color-text-muted); cursor: pointer; padding: 2px 7px; border-radius: 6px; font-size: 15px; line-height: 1.2; }
 .sugg-x:hover { color: var(--color-text-strong); background: var(--color-surface-hover); }
+.sugg-fold { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; border: 1.5px solid var(--color-border-light); border-bottom-color: var(--color-border); background: var(--color-surface-hover); color: var(--color-text-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 10px; text-align: left; }
+.sugg-fold:hover { border-color: var(--color-accent); background: var(--color-surface); }
+.sugg-fold-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sugg-chev { color: var(--color-accent); font-size: 13px; line-height: 1; transition: transform .15s ease; }
 .sugg-type { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 10px; }
 .sugg-carousel { display: flex; align-items: stretch; gap: 6px; margin-bottom: 8px; }
 .sugg-carousel .sugg-canvas { width: 100%; margin-bottom: 0; flex: 1; }
@@ -946,7 +950,7 @@ canvas { display: block; }
     <div class="lp-cta-inner">
       <h2>Start Designing Your Room</h2>
       <p>Free to use &mdash; set up your room and walk through it in 3D in under a minute.</p>
-      <button class="lp-btn-gold" onclick="goTo('room-setup')">Get Started</button>
+      <button class="lp-btn-gold" onclick="goTo('login')">Get Started</button>
     </div>
   </section>
 
@@ -1348,22 +1352,28 @@ canvas { display: block; }
         <div class="sugg-panel" id="sugg-dock" style="display:none">
           <div class="sugg-head"><div class="sugg-title">Suggested Design</div><button class="sugg-x" onclick="dismissSuggestedDock()" aria-label="Dismiss suggestion" title="Dismiss">&#xD7;</button></div>
           <div class="sugg-type" id="sugg-dock-type">Living Room</div>
-          <div class="sugg-carousel">
-            <button class="sugg-nav" onclick="sugStep(-1)" aria-label="Previous layout" title="Previous layout">&#x2039;</button>
-            <canvas id="sugg-canvas" class="sugg-canvas" width="440" height="300" aria-label="Suggested layout preview"></canvas>
-            <button class="sugg-nav" onclick="sugStep(1)" aria-label="Next layout" title="Next layout">&#x203A;</button>
-          </div>
-          <div class="sugg-count" id="sugg-count">Layout 1 of 5</div>
-          <div class="sugg-items" id="sugg-items"></div>
-          <div class="sugg-state" id="sugg-state" style="display:none"></div>
-          <div class="sugg-actions">
-            <div class="sugg-row">
-              <button class="btn-outline" id="sugg-back" onclick="sugBack()" style="display:none">&larr; Back</button>
-              <button class="btn-proceed" onclick="sugPreview()">Preview in Editor</button>
+          <button class="sugg-fold" id="sugg-fold" onclick="toggleSugCollapse()" aria-expanded="false" aria-controls="sugg-body" title="Show or hide suggested layout options">
+            <span id="sugg-fold-label">Browse layout options</span>
+            <span class="sugg-chev" id="sugg-chev" aria-hidden="true">&#x25B8;</span>
+          </button>
+          <div class="sugg-body" id="sugg-body" style="display:none">
+            <div class="sugg-carousel">
+              <button class="sugg-nav" onclick="sugStep(-1)" aria-label="Previous layout" title="Previous layout">&#x2039;</button>
+              <canvas id="sugg-canvas" class="sugg-canvas" width="440" height="300" aria-label="Suggested layout preview"></canvas>
+              <button class="sugg-nav" onclick="sugStep(1)" aria-label="Next layout" title="Next layout">&#x203A;</button>
             </div>
-            <div class="sugg-row">
-              <button class="btn-outline" onclick="customizeManually()">Customize Manually</button>
-              <button class="btn-proceed" onclick="applySuggestedDesign(true)">Use Suggested Design</button>
+            <div class="sugg-count" id="sugg-count">Layout 1 of 5</div>
+            <div class="sugg-items" id="sugg-items"></div>
+            <div class="sugg-state" id="sugg-state" style="display:none"></div>
+            <div class="sugg-actions">
+              <div class="sugg-row">
+                <button class="btn-outline" id="sugg-back" onclick="sugBack()" style="display:none">&larr; Back</button>
+                <button class="btn-proceed" onclick="sugPreview()">Preview in Editor</button>
+              </div>
+              <div class="sugg-row">
+                <button class="btn-outline" onclick="customizeManually()">Customize Manually</button>
+                <button class="btn-proceed" onclick="applySuggestedDesign(true)">Use Suggested Design</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1434,6 +1444,7 @@ let roomConfig={type:'Living Room',shape:'rect',w:5,h:4,wallH:2.7,wallT:0.15,flo
 let currentTool='select';
 let walls=[],furniture=[],selectedItem=null;
 let dragging=null,dragOffset={x:0,y:0};
+let rotating=null,rotStartAng=0;
 let wallStart=null,hoveredItem=null;
 let gridSnap=false,keys={shift:false};
 window.addEventListener('keydown',e=>{keys.shift=e.shiftKey;});
@@ -1723,8 +1734,10 @@ async function openProject(id){
   sanitizeLayout();
   const usedIds=[0,...walls.map(w=>w.id),...furniture.map(f=>f.id)];
   nextId=Math.max(...usedIds)+1;
+  clearEditorDraft();
   goTo('editor');
-  setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();draw2d();},50);
+  const savedView=(data.data&&data.data.view)==='3d'?'3d':'2d';
+  setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();draw2d();if(savedView==='3d')switchEditorView('3d');},50);
 }
 async function saveProject(){
   if(fpEditing||currentScreen==='fp-canvas'){await saveFloorPlan();return;}
@@ -1734,7 +1747,7 @@ async function saveProject(){
   if(!user){setStatus('Sign in to save your project.');return;}
   saveBtn.classList.add('saving');
   saveBtn.disabled=true;
-  const payload={roomConfig,walls,furniture,photos:roomPhotos};
+  const payload={roomConfig:JSON.parse(JSON.stringify(roomConfig)),walls:JSON.parse(JSON.stringify(walls)),furniture:JSON.parse(JSON.stringify(furniture)),photos:roomPhotos,view:editorView};
   try{
     if(currentProjectId){
       const {error}=await supabaseClient.from('projects').update({data:payload,updated_at:new Date().toISOString()}).eq('id',currentProjectId);
@@ -1762,6 +1775,41 @@ async function saveProject(){
     saveBtn.classList.remove('saving');
     saveBtn.disabled=false;
   }
+}
+
+// ── Editor draft backup (survives reload) ──
+const EDITOR_DRAFT_KEY='roomai_editor_draft';
+let _draftTimer=null;
+function editorDraftKey(){return EDITOR_DRAFT_KEY;}
+function snapshotState(){
+  return{roomConfig:JSON.parse(JSON.stringify(roomConfig)),walls:JSON.parse(JSON.stringify(walls)),furniture:JSON.parse(JSON.stringify(furniture)),photos:roomPhotos,view:editorView};
+}
+function scheduleEditorDraft(){
+  if(currentScreen!=='editor'||fpEditing)return;
+  if(_draftTimer)clearTimeout(_draftTimer);
+  _draftTimer=setTimeout(saveEditorDraft,450);
+}
+function saveEditorDraft(){
+  _draftTimer=null;
+  if(!roomConfig||!walls||!furniture)return;
+  try{localStorage.setItem(EDITOR_DRAFT_KEY,JSON.stringify(snapshotState()));}catch(err){console.warn('[draft]',err.message);}
+}
+function clearEditorDraft(){
+  if(_draftTimer){clearTimeout(_draftTimer);_draftTimer=null;}
+  try{localStorage.removeItem(EDITOR_DRAFT_KEY);}catch(err){}
+}
+function restoreEditorDraft(){
+  let snap=null;
+  try{const raw=localStorage.getItem(EDITOR_DRAFT_KEY);if(raw)snap=JSON.parse(raw);}catch(err){console.warn('[draft]',err.message);}
+  if(!snap||!snap.roomConfig)return false;
+  roomConfig=snap.roomConfig;walls=snap.walls||[];furniture=snap.furniture||[];roomPhotos=snap.photos||[];
+  selectedItem=null;wallStart=null;currentProjectId=null;
+  sanitizeLayout();
+  const usedIds=[0,...walls.map(w=>w.id),...furniture.map(f=>f.id)];
+  nextId=Math.max(...usedIds)+1;
+  goTo('editor');
+  setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();draw2d();if(snap.view==='3d')switchEditorView('3d');},50);
+  return true;
 }
 function backToDashboard(){
   if(fpEditing){
@@ -1949,33 +1997,42 @@ function ColorWheel(container,initialHex,onChange){
 // ══════════════════════════════════════════
 const sugVariantsCache={};
 const SUG_VARIANT_NAMES=['Classic','Mirrored','Flipped','Rotated','Rotated Alt'];
-let sugVars=[],sugIndex=0,sugPreviewIdx=-1;
+let sugVars=[],sugIndex=0,sugPreviewIdx=-1,sugCollapsed=true;
 function buildLayoutVariants(type){
   if(sugVariantsCache[type]!==undefined)return sugVariantsCache[type];
   const base=SUGGESTED_LAYOUTS[type];
   const out=[];
   if(base){
     const W=base.roomConfig.w||5,H=base.roomConfig.h||4;
+    const inset=((base.roomConfig.wallT)||0.15)/2;
     const deep=()=>JSON.parse(JSON.stringify({roomConfig:base.roomConfig,walls:base.walls,furniture:base.furniture}));
-    const clampIn=(f,Wr,Hr)=>{
-      const cs2=Math.cos(f.rot||0),sn2=Math.sin(f.rot||0);
-      const cc=Math.abs(cs2),ss=Math.abs(sn2);
-      const aw=f.w*cc+f.h*ss,ah=f.w*ss+f.h*cc;
-      const hxc=(f.w*cs2-f.h*sn2)/2,hyc=(f.w*sn2+f.h*cs2)/2;
-      const cx=f.x+hxc,cy=f.y+hyc;
-      const amx=Math.max(aw/2,Math.min(Wr-aw/2,cx));
-      const amy=Math.max(ah/2,Math.min(Hr-ah/2,cy));
-      f.x=amx-hxc;f.y=amy-hyc;
-    };
-    const apply=(v)=>(v.furniture||[]).forEach(f=>clampIn(f,W,H));
-    const v0=deep();apply(v0);out.push({...v0,name:'Classic'});
-    const v1=deep();(v1.furniture||[]).forEach(f=>{f.x=W-(f.x+f.w);f.rot=-(f.rot||0);});apply(v1);out.push({...v1,name:'Mirrored'});
-    const v2=deep();(v2.furniture||[]).forEach(f=>{f.y=H-(f.y+f.h);f.rot=-(f.rot||0);});apply(v2);out.push({...v2,name:'Flipped'});
-    const v3=deep();(v3.furniture||[]).forEach(f=>{const t=Math.PI/2,c=Math.cos(t),s=Math.sin(t);const cx=f.x+f.w/2,cy=f.y+f.h/2;const rx=W/2+(cx-W/2)*c-(cy-H/2)*s,ry=H/2+(cx-W/2)*s+(cy-H/2)*c;const nw=f.h,nh=f.w,r=(f.rot||0)+t;const cs2=Math.cos(r),sn2=Math.sin(r);f.x=rx-(nw*cs2-nh*sn2)/2;f.y=ry-(nw*sn2+nh*cs2)/2;f.w=nw;f.h=nh;f.rot=r;});apply(v3);out.push({...v3,name:'Rotated'});
-    const v4=deep();(v4.furniture||[]).forEach(f=>{const t=-Math.PI/2,c=Math.cos(t),s=Math.sin(t);const cx=f.x+f.w/2,cy=f.y+f.h/2;const rx=W/2+(cx-W/2)*c-(cy-H/2)*s,ry=H/2+(cx-W/2)*s+(cy-H/2)*c;const nw=f.h,nh=f.w,r=(f.rot||0)+t;const cs2=Math.cos(r),sn2=Math.sin(r);f.x=rx-(nw*cs2-nh*sn2)/2;f.y=ry-(nw*sn2+nh*cs2)/2;f.w=nw;f.h=nh;f.rot=r;});apply(v4);out.push({...v4,name:'Rotated Alt'});
+    const apply=(v)=>(v.furniture||[]).forEach(f=>clampLayoutItem(f,W,H,inset));
+    const v0=deep();apply(v0);if(validateLayout(v0,W,H,inset))out.push({...v0,name:'Classic'});
+    const v1=deep();(v1.furniture||[]).forEach(f=>{f.x=W-(f.x+f.w);f.rot=-(f.rot||0);});apply(v1);if(validateLayout(v1,W,H,inset))out.push({...v1,name:'Mirrored'});
+    const v2=deep();(v2.furniture||[]).forEach(f=>{f.y=H-(f.y+f.h);f.rot=-(f.rot||0);});apply(v2);if(validateLayout(v2,W,H,inset))out.push({...v2,name:'Flipped'});
+    const v3=deep();(v3.furniture||[]).forEach(f=>{const t=Math.PI/2,c=Math.cos(t),s=Math.sin(t);const cx=f.x+f.w/2,cy=f.y+f.h/2;const rx=W/2+(cx-W/2)*c-(cy-H/2)*s,ry=H/2+(cx-W/2)*s+(cy-H/2)*c;const nw=f.h,nh=f.w,r=(f.rot||0)+t;const cs2=Math.cos(r),sn2=Math.sin(r);f.x=rx-(nw*cs2-nh*sn2)/2;f.y=ry-(nw*sn2+nh*cs2)/2;f.w=nw;f.h=nh;f.rot=r;});apply(v3);if(validateLayout(v3,W,H,inset))out.push({...v3,name:'Rotated'});
+    const v4=deep();(v4.furniture||[]).forEach(f=>{const t=-Math.PI/2,c=Math.cos(t),s=Math.sin(t);const cx=f.x+f.w/2,cy=f.y+f.h/2;const rx=W/2+(cx-W/2)*c-(cy-H/2)*s,ry=H/2+(cx-W/2)*s+(cy-H/2)*c;const nw=f.h,nh=f.w,r=(f.rot||0)+t;const cs2=Math.cos(r),sn2=Math.sin(r);f.x=rx-(nw*cs2-nh*sn2)/2;f.y=ry-(nw*sn2+nh*cs2)/2;f.w=nw;f.h=nh;f.rot=r;});apply(v4);if(validateLayout(v4,W,H,inset))out.push({...v4,name:'Rotated Alt'});
   }
   sugVariantsCache[type]=out;
   return out;
+}
+function toggleSugCollapse(){
+  sugCollapsed=!sugCollapsed;
+  const body=document.getElementById('sugg-body');
+  if(body)body.style.display=sugCollapsed?'none':'block';
+  const fold=document.getElementById('sugg-fold');
+  const chev=document.getElementById('sugg-chev');
+  if(fold)fold.setAttribute('aria-expanded',String(!sugCollapsed));
+  if(chev)chev.textContent=sugCollapsed?'\u25B8':'\u25BE';
+  renderSugCard();
+}
+function syncSugCollapsed(){
+  const body=document.getElementById('sugg-body');
+  if(body)body.style.display=sugCollapsed?'none':'block';
+  const fold=document.getElementById('sugg-fold');
+  const chev=document.getElementById('sugg-chev');
+  if(fold)fold.setAttribute('aria-expanded',String(!sugCollapsed));
+  if(chev)chev.textContent=sugCollapsed?'\u25B8':'\u25BE';
 }
 function openSuggestedDock(type){
   const dock=document.getElementById('sugg-dock');
@@ -1983,7 +2040,8 @@ function openSuggestedDock(type){
   sugVars=buildLayoutVariants(type);
   if(type==='Custom'||!sugVars.length){dock.style.display='none';sugVars=[];sugIndex=0;sugPreviewIdx=-1;return;}
   dock.style.display='block';
-  sugIndex=0;sugPreviewIdx=-1;
+  sugIndex=0;sugPreviewIdx=-1;sugCollapsed=true;
+  syncSugCollapsed();
   document.getElementById('sugg-dock-type').textContent=type||'Living Room';
   renderSugCard();
 }
@@ -1999,10 +2057,12 @@ function renderSugCard(){
   if(state){
     const on=sugPreviewIdx===sugIndex;
     state.style.display=on?'':'none';
-    if(on)state.textContent='Previewing "Layout '+(sugIndex+1)+' \u00B7 '+v.name+'" in the editor. Use Suggested Design to keep it, or Back to browse the other layouts.';
+    if(on)state.textContent='Previewing \u201CLayout '+(sugIndex+1)+' \u00B7 '+v.name+'\u201D in the editor. Use Suggested Design to keep it, or Back to browse the other layouts.';
   }
   const back=document.getElementById('sugg-back');
   if(back)back.style.display=sugPreviewIdx>=0?'':'none';
+  const foldLabel=document.getElementById('sugg-fold-label');
+  if(foldLabel)foldLabel.textContent=sugCollapsed?'Layout '+(sugIndex+1)+' of '+sugVars.length+' \u00B7 '+v.name+' \u2014 Browse options':'Hide layout options';
 }
 function sugStep(dir){
   if(!sugVars.length)return;
@@ -2305,6 +2365,54 @@ function rotatedAABB(f){
   const cx=f.x+f.w/2,cy=f.y+f.h/2;
   return{x:cx-w/2,y:cy-h/2,w,h};
 }
+const LAYOUT_DECOR_IDS=['rug','doormat','wallart','lamp'];
+function rotAABBabs(f){
+  const c=Math.cos(f.rot||0),s=Math.sin(f.rot||0);
+  const cc=Math.abs(c),ss=Math.abs(s);
+  const w=f.w*cc+f.h*ss,h=f.w*ss+f.h*cc;
+  const hx=(f.w*c-f.h*s)/2,hy=(f.w*s+f.h*c)/2;
+  return{x:f.x+hx-w/2,y:f.y+hy-h/2,w,h};
+}
+function boxesTouch(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function clampLayoutItem(f,W,H,inset){
+  const cs=Math.cos(f.rot||0),sn=Math.sin(f.rot||0);
+  const cc=Math.abs(cs),ss=Math.abs(sn);
+  const aw=f.w*cc+f.h*ss,ah=f.w*ss+f.h*cc;
+  const hxc=(f.w*cs-f.h*sn)/2,hyc=(f.w*sn+f.h*cs)/2;
+  const cx=f.x+hxc,cy=f.y+hyc;
+  const amx=Math.max(aw/2,Math.min(W-inset-aw/2,cx));
+  const amy=Math.max(ah/2,Math.min(H-inset-ah/2,cy));
+  f.x=amx-hxc;f.y=amy-hyc;
+}
+function validateLayout(v,W,H,inset){
+  const list=v&&v.furniture?v.furniture:[];
+  for(let pass=0;pass<8;pass++){
+    const abs=list.map(rotAABBabs);
+    let bad=false,moved=0;
+    for(let i=0;i<abs.length;i++){
+      const b=abs[i];
+      if(b.x<-1e-5||b.y<-1e-5||b.x+b.w>W+1e-5||b.y+b.h>H+1e-5)return false;
+    }
+    for(let i=0;i<abs.length;i++)for(let j=i+1;j<abs.length;j++){
+      if(LAYOUT_DECOR_IDS.indexOf(list[i].defId)!==-1||LAYOUT_DECOR_IDS.indexOf(list[j].defId)!==-1)continue;
+      if(!boxesTouch(abs[i],abs[j]))continue;
+      const f=list[j];
+      const ox=Math.min(abs[i].x+abs[i].w,abs[j].x+abs[j].w)-Math.max(abs[i].x,abs[j].x);
+      const oy=Math.min(abs[i].y+abs[i].h,abs[j].y+abs[j].h)-Math.max(abs[i].y,abs[j].y);
+      if(ox<oy)f.x+=(abs[j].x>=abs[i].x?1:-1)*ox;
+      else f.y+=(abs[j].y>=abs[i].y?1:-1)*oy;
+      clampLayoutItem(f,W,H,inset);
+      moved++;
+    }
+    if(!moved)break;
+  }
+  const abs2=list.map(rotAABBabs);
+  for(let i=0;i<abs2.length;i++)for(let j=i+1;j<abs2.length;j++){
+    if(LAYOUT_DECOR_IDS.indexOf(list[i].defId)!==-1||LAYOUT_DECOR_IDS.indexOf(list[j].defId)!==-1)continue;
+    if(boxesTouch(abs2[i],abs2[j]))return false;
+  }
+  return true;
+}
 function rotVec(x,y,cos,sin){return{x:x*cos-y*sin,y:x*sin+y*cos};}
 function doorSwingZone(d,margin){
   const cos=Math.cos(d.rot||0),sin=Math.sin(d.rot||0);
@@ -2549,6 +2657,7 @@ function draw2d(){
   ctx.fillStyle=cssVar('--color-bg-sunken')||'#ede8e0';ctx.fillRect(0,0,canvasW,canvasH);
   drawGrid();if(walls.length>=3)drawRoomFill();drawWalls();drawFurniture(lastViolations);
   if(wallStart){const s=worldToScreen(wallStart.x,wallStart.y);ctx.beginPath();ctx.arc(s.x,s.y,5,0,Math.PI*2);ctx.fillStyle='#8c6040';ctx.fill();}
+  scheduleEditorDraft();
 }
 function drawGrid(){
   const gs=GRID*SCALE;ctx.strokeStyle='rgba(140,96,64,.1)';ctx.lineWidth=0.5;
@@ -2677,6 +2786,22 @@ function getItemAt(wx,wy){
 function getWallAt(wx,wy){
   for(let i=walls.length-1;i>=0;i--){const w=walls[i];const dx=w.x2-w.x1,dy=w.y2-w.y1;const len=Math.sqrt(dx*dx+dy*dy);if(len<0.01)continue;const t=((wx-w.x1)*dx+(wy-w.y1)*dy)/(len*len);const tc=Math.max(0,Math.min(1,t));const px=w.x1+tc*dx,py=w.y1+tc*dy;if(Math.sqrt((wx-px)**2+(wy-py)**2)<(w.t||0.15)/2+0.15)return w;}return null;
 }
+const ROTATE_CURSOR=`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M14 4a10 10 0 1 0 8 16' fill='none' stroke='%23fff' stroke-width='4.4'/%3E%3Cpath d='M14 4a10 10 0 1 0 8 16' fill='none' stroke='%234a3020' stroke-width='2.2'/%3E%3Cpath d='M14 0.8v5.6' stroke='%23fff' stroke-width='4.4'/%3E%3Cpath d='M14 0.8v5.6' stroke='%234a3020' stroke-width='2.2'/%3E%3Cpath d='M22 19.6l3.4 3.4m0-3.4l-3.4 3.4' stroke='%23fff' stroke-width='4.4' stroke-linecap='round'/%3E%3Cpath d='M22 19.6l3.4 3.4m0-3.4l-3.4 3.4' stroke='%234a3020' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") 14 14, auto`;
+function isWallAttach(f){return f&&(f.defId==='door'||f.defId==='window');}
+function rotZoneHit(f,wx,wy){
+  const c=itemCenter(f);
+  const cos=Math.cos(-(f.rot||0)),sin=Math.sin(-(f.rot||0));
+  const dx=wx-c.x,dy=wy-c.y;
+  const lx=cos*dx-sin*dy,ly=sin*dx+cos*dy;
+  const hw=f.w/2,hh=f.h/2;
+  const tol=0.12;
+  const m=Math.max(0.1,6/SCALE);
+  const onX=Math.abs(lx)>=hw-m&&Math.abs(lx)<=hw+tol;
+  const onY=Math.abs(ly)>=hh-m&&Math.abs(ly)<=hh+tol;
+  const withinX=Math.abs(lx)<=hw+tol,withinY=Math.abs(ly)<=hh+tol;
+  return (onX&&withinY)||(onY&&withinX);
+}
+function angTo(wx,wy,f){const c=itemCenter(f);return Math.atan2(wy-c.y,wx-c.x);}
 let isPanning=false,panStart={x:0,y:0},panOffsetStart={x:0,y:0};
 canvas2d.addEventListener('mousedown',e=>{
   if(editorView!=='2d')return;
@@ -2688,7 +2813,7 @@ canvas2d.addEventListener('mousedown',e=>{
     else{const wlen=Math.sqrt((wx-wallStart.x)**2+(wy-wallStart.y)**2);if(wlen>0.1){const wall={id:uid(),x1:wallStart.x,y1:wallStart.y,x2:wx,y2:wy,t:roomConfig.wallT,wh:roomConfig.wallH};walls.push(wall);selectItem(wall);wallStart={x:wx,y:wy};setStatus(`Wall added (${wlen.toFixed(1)}m)`);}draw2d();}
     return;
   }
-  if(currentTool==='select'){const fi=getItemAt(wx,wy);if(fi){selectItem(fi);dragging=fi;dragFrom={x:fi.x,y:fi.y};dragOffset={x:wx-fi.x,y:wy-fi.y};return;}const wi=getWallAt(wx,wy);if(wi){selectItem(wi);dragging=wi;dragOffset={x:wx,y:wy};return;}selectItem(null);draw2d();}
+  if(currentTool==='select'){const fi=getItemAt(wx,wy);if(fi){selectItem(fi);if(!isWallAttach(fi)&&rotZoneHit(fi,wx,wy)){rotating=fi;rotStartAng=angTo(wx,wy,fi);setStatus('Drag to rotate \u2014 hold Shift to snap to 15\u00B0 increments');return;}dragging=fi;dragFrom={x:fi.x,y:fi.y};dragOffset={x:wx-fi.x,y:wy-fi.y};return;}const wi=getWallAt(wx,wy);if(wi){selectItem(wi);dragging=wi;dragOffset={x:wx,y:wy};return;}selectItem(null);draw2d();}
 });
 canvas2d.addEventListener('contextmenu',e=>e.preventDefault());
 canvas2d.addEventListener('mousemove',e=>{
@@ -2697,6 +2822,16 @@ canvas2d.addEventListener('mousemove',e=>{
   const rect=canvas2d.getBoundingClientRect();const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
   const raw=screenToWorld(sx,sy);const wx=snapIf(raw.x),wy=snapIf(raw.y);
   document.getElementById('statusbar-coords').textContent=`${wx.toFixed(1)}m, ${wy.toFixed(1)}m`;
+  if(rotating&&currentTool==='select'){
+    const f=rotating;
+    const a=angTo(wx,wy,f);
+    let delta=a-rotStartAng;
+    rotStartAng=a;
+    f.rot=(f.rot||0)+delta;
+    if(keys.shift){const step=15*Math.PI/180;f.rot=Math.round(f.rot/step)*step;}
+    clampFootprint(f);
+    draw2d();updateProps();return;
+  }
   if(dragging&&currentTool==='select'){
     if(furniture.includes(dragging)){dragging.x=wx-dragOffset.x;dragging.y=wy-dragOffset.y;clampFootprint(dragging);}
     else if(walls.includes(dragging)){const dx=wx-dragOffset.x,dy=wy-dragOffset.y;dragging.x1+=dx;dragging.y1+=dy;dragging.x2+=dx;dragging.y2+=dy;dragOffset={x:wx,y:wy};}
@@ -2704,6 +2839,7 @@ canvas2d.addEventListener('mousemove',e=>{
   }
   if(currentTool==='wall'&&wallStart){draw2d();const a=worldToScreen(wallStart.x,wallStart.y),b=worldToScreen(wx,wy);ctx.strokeStyle='#8c6040';ctx.lineWidth=3;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);const len=Math.sqrt((wx-wallStart.x)**2+(wy-wallStart.y)**2);ctx.fillStyle='#8c6040';ctx.font='bold 11px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(len.toFixed(1)+'m',(a.x+b.x)/2,(a.y+b.y)/2-8);return;}
   const prev=hoveredItem;hoveredItem=getItemAt(wx,wy)||getWallAt(wx,wy);
+  const rotZoneCursor=currentTool==='select'&&selectedItem&&furniture.includes(selectedItem)&&!isWallAttach(selectedItem)&&rotZoneHit(selectedItem,wx,wy);
   const tip=document.getElementById('vio-tip');
   if(tip){
     const mine=hoveredItem&&!walls.includes(hoveredItem)?lastViolations.filter(v=>v.item===hoveredItem):[];
@@ -2713,10 +2849,11 @@ canvas2d.addEventListener('mousemove',e=>{
       tip.hidden=false;tip.style.left=(e.clientX-c.left+16)+'px';tip.style.top=(e.clientY-c.top+12)+'px';
     }else{tip.hidden=true;}
   }
-  canvas2d.style.cursor=hoveredItem?(currentTool==='select'?'move':'crosshair'):(currentTool==='wall'?'crosshair':'default');
+  canvas2d.style.cursor=rotZoneCursor?ROTATE_CURSOR:(hoveredItem?(currentTool==='select'?'move':'crosshair'):(currentTool==='wall'?'crosshair':'default'));
   if(hoveredItem!==prev)draw2d();
 });
 function endDrag(){
+  rotating=null;
   if(dragging&&dragFrom&&furniture.includes(dragging)){
     const mine=lastViolations.filter(v=>v.item===dragging);
     if(mine.some(v=>v.hard)){
@@ -4737,8 +4874,12 @@ function lpScrollTo(id){
   const top=el.getBoundingClientRect().top+document.getElementById('screen-landing').scrollTop-74;
   document.getElementById('screen-landing').scrollTo({top,behavior:'smooth'});
 }
-window.addEventListener('DOMContentLoaded',()=>{
+window.addEventListener('DOMContentLoaded',async()=>{
   goTo('landing');
+  if(sessionStorage.getItem('roomai_signed_in')==='1'&&localStorage.getItem(EDITOR_DRAFT_KEY)){
+    try{await enterDashboard();}catch(err){console.warn('[boot]',err.message);}
+    try{restoreEditorDraft();}catch(err){console.warn('[boot:draft]',err.message);}
+  }
 });
 </script>
 </body>
