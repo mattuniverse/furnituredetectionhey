@@ -1344,7 +1344,6 @@ canvas { display: block; }
           <div class="sidebar-label">Tools</div>
           <button class="tool-btn active" id="tool-select" onclick="setTool('select')" aria-label="Select and move tool"><span class="ticon">&#x2196;</span><span>Select &amp; Move</span></button>
           <button class="tool-btn" id="tool-wall" onclick="setTool('wall')" aria-label="Draw wall tool"><span class="ticon">&#x25AC;</span><span>Draw Wall</span></button>
-          <button class="tool-btn" id="tool-hand" onclick="setTool('hand')" aria-label="Pan tool"><span class="ticon">&#x270B;</span><span>Hand Tool</span></button>
         </div>
         <div class="furn-scroll"><div id="furn-list-el"></div></div>
       </div>
@@ -1384,6 +1383,7 @@ canvas { display: block; }
         <div class="canvas-overlay">
           <div class="overlay-badge" id="badge-room"></div>
           <div class="overlay-badge" id="badge-tool">Tool: Select</div>
+          <div class="overlay-badge" id="badge-pan" style="display:none">Panning &mdash; drag, Esc or double-click to exit</div>
         </div>
         <div class="canvas-controls" role="toolbar" aria-label="Canvas controls">
           <button class="btn-icon" title="Undo (Ctrl+Z)" onclick="undoEdit()" aria-label="Undo" id="btn-undo" disabled>&#x21B6;</button>
@@ -2873,10 +2873,11 @@ function clampFootprint(f){
 }
 function setTool(t){
   currentTool=t;
+  if(t!=='select'){panMode=false;document.getElementById('badge-pan').style.display='none';}
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tool-'+t)?.classList.add('active');
-  canvas2d.style.cursor=t==='wall'?'crosshair':t==='hand'?'grab':'default';
-  document.getElementById('badge-tool').textContent='Tool: '+(t==='select'?'Select':t==='hand'?'Hand':'Draw Wall');
+  canvas2d.style.cursor=t==='wall'?'crosshair':'default';
+  document.getElementById('badge-tool').textContent='Tool: '+(t==='select'?'Select':'Draw Wall');
   if(t!=='wall')wallStart=null;draw2d();
 }
 function draw2d(){
@@ -3040,10 +3041,10 @@ function armDrag(sx,sy){
   pushEdits();
   return true;
 }
-let isPanning=false,panStart={x:0,y:0},panOffsetStart={x:0,y:0};
+let panMode=false,isPanning=false,panStart={x:0,y:0},panOffsetStart={x:0,y:0};
 canvas2d.addEventListener('mousedown',e=>{
   if(editorView!=='2d')return;
-  if(currentTool==='hand'){isPanning=true;panStart={x:e.clientX,y:e.clientY};panOffsetStart={...panOffset};canvas2d.style.cursor='grabbing';return;}
+  if(panMode&&currentTool==='select'&&!e.button){isPanning=true;panStart={x:e.clientX,y:e.clientY};panOffsetStart={...panOffset};canvas2d.style.cursor='grabbing';return;}
   if(e.button===1||e.button===2){isPanning=true;panStart={x:e.clientX,y:e.clientY};panOffsetStart={...panOffset};return;}
   const rect=canvas2d.getBoundingClientRect();const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
   const raw=screenToWorld(sx,sy);const wx=snapIf(raw.x),wy=snapIf(raw.y);
@@ -3064,6 +3065,18 @@ canvas2d.addEventListener('mousedown',e=>{
   }
 });
 canvas2d.addEventListener('contextmenu',e=>e.preventDefault());
+canvas2d.addEventListener('dblclick',e=>{
+  if(editorView!=='2d'||currentTool!=='select')return;
+  const rect=canvas2d.getBoundingClientRect();
+  const raw=screenToWorld(e.clientX-rect.left,e.clientY-rect.top);
+  const wx=snapIf(raw.x),wy=snapIf(raw.y);
+  if(getItemAt(wx,wy)||getWallAt(wx,wy)||getWallEndpointAt(wx,wy))return;
+  panMode=!panMode;
+  document.getElementById('badge-pan').style.display=panMode?'inline-block':'none';
+  canvas2d.style.cursor=panMode?'grab':'default';
+  setStatus(panMode?'Pan mode \u2014 drag on the canvas to pan, double-click or press Esc to exit.':'Select & Move');
+  draw2d();
+});
 canvas2d.addEventListener('mousemove',e=>{
   if(editorView!=='2d')return;
   if(isPanning){panOffset.x=panOffsetStart.x+(e.clientX-panStart.x);panOffset.y=panOffsetStart.y+(e.clientY-panStart.y);draw2d();return;}
@@ -3123,7 +3136,7 @@ canvas2d.addEventListener('mousemove',e=>{
       tip.hidden=false;tip.style.left=(e.clientX-c.left+16)+'px';tip.style.top=(e.clientY-c.top+12)+'px';
     }else{tip.hidden=true;}
   }
-  canvas2d.style.cursor=rotZoneCursor?ROTATE_CURSOR:(resizeCursor||(hoveredItem?(currentTool==='select'?'move':'crosshair'):(currentTool==='wall'?'crosshair':(currentTool==='hand'?'grab':'default'))));
+  canvas2d.style.cursor=(panMode&&currentTool==='select')?'grab':(rotZoneCursor?ROTATE_CURSOR:(resizeCursor||(hoveredItem?(currentTool==='select'?'move':'crosshair'):(currentTool==='wall'?'crosshair':'default'))));
   if(hoveredItem!==prev)draw2d();
 });
 function endDrag(){
@@ -3152,7 +3165,7 @@ function endDrag(){
   if(dragArmed&&rotItem&&furniture.includes(rotItem)){clampFootprint(rotItem);}
   dragArmed=false;
   wallResizing=null;
-  if(currentTool==='hand')canvas2d.style.cursor='grab';
+  if(panMode&&currentTool==='select')canvas2d.style.cursor='grab';
   if(didCandidate||rotItem)draw2d();
 }
 canvas2d.addEventListener('mouseup',endDrag);
@@ -3162,11 +3175,16 @@ canvas2d.addEventListener('wheel',e=>{
   e.preventDefault();
   const rect=canvas2d.getBoundingClientRect();
   const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
-  const wx=(sx-panOffset.x)/SCALE,wy=(sy-panOffset.y)/SCALE;
-  const n=Math.max(20,Math.min(120,SCALE*(e.deltaY<0?1.12:1/1.12)));
-  const k=n/SCALE;
-  panOffset.x=sx-wx*n;panOffset.y=sy-wy*n;
-  SCALE=n;
+  if(e.ctrlKey){
+    const wx=(sx-panOffset.x)/SCALE,wy=(sy-panOffset.y)/SCALE;
+    const n=Math.max(20,Math.min(120,SCALE*(e.deltaY<0?1.12:1/1.12)));
+    const k=n/SCALE;
+    panOffset.x=sx-wx*n;panOffset.y=sy-wy*n;
+    SCALE=n;
+    draw2d();
+    return;
+  }
+  panOffset.x-=e.deltaX;panOffset.y-=e.deltaY;
   draw2d();
 },{passive:false});
 canvas2d.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
@@ -3185,7 +3203,7 @@ canvas2d.addEventListener('drop',e=>{
 });
 window.addEventListener('keydown',e=>{
   if(currentScreen!=='editor')return;
-  if(e.key==='Escape'){wallStart=null;setTool('select');draw2d();}
+  if(e.key==='Escape'){wallStart=null;panMode=false;document.getElementById('badge-pan').style.display='none';setTool('select');}
   if((e.key==='Delete'||e.key==='Backspace')&&selectedItem){if(document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='SELECT'){walls=walls.filter(w=>w!==selectedItem);furniture=furniture.filter(f=>f!==selectedItem);selectedItem=null;updateProps();draw2d();}}
   if(e.key==='r'&&selectedItem&&furniture.includes(selectedItem)){if(selectedItem.defId==='door'||selectedItem.defId==='window'){selectedItem.rot=(selectedItem.rot||0)+Math.PI/2;snapDoorWindow(selectedItem);}else centerRotate(selectedItem,(selectedItem.rot||0)+Math.PI/2);draw2d();updateProps();}
 });
@@ -3854,6 +3872,7 @@ function switchEditorView(v){
   const rp=document.getElementById('right-panel');
   if(rp&&!window.matchMedia('(max-width: 768px)').matches)rp.style.display=v==='3d'?'none':'block';
   if(v==='3d'){
+    panMode=false;document.getElementById('badge-pan').style.display='none';
     resizeCanvas();
     build3d();
     enterFreeFly();
@@ -4535,14 +4554,12 @@ function computeWalkSpawn(){
       p={x:best.x+nx*1.3,z:best.z+nz*1.3};
     }
   }
-  const seed=resolveCollision(ct.x,ct.z);
-  walkPos={x:seed.x,y:1.6,z:seed.z};
-  const res=resolveCollision(p.x,p.z);
+  const res=resolveCollision(p.x,p.z,ct.x,ct.y);
   return {x:res.x,z:res.z,y:1.6,yaw:Math.atan2(ct.x-res.x,ct.y-res.z)};
 }
-function resolveOnce(px,pz){
+function resolveOnce(px,pz,fromX,fromZ){
   let x=px,z=pz;
-  const prevX=walkPos.x,prevZ=walkPos.z;
+  const prevX=fromX!==undefined?fromX:walkPos.x,prevZ=fromZ!==undefined?fromZ:walkPos.z;
   for(let pass=0;pass<2;pass++){
     for(const w of walls){
       const dx=w.x2-w.x1,dz=w.y2-w.y1;
@@ -4595,13 +4612,14 @@ function resolveOnce(px,pz){
   }
   return {x,z};
 }
-function resolveCollision(nx,nz){
-  const dx=nx-walkPos.x,dz=nz-walkPos.z;
+function resolveCollision(nx,nz,fromX,fromZ){
+  const sx=fromX!==undefined?fromX:walkPos.x,sz=fromZ!==undefined?fromZ:walkPos.z;
+  const dx=nx-sx,dz=nz-sz;
   const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/0.05));
   const ix=dx/steps,iz=dz/steps;
-  let x=walkPos.x,z=walkPos.z;
+  let x=sx,z=sz;
   for(let s=0;s<steps;s++){
-    const r=resolveOnce(x+ix,z+iz);
+    const r=resolveOnce(x+ix,z+iz,sx,sz);
     x=r.x;z=r.z;
   }
   return {x,z};
@@ -5017,7 +5035,8 @@ function fpOpenRoomEditor(id){
   furniture=r.furniture;
   roomConfig=r.roomConfig;
   roomPhotos=[];
-  selectedItem=null;wallStart=null;
+  selectedItem=null;wallStart=null;panMode=false;
+  document.getElementById('badge-pan').style.display='none';
   resetEditHistory();
   setTool('select');
   fpEditing=true;fpSelId=id;
