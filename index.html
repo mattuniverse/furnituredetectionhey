@@ -1453,6 +1453,7 @@ let walls=[],furniture=[],selectedItem=null;
 let dragging=null,dragOffset={x:0,y:0};
 let wallResizing=null;
 let rotating=null,rotStartAng=0;
+let downSx=0,downSy=0,dragArmed=false;const DRAG_THRESHOLD=4;
 let wallStart=null,hoveredItem=null;
 let gridSnap=false,keys={shift:false};
 window.addEventListener('keydown',e=>{keys.shift=e.shiftKey;});
@@ -2437,7 +2438,7 @@ function mergeWallEndpoints(){
       const o=walls[i];if(o===w)continue;
       [[0,0],[1,0],[0,1],[1,1]].forEach(([a,b])=>{
         if(Math.abs(wallEndpointPos(w,a).x-wallEndpointPos(o,b).x)<0.06&&Math.abs(wallEndpointPos(w,a).y-wallEndpointPos(o,b).y)<0.06){
-          const p=b===0?[o.x2,o.y2]:[o.x1,o.y1];
+          const p=b===0?[o.x1,o.y1]:[o.x2,o.y2];
           if(a===0){w.x1=p[0];w.y1=p[1];}else{w.x2=p[0];w.y2=p[1];}
         }
       });
@@ -3032,6 +3033,13 @@ function rotZoneHit(f,wx,wy){
   return (onX&&withinY)||(onY&&withinX);
 }
 function angTo(wx,wy,f){const c=itemCenter(f);return Math.atan2(wy-c.y,wx-c.x);}
+function armDrag(sx,sy){
+  if(dragArmed)return true;
+  if(Math.hypot(sx-downSx,sy-downSy)<DRAG_THRESHOLD)return false;
+  dragArmed=true;
+  pushEdits();
+  return true;
+}
 let isPanning=false,panStart={x:0,y:0},panOffsetStart={x:0,y:0};
 canvas2d.addEventListener('mousedown',e=>{
   if(editorView!=='2d')return;
@@ -3044,12 +3052,13 @@ canvas2d.addEventListener('mousedown',e=>{
     return;
   }
   if(currentTool==='select'){
+    downSx=sx;downSy=sy;dragArmed=false;
     const fi=getItemAt(wx,wy);
-    if(fi){pushEdits();selectItem(fi);if(!isWallAttach(fi)&&rotZoneHit(fi,wx,wy)){rotating=fi;rotStartAng=angTo(wx,wy,fi);setStatus('Drag to rotate \u2014 hold Shift to snap to 15\u00B0 increments');return;}dragging=fi;dragFrom={x:fi.x,y:fi.y};dragOffset={x:wx-fi.x,y:wy-fi.y};return;}
+    if(fi){selectItem(fi);if(!isWallAttach(fi)&&rotZoneHit(fi,wx,wy)){rotating=fi;rotStartAng=angTo(wx,wy,fi);setStatus('Drag to rotate \u2014 hold Shift to snap to 15\u00B0 increments');return;}dragging=fi;dragFrom={x:fi.x,y:fi.y};dragOffset={x:wx-fi.x,y:wy-fi.y};return;}
     const wep=getWallEndpointAt(wx,wy);
-    if(wep){pushEdits();selectItem(wep.w);wallResizing=wep;setStatus('Drag the endpoint to resize the wall \u2014 connected corners update to keep the room closed.');return;}
+    if(wep){selectItem(wep.w);wallResizing=wep;setStatus('Drag the endpoint to resize the wall \u2014 connected corners update to keep the room closed.');return;}
     const wi=getWallAt(wx,wy);
-    if(wi){pushEdits();selectItem(wi);dragging=wi;dragOffset={x:wx,y:wy};return;}
+    if(wi){selectItem(wi);dragging=wi;dragOffset={x:wx,y:wy};return;}
     selectItem(null);draw2d();
   }
 });
@@ -3061,6 +3070,7 @@ canvas2d.addEventListener('mousemove',e=>{
   const raw=screenToWorld(sx,sy);const wx=snapIf(raw.x),wy=snapIf(raw.y);
   document.getElementById('statusbar-coords').textContent=`${wx.toFixed(1)}m, ${wy.toFixed(1)}m`;
   if(rotating&&currentTool==='select'){
+    if(!armDrag(sx,sy))return;
     const f=rotating;
     const a=angTo(wx,wy,f);
     let delta=a-rotStartAng;
@@ -3071,11 +3081,13 @@ canvas2d.addEventListener('mousemove',e=>{
     draw2d();updateProps();return;
   }
   if(dragging&&currentTool==='select'){
+    if(!armDrag(sx,sy))return;
     if(furniture.includes(dragging)){dragging.x=wx-dragOffset.x;dragging.y=wy-dragOffset.y;clampFootprint(dragging);}
     else if(walls.includes(dragging)){const dx=wx-dragOffset.x,dy=wy-dragOffset.y;moveWallLoop(dragging,dx,dy);dragOffset={x:wx,y:wy};}
     draw2d();updateProps();return;
   }
   if(wallResizing&&currentTool==='select'){
+    if(!armDrag(sx,sy))return;
     const {w,end}=wallResizing;
     const before={x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2};
     const lenB=Math.hypot(before.x2-before.x1,before.y2-before.y1);
@@ -3114,7 +3126,8 @@ canvas2d.addEventListener('mousemove',e=>{
 });
 function endDrag(){
   rotating=null;
-  if(dragging&&dragFrom&&furniture.includes(dragging)){
+  const didCandidate=!!(dragging||wallResizing);
+  if(dragArmed&&dragging&&dragFrom&&furniture.includes(dragging)){
     const mine=lastViolations.filter(v=>v.item===dragging);
     if(mine.some(v=>v.hard)){
       dragging.x=dragFrom.x;dragging.y=dragFrom.y;draw2d();updateProps();
@@ -3124,9 +3137,9 @@ function endDrag(){
       setStatus(`${FURNITURE_DEFS.find(d=>d.id===dragging.defId)?.label||'Item'} snapped to the nearest wall.`);
     }
   }
-  const movedWall=dragging&&walls.includes(dragging);
+  const movedWall=dragArmed&&dragging&&walls.includes(dragging);
   dragging=null;dragFrom=null;isPanning=false;
-  if(movedWall||wallResizing){
+  if(movedWall||(dragArmed&&wallResizing)){
     mergeWallEndpoints();
     regularizeWalls();
     updateRoomDims();
@@ -3134,7 +3147,9 @@ function endDrag(){
     draw2d();
     setStatus(wallResizing?'Wall resized \u2014 connected corners, width and depth updated.':'Wall moved \u2014 connected walls follow to keep the room closed.');
   }
+  dragArmed=false;
   wallResizing=null;
+  if(didCandidate)draw2d();
 }
 canvas2d.addEventListener('mouseup',endDrag);
 canvas2d.addEventListener('mouseleave',()=>{endDrag();const tip=document.getElementById('vio-tip');if(tip)tip.hidden=true;});
