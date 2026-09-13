@@ -1348,7 +1348,7 @@ canvas { display: block; }
       <div class="canvas-area" id="canvas-area">
         <canvas id="canvas2d" aria-label="2D floor plan canvas"></canvas>
         <canvas id="canvas3d" aria-label="3D room view canvas"></canvas>
-        <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><button class="view-btn" id="btn-walk" onclick="toggleWalkMode()" aria-label="Toggle first-person walkthrough mode" title="Walk around the room at eye level">Walkthrough</button><button class="view-btn" id="btn-ghost" onclick="toggleGhostMode()" aria-label="Toggle ghost view" title="Ghost mode \u2014 fly freely through walls and furniture" aria-pressed="false">Ghost: Off</button><span id="hint-orbit">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</span><span id="hint-walk" style="display:none">WASD to move (follows look direction) &middot; Mouse to look &middot; Esc to exit</span></div>
+        <div class="hint3d" id="hint3d"><button class="view-btn" id="btn-top" onclick="view3dTop()" aria-label="Switch to top-down 2D-aligned view" title="Top-down plan view (aligned with 2D: north up, east right)">Top view</button><button class="view-btn" id="btn-walk" onclick="toggleWalkMode()" aria-label="Toggle first-person walkthrough mode" title="Walk around the room at eye level">Walkthrough</button><button class="view-btn" id="btn-ghost" onclick="toggleGhostMode()" aria-label="Toggle ghost view" title="Ghost mode \u2014 fly freely through walls and furniture" aria-pressed="false">Ghost: Off</button><span id="hint-orbit">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan</span><span id="hint-walk" style="display:none">WASD to move &middot; Mouse to look &middot; <span id="ghost-status">Ghost Mode: Off</span> &middot; Esc to exit</span></div>
         <div class="vio-tip" id="vio-tip" hidden aria-live="polite"></div>
         <div class="sugg-panel sugg-popover" id="sugg-dock" style="display:none">
           <div class="sugg-head"><div class="sugg-title">Suggested Design</div><button class="sugg-x" onclick="dismissSuggestedDock()" aria-label="Dismiss suggestion" title="Dismiss">&#xD7;</button></div>
@@ -1514,7 +1514,9 @@ function resetEditHistory(){
   if(ghostMode){
     ghostMode=false;
     const b=document.getElementById('btn-ghost');
-    if(b){b.textContent='Ghost: Off';b.classList.remove('walk-active');b.setAttribute('aria-pressed','false');b.style.background=null;}
+    if(b){b.textContent='Ghost Mode: Off';b.classList.remove('walk-active');b.setAttribute('aria-pressed','false');b.style.background=null;}
+    const gs=document.getElementById('ghost-status');
+    if(gs)gs.textContent='Ghost Mode: Off';
   }
 }
 let propUndoHourglass=null,propUndoDue=true;
@@ -4498,13 +4500,14 @@ function toggleGhostMode(){
   ghostMode=!ghostMode;
   const b=document.getElementById('btn-ghost');
   if(b){
-    b.textContent=ghostMode?'Ghost: On':'Ghost: Off';
+    b.textContent=ghostMode?'Ghost Mode: On':'Ghost Mode: Off';
     b.classList.toggle('walk-active',ghostMode);
     b.setAttribute('aria-pressed',ghostMode?'true':'false');
     b.style.background=ghostMode?'#2e7d32':null;
   }
-  setStatus(ghostMode?'Ghost mode ON \u2014 fly through walls and furniture (W/S follow look direction).':'Ghost mode off \u2014 normal walking collision restored.');
-  if(walkMode)applyWalkCamera();
+  const gs=document.getElementById('ghost-status');
+  if(gs)gs.textContent='Ghost Mode: '+(ghostMode?'On':'Off');
+setStatus(ghostMode?'Ghost Mode ON \u2014 fly through walls and furniture (W/S follow look direction).':'Ghost Mode OFF \u2014 normal walking collision restored. D strafes right, A strafes left.');
 }
 function toggleWalkMode(){
   const c3=document.getElementById('canvas3d');
@@ -4512,6 +4515,13 @@ function toggleWalkMode(){
   if(!walkMode){
     if(!c3)return;
     walkMode=true;walkPitch=0;
+    if(ghostMode){
+      ghostMode=false;
+      const gb=document.getElementById('btn-ghost');
+      if(gb){gb.textContent='Ghost Mode: Off';gb.classList.remove('walk-active');gb.setAttribute('aria-pressed','false');gb.style.background=null;}
+      const gs=document.getElementById('ghost-status');
+      if(gs)gs.textContent='Ghost Mode: Off';
+    }
     const sp=computeWalkSpawn();
     walkPos={x:sp.x,y:sp.y,z:sp.z};
     walkYaw=sp.yaw;
@@ -4666,10 +4676,10 @@ function stepWalk(dt){
   }
   const speed=2.2;
   const sy=Math.sin(walkYaw),cy=Math.cos(walkYaw);
-  const cp=Math.cos(walkPitch),sp=Math.sin(walkPitch);
+  const cp=Math.cos(ghostMode?walkPitch:0),sp=Math.sin(ghostMode?walkPitch:0);
   let vx=0,vy=0,vz=0;
   if(fb){vx+=sy*cp*fb;vy+=sp*fb;vz+=cy*cp*fb;}
-  if(sd){vx+=cy*sd;vz+=-sy*sd;}
+  if(sd){vx+=-cy*sd;vz+=sy*sd;}
   const m=Math.sqrt(vx*vx+vy*vy+vz*vz);vx/=m;vy/=m;vz/=m;
   let nx=walkPos.x+vx*speed*dt,ny=walkPos.y+vy*speed*dt,nz=walkPos.z+vz*speed*dt;
   const wallH=roomConfig.wallH||2.7;
