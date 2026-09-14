@@ -2,6 +2,9 @@
 -- DEMO ACCOUNTS + SAMPLE PROJECTS
 -- Run once in the Supabase SQL editor (Project → SQL Editor).
 -- Safe to re-run: it upserts, never duplicates and never deletes.
+-- Requires supabase/schema.sql to have been run first (creates user_profiles,
+-- projects, and the admin system). universe-schema.sql is NOT required — this
+-- file adds the Universe feed identity columns itself if they are missing.
 --
 --   Demo logins (use these in the app):
 --     email:    demo@floorplan.studio      password: DemoPass123!
@@ -24,6 +27,20 @@ declare
   user_email text := 'user@floorplan.studio';
   user_pass text := 'userfloorplan';
 begin
+
+  -- ── FIX: guarantee the public feed identity columns exist ──
+  -- schema.sql only creates user_profiles(user_id, role, created_at). The
+  -- Universe feed and public profile screens need username/display_name/
+  -- avatar_url (normally added by universe-schema.sql). Adding/ensuring them
+  -- here means this seed runs even if universe-schema.sql hasn't been run yet,
+  -- and keeps the table consistent with what the app expects.
+  alter table public.user_profiles
+    add column if not exists username text unique default null,
+    add column if not exists display_name text default null,
+    add column if not exists avatar_url text default null;
+  -- Guarantee the unique index even if the column already existed without one.
+  create unique index if not exists user_profiles_username_key
+    on public.user_profiles (username) where username is not null;
 
   -- ── ADMIN DEMO ──────────────────────────────────────────────
   -- 1) Auth user (so sign-in with email/password actually works).
