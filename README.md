@@ -86,11 +86,11 @@ git remote add origin <url> && git push -u origin main
    (`username`/`display_name`/`avatar_url`) to `user_profiles`, the `universe_posts` and
    `universe_likes` tables, and the RPCs the frontend calls. Run it **after** `schema.sql`
    (it uses `is_admin()`); it's re-runnable.
-8. (Optional) **Demo account**: run `supabase/demo-account.sql` to replace the old
-   `demo@floorplan.studio` admin account with a standard demo user:
-   `user@floorplan.studio` / `userfloorplan` (role `user`, non-admin). If you still want an
-   admin account for the Admin panel + moderation/Official badge, promote your own account
-   with the snippet in that file (or in `schema.sql`).
+8. (Optional) **Demo accounts**: run `supabase/demo-account.sql` to seed two demo
+   logins side by side — `demo@floorplan.studio` / `DemoPass123!` as an **admin**
+   (Admin panel, moderation, "Official" badge) and `user@floorplan.studio` /
+   `userfloorplan` as a **standard `user`** with the normal app view. Removing either
+   account is optional; the script only upserts and never deletes.
 
 ## 3. Render (AI furniture detection backend)
 
