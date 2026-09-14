@@ -31,6 +31,18 @@ alter table public.user_profiles
   add column if not exists display_name text default null,
   add column if not exists avatar_url text default null;
 
+-- ── 1b) Public flag on projects + RLS.
+-- Published projects carry is_public = true so ANY signed-in user can read them
+-- directly from public.projects (regardless of user_id), while writes stay with
+-- the owner. The flag is set to true by universe_publish() and cleared again by
+-- universe_unpublish(); the feed itself is served from universe_posts snapshots.
+alter table public.projects
+  add column if not exists is_public boolean not null default false;
+
+create policy "Authenticated users can view public projects"
+  on public.projects for select
+  using (is_public and auth.role() = 'authenticated');
+
 -- ── 2) Universe posts: a COPY of the design data taken at publish time, so a
 -- published template is a stable public snapshot while the source project
 -- remains private. One post per project if linked (users may publish again to
@@ -219,17 +231,25 @@ begin
         is_official = excluded.is_official,
         updated_at = now()
   returning id into vpost;
+  -- Mark the source project public so any signed-in user can read it too.
+  update public.projects set is_public = true where id = pid;
   return vpost;
 end $$;
 
 -- Owner or admin removes a post. Returns true if something was removed.
+-- When an owner unpublishes, their source project becomes private again.
 create or replace function public.universe_unpublish(post_id uuid)
 returns boolean
 language plpgsql security definer set search_path = public as $$
+declare
+  vpid uuid;
 begin
+  select project_id into vpid from public.universe_posts where id = post_id;
   delete from public.universe_posts
     where id = post_id and (user_id = auth.uid() or public.is_admin());
   if found then
+    update public.projects set is_public = false
+      where id = vpid and user_id = auth.uid();
     return true;
   end if;
   raise exception 'Post not found, or you cannot unpublish it';

@@ -13,6 +13,8 @@
 --   demo@floorplan.studio is an ADMIN (so you can open the Admin panel,
 --   moderate the Universe feed, and publish "Official" templates).
 --   user@floorplan.studio is a STANDARD 'user' — the normal app view.
+--   If universe-schema.sql has been run, both demo projects are also published
+--   to the Universe feed so the community feed shows content from day one.
 --   To test the normal user view on the admin demo account instead, run:
 --     update public.user_profiles set role = 'user'
 --     where user_id = '00000000-0000-0000-0000-000000000001';
@@ -177,6 +179,46 @@ begin
     "photos": []
   }$DEMO$::jsonb
   where not exists (select 1 from public.projects where user_id = user_id);
+
+  -- ── UNIVERSE SEED (optional — only runs when the Universe schema is present) ──
+  -- If universe-schema.sql has been run, publish the two demo projects to the
+  -- feed so ANY signed-in user sees published templates from all users from day
+  -- one (the acceptance criteria for the public feed), not just their own. The
+  -- admin entry is marked "Official". Skipped entirely when the Universe tables
+  -- are missing, so run order still doesn't matter for the base seed.
+  if to_regclass('public.universe_posts') is not null
+     and exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'projects'
+                   and column_name = 'is_public') then
+
+    -- Published projects are readable by any signed-in user via RLS.
+    update public.projects set is_public = true
+      where user_id in (admin_id, user_id)
+        and name = 'Demo Living Room';
+
+    insert into public.universe_posts (user_id, project_id, caption, data, is_official)
+    select admin_id, p.id,
+           'Our starter layout — warm wood and gold, ready to remix.',
+           p.data, true
+      from public.projects p
+      where p.user_id = admin_id and p.name = 'Demo Living Room'
+      on conflict (project_id) do update
+        set caption = excluded.caption,
+            data = excluded.data,
+            is_official = excluded.is_official,
+            updated_at = now();
+
+    insert into public.universe_posts (user_id, project_id, caption, data, is_official)
+    select user_id, p.id,
+           'A cozy reading nook — copy it and make it yours.',
+           p.data, false
+      from public.projects p
+      where p.user_id = user_id and p.name = 'Demo Living Room'
+      on conflict (project_id) do update
+        set caption = excluded.caption,
+            data = excluded.data,
+            updated_at = now();
+  end if;
 
   raise notice 'Demo accounts ready: % (admin), % (user)', admin_email, user_email;
 end $$;
