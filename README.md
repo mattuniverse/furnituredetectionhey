@@ -26,7 +26,9 @@ This folder is the "online" version of your app:
 /
 ├── index.html            ← the whole frontend (canvas editor, 3D view, auth, save/load)
 ├── supabase/
-│   └── schema.sql         ← run once in Supabase to create the projects table + admin
+│   ├── schema.sql         ← run once in Supabase: projects table, storage, admin system
+│   ├── universe-schema.sql← run after schema.sql: Universe feed tables + RPCs
+│   └── demo-account.sql   ← optional: demo user + sample project (standard 'user' role)
 ├── package.json
 ├── vercel.json
 └── .gitignore
@@ -79,6 +81,16 @@ git remote add origin <url> && git push -u origin main
 6. (Recommended for testing) Go to **Authentication → Providers → Email** and turn off
    "Confirm email" temporarily, so you can sign up and sign in immediately without checking
    an inbox. Turn it back on before sharing the site with real users.
+7. **Universe feed** (community templates): open the SQL editor again, paste
+   `supabase/universe-schema.sql`, and run it. This adds public feed identity columns
+   (`username`/`display_name`/`avatar_url`) to `user_profiles`, the `universe_posts` and
+   `universe_likes` tables, and the RPCs the frontend calls. Run it **after** `schema.sql`
+   (it uses `is_admin()`); it's re-runnable.
+8. (Optional) **Demo account**: run `supabase/demo-account.sql` to replace the old
+   `demo@floorplan.studio` admin account with a standard demo user:
+   `user@floorplan.studio` / `userfloorplan` (role `user`, non-admin). If you still want an
+   admin account for the Admin panel + moderation/Official badge, promote your own account
+   with the snippet in that file (or in `schema.sql`).
 
 ## 3. Render (AI furniture detection backend)
 

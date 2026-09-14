@@ -1,24 +1,43 @@
 -- ─────────────────────────────────────────────────────────────
--- DEMO ACCOUNT + SAMPLE PROJECT
+-- DEMO ACCOUNT + SAMPLE PROJECT  (replaces the old demo account)
 -- Run once in the Supabase SQL editor (Project → SQL Editor).
--- Safe to re-run: it upserts, never duplicates.
+-- Safe to re-run: it replaces the old demo and upserts the new one.
 --
 --   Demo login (use these in the app):
---     email:    demo@floorplan.studio
---     password: DemoPass123!
+--     email:    user@floorplan.studio
+--     password: userfloorplan
 --
---   The demo account is created as an ADMIN so you can see the
---   admin panel too. To test the normal user view instead, run:
---     update public.user_profiles set role = 'user'
---     where user_id = '00000000-0000-0000-0000-000000000001';
+--   This account is a STANDARD 'user' (role = user), so it sees the normal
+--   app view — not the Admin panel. If you publish a template from this
+--   account it will NOT carry the "Official" badge.
+--
+--   What happened to the old demo account?
+--     demo@floorplan.studio (which was an admin) is DELETED, along with its
+--     profile row and its sample projects (cascade).
+--
+--   To test admin features (Admin panel, moderation, Official badge),
+--   promote ONE of your own accounts to admin after running this file:
+--     insert into public.user_profiles (user_id, role)
+--     values ('REPLACE_WITH_YOUR_USER_UUID', 'admin')
+--     on conflict (user_id) do update set role = 'admin';
+--   Find your uuid: select id, email from auth.users;
+--   Then sign the app out and back in to refresh the role.
 -- ─────────────────────────────────────────────────────────────
 
 do $$
 declare
-  demo_id uuid := '00000000-0000-0000-0000-000000000001';
-  demo_email text := 'demo@floorplan.studio';
-  demo_pass text := 'DemoPass123!';
+  old_demo_email text := 'demo@floorplan.studio';
+  demo_id uuid := '00000000-0000-0000-0000-000000000002';
+  demo_email text := 'user@floorplan.studio';
+  demo_pass text := 'userfloorplan';
 begin
+
+  -- 0) Remove the OLD demo account (email + its auth id), if it still exists.
+  --    Its profile, projects, and universe rows are removed via cascade.
+  delete from auth.identities
+    where user_id in (select id from auth.users where email = old_demo_email);
+  delete from auth.users
+    where email = old_demo_email;
 
   -- 1) Auth user (so sign-in with email/password actually works).
   insert into auth.users (
@@ -50,10 +69,15 @@ begin
     'email', now(), now(), now()
   );
 
-  -- 3) Profile row + admin role (lets you open the Admin panel).
-  insert into public.user_profiles (user_id, role)
-  values (demo_id, 'admin')
-  on conflict (user_id) do update set role = 'admin';
+  -- 3) Profile row — STANDARD USER (not an admin) with a public feed identity.
+  --    The username/display fields power the Universe feed cards.
+  insert into public.user_profiles (user_id, role, username, display_name, avatar_url)
+  values (demo_id, 'user', 'RoomAI Demo', 'RoomAI Demo User', '')
+  on conflict (user_id) do update
+    set role = 'user',
+        username = coalesce(public.user_profiles.username, 'RoomAI Demo'),
+        display_name = coalesce(public.user_profiles.display_name, 'RoomAI Demo User'),
+        avatar_url = coalesce(public.user_profiles.avatar_url, '');
 
   -- 4) Sample project so the dashboard/editor have something to show.
   insert into public.projects (user_id, name, data)
@@ -83,5 +107,5 @@ begin
   }$DEMO$::jsonb
   where not exists (select 1 from public.projects where user_id = demo_id);
 
-  raise notice 'Demo account ready: %', demo_email;
+  raise notice 'Demo account ready: % (standard user)', demo_email;
 end $$;

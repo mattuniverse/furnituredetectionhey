@@ -158,6 +158,57 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .new-card .plus { font-size: 32px; line-height: 1; width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-sunken); display: flex; align-items: center; justify-content: center; transition: all var(--transition-base); }
 .new-card:hover .plus { background: var(--color-accent-light); }
 
+/* Universe feed */
+.universe-feed { display: flex; flex-direction: column; gap: 18px; max-width: 640px; margin: 0 auto; }
+.universe-card { background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+.u-thumb { display: block; width: 100%; aspect-ratio: 2 / 1; background: var(--color-bg-sunken); }
+.u-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 6px; }
+.u-avatar { width: 36px; height: 36px; border-radius: 50%; border: none; background: color-mix(in srgb, var(--color-accent) 22%, var(--color-bg-sunken)); color: var(--color-accent); font-family: var(--font-body); font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); }
+.u-avatar:hover { background: var(--color-accent); color: var(--color-text-inverse); }
+.u-creator { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.u-name { border: none; background: none; padding: 0; font-family: var(--font-body); font-size: 13.5px; font-weight: 600; color: var(--color-text); cursor: pointer; text-align: left; }
+.u-name:hover { color: var(--color-accent); text-decoration: underline; }
+.u-date { font-size: 11.5px; color: var(--color-text-muted); }
+.u-badge { margin-left: auto; flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-accent); border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent); background: color-mix(in srgb, var(--color-accent) 14%, transparent); border-radius: 999px; padding: 3px 9px; }
+.u-caption { padding: 4px 14px 2px; font-size: 13px; color: var(--color-text-secondary); white-space: pre-wrap; line-height: 1.5; }
+.u-actions { display: flex; align-items: center; gap: 8px; padding: 8px 12px 12px; flex-wrap: wrap; }
+.u-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border: 1px solid var(--color-border); border-radius: 999px; background: transparent; color: var(--color-text-secondary); font-family: var(--font-body); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
+.u-btn:hover { border-color: var(--color-text-muted); color: var(--color-text); }
+.u-btn.primary { background: var(--color-primary); color: var(--color-text-inverse); border-color: var(--color-primary); }
+.u-btn.primary:hover, .u-btn.primary:focus-visible { background: var(--color-primary-hover); color: var(--color-text-inverse); border-color: var(--color-primary-hover); }
+.u-btn.liked { color: var(--color-accent); border-color: color-mix(in srgb, var(--color-accent) 55%, transparent); }
+.u-btn.gmuted { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 45%, transparent); }
+.u-btn.gmuted:hover { color: var(--color-danger); border-color: var(--color-danger); }
+.u-btn:disabled { opacity: .55; cursor: not-allowed; }
+.u-heart { font-size: 14px; line-height: 1; }
+.u-empty { text-align: center; padding: 44px 20px; color: var(--color-text-muted); }
+.start-actions { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+.profile-head { display: flex; align-items: center; gap: 16px; padding: 4px 0 22px; }
+.profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--color-primary); color: var(--color-text-inverse); font-family: var(--font-display); font-size: 26px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.profile-info { min-width: 0; }
+.profile-name { font-family: var(--font-display); font-size: 20px; color: var(--color-primary); }
+.profile-handle { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; }
+.profile-meta { font-size: 12.5px; color: var(--color-text-muted); margin-top: 6px; }
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 18px; }
+.project-actions-row { display: flex; gap: 8px; padding: 0 14px 14px; flex-wrap: wrap; }
+.universe-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); color: var(--color-text-secondary); font-family: var(--font-body); font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
+.universe-chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.universe-chip.published { border-color: color-mix(in srgb, var(--color-accent) 55%, transparent); color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.universe-chip .chip-dot { font-size: 7px; }
+.universe-caption { width: 100%; resize: vertical; min-height: 74px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-sunken); color: var(--color-text); font-family: var(--font-body); font-size: 13px; line-height: 1.5; }
+.universe-caption:focus { outline: 2px solid var(--color-border-focus); outline-offset: 1px; border-color: var(--color-accent); }
+.universe-char-note { font-size: 11px; color: var(--color-text-muted); text-align: right; margin-top: 4px; }
+.save-toast.with-actions { pointer-events: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.save-toast .toast-act { background: transparent; border: 1px solid currentColor; border-radius: 999px; color: inherit; font-family: var(--font-body); font-size: 11.5px; font-weight: 600; padding: 3px 9px; cursor: pointer; }
+.save-toast .toast-act:hover { opacity: .8; }
+@media (max-width: 700px) {
+  .universe-feed { gap: 14px; }
+  .u-actions .u-btn { flex: 1; justify-content: center; }
+  .profile-head { gap: 12px; }
+  .profile-avatar { width: 52px; height: 52px; font-size: 22px; }
+  .profile-grid { grid-template-columns: 1fr; }
+}
+
 /* Room Setup */
 #screen-room-setup { align-items: center; justify-content: center; background: var(--color-bg); }
 .setup-card { background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-xl); padding: 44px 40px; width: 480px; max-width: 94vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
@@ -1325,12 +1376,14 @@ canvas { display: block; }
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
       </button>
       <button class="btn-outline" data-admin-link onclick="openAdmin()" style="display:none" aria-label="Open admin panel">Admin</button>
+      <button class="btn-outline" onclick="openUniverse()" aria-label="Browse community templates">Universe</button>
       <div class="avatar" data-avatar aria-label="User avatar">U</div>
       <button class="btn-outline" onclick="logout()" aria-label="Log out">Log out</button>
       <button class="nav-burger" id="dash-burger" onclick="toggleAppMenu('dash-menu')" aria-label="Open user menu" aria-expanded="false" aria-controls="dash-menu" title="Menu">&#9776;</button>
     </div>
     <div class="app-drop" id="dash-menu">
       <button onclick="goTo('start')">&#xFF0B; New Design</button>
+      <button onclick="openUniverse()">&#x1F310; Universe</button>
       <button onclick="toggleTheme()">&#x263E; Switch theme</button>
       <button onclick="logout()">&#x21B5; Log out</button>
     </div>
@@ -1360,6 +1413,7 @@ canvas { display: block; }
     </div>
     <div class="app-drop" id="start-menu">
       <button onclick="goTo('dashboard');loadProjects()">&#x1F4C1; My Projects</button>
+      <button onclick="openUniverse()">&#x1F310; Universe</button>
       <button onclick="toggleTheme()">&#x263E; Switch theme</button>
       <button onclick="logout()">&#x21B5; Log out</button>
     </div>
@@ -1379,7 +1433,10 @@ canvas { display: block; }
         <span class="mode-desc">Lay out several rooms on one canvas, customize each room, and get layout suggestions for the whole plan.</span>
       </button>
     </div>
-    <button class="btn-outline" onclick="goTo('dashboard');loadProjects()" aria-label="View my saved projects">&rarr; My Projects</button>
+    <div class="start-actions">
+      <button class="btn-outline" onclick="goTo('dashboard');loadProjects()" aria-label="View my saved projects">&rarr; My Projects</button>
+      <button class="btn-outline" onclick="openUniverse()" aria-label="Browse community templates">&#x1F310; Universe</button>
+    </div>
   </div>
 </div>
 
@@ -1420,6 +1477,69 @@ canvas { display: block; }
         <tbody></tbody>
       </table>
     </div>
+    <div class="panel-title" style="margin:24px 0 8px">Universe posts</div>
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="admin-universe">
+        <thead><tr><th>Caption</th><th>Owner</th><th>Type</th><th>Likes</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- UNIVERSE FEED -->
+<div id="screen-universe" class="screen">
+  <div class="dash-header">
+    <div class="brand">RoomAI</div>
+    <div class="dash-header-right">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+      </button>
+      <button class="btn-outline" data-admin-link onclick="openAdmin()" style="display:none" aria-label="Open admin panel">Admin</button>
+      <button class="btn-outline" onclick="goTo('dashboard');loadProjects()" aria-label="Back to dashboard">&larr; Dashboard</button>
+      <div class="avatar" data-avatar aria-label="User avatar">U</div>
+      <button class="nav-burger" id="universe-burger" onclick="toggleAppMenu('universe-menu')" aria-label="Open menu" aria-expanded="false" aria-controls="universe-menu" title="Menu">&#9776;</button>
+    </div>
+    <div class="app-drop" id="universe-menu">
+      <button onclick="openUniverse()">&#x1F310; Universe</button>
+      <button onclick="goTo('dashboard');loadProjects()">&#x1F4C1; My Projects</button>
+      <button onclick="goTo('start')">&#xFF0B; New Design</button>
+      <button onclick="toggleTheme()">&#x263E; Switch theme</button>
+      <button onclick="logout()">&#x21B5; Log out</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="dash-title">Universe</div>
+    <div class="dash-subtitle">Community room templates — browse, like, and remix someone's layout</div>
+    <div class="universe-feed" id="universe-feed"></div>
+  </div>
+</div>
+
+<!-- PUBLIC USER PROFILE -->
+<div id="screen-profile" class="screen">
+  <div class="dash-header">
+    <div class="brand">RoomAI</div>
+    <div class="dash-header-right">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch between light and dark theme" title="Switch theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"></path></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 14.2A8.4 8.4 0 0 1 9.8 3.4a8.4 8.4 0 1 0 10.8 10.8z"></path></svg>
+      </button>
+      <button class="btn-outline" onclick="goTo('universe');setTimeout(loadUniverse,0)" aria-label="Back to Universe">&larr; Universe</button>
+      <div class="avatar" data-avatar aria-label="User avatar">U</div>
+      <button class="nav-burger" id="profile-burger" onclick="toggleAppMenu('profile-menu')" aria-label="Open menu" aria-expanded="false" aria-controls="profile-menu" title="Menu">&#9776;</button>
+    </div>
+    <div class="app-drop" id="profile-menu">
+      <button onclick="openUniverse()">&#x1F310; Universe</button>
+      <button onclick="goTo('dashboard');loadProjects()">&#x1F4C1; My Projects</button>
+      <button onclick="toggleTheme()">&#x263E; Switch theme</button>
+      <button onclick="logout()">&#x21B5; Log out</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="profile-head" id="profile-head"></div>
+    <div class="panel-title" style="margin:0 0 10px">Published templates</div>
+    <div class="profile-grid" id="profile-posts"></div>
   </div>
 </div>
 
@@ -1634,6 +1754,21 @@ canvas { display: block; }
   </div>
 </div>
 
+<!-- UNIVERSE PUBLISH MODAL -->
+<div class="modal-overlay" id="modal-universe" role="dialog" aria-modal="true" aria-labelledby="universe-modal-title">
+  <div class="modal">
+    <div class="modal-title" id="universe-modal-title">Add to Universe</div>
+    <div class="modal-sub">Share this design as a public template. Anyone can browse it from the Universe feed and copy the layout into their own projects — your saved project stays private either way.</div>
+    <div class="sidebar-label" style="padding:0">Caption (optional)</div>
+    <textarea class="universe-caption" id="universe-caption" rows="3" maxlength="200" placeholder="A cozy reading nook — warm wood floors, soft rug, and a shelf by the window&hellip;" oninput="updateUniverseCharNote()" aria-label="Caption for the Universe post"></textarea>
+    <div class="universe-char-note" id="universe-char-note">0 / 200</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('modal-universe')">Keep private</button>
+      <button class="modal-ok" id="btn-universe-publish" onclick="confirmUniversePublish()">Publish to Universe &rarr;</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDITOR -->
 <div id="screen-editor" class="screen">
   <div class="editor-wrap">
@@ -1653,6 +1788,7 @@ canvas { display: block; }
         <button class="btn-icon" id="btn-design" title="Suggested designs" onclick="toggleDesignPanel()" aria-label="Open suggested designs" aria-expanded="false" aria-controls="sugg-dock">&#x1F4A1;</button>
         <button class="btn-icon" title="Export" onclick="toggleExportMenu()" aria-label="Export options" aria-haspopup="true">&#x2B73;</button>
         <button class="btn-icon" id="btn-save" title="Save" onclick="saveProject()" aria-label="Save project">&#x1F4BE;</button>
+        <button class="btn-icon" id="btn-universe" title="Publish to Universe" onclick="openUniverseModal()" aria-label="Publish this design to Universe">&#x1F310;</button>
         <button class="btn-icon danger" title="Back to dashboard" onclick="backToDashboard()" aria-label="Back to dashboard">&#x2302;</button>
         <div class="export-menu" id="export-menu" role="menu" aria-label="Export menu">
           <button onclick="exportPNG()" role="menuitem">&#x1F5BC; Export as PNG</button>
@@ -2039,6 +2175,25 @@ async function loadAdminPanel(){
     console.error('[loadAdminPanel] projects',err);
     projTab.innerHTML='<tr><td colspan="4" style="color:var(--color-danger);font-size:12px">Could not load projects.</td></tr>';
   }
+  const uniTab=document.getElementById('admin-universe').querySelector('tbody');
+  if(uniTab)uniTab.innerHTML='';
+  try{
+    const {data:posts,error:uErr}=await supabaseClient.rpc('universe_admin_list');
+    if(uErr)throw uErr;
+    if(!uniTab)return;
+    if(posts&&posts.length){
+      posts.forEach(q=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${q.caption?escHtml(q.caption):'<em style="color:var(--color-text-muted)">No caption</em>'}</td><td>${escHtml(q.email)}</td><td>${q.is_official?'<span class="admin-role is-admin">Official</span>':'<span class="admin-role is-user">Community</span>'}</td><td>${q.likes}</td><td><button class="admin-delete" onclick="universeAdminRemove('${q.id}',this)">Remove</button></td>`;
+        uniTab.appendChild(tr);
+      });
+    }else{
+      uniTab.innerHTML='<tr><td colspan="5" style="color:var(--color-text-muted);font-size:12px">No published posts.</td></tr>';
+    }
+  }catch(err){
+    console.error('[loadAdminPanel] universe',err);
+    if(uniTab)uniTab.innerHTML='<tr><td colspan="5" style="color:var(--color-danger);font-size:12px">Could not load universe posts.</td></tr>';
+  }
 }
 async function adminDeleteProject(id,btn){
   if(!window.confirm('Delete this project permanently?'))return;
@@ -2059,6 +2214,11 @@ async function loadProjects(){
   grid.innerHTML=`<button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>`;
   const {data,error}=await supabaseClient.from('projects').select('id,name,updated_at,data').order('updated_at',{ascending:false});
   if(error){console.error('[loadProjects]',error);return;}
+  const ownPosts={};
+  try{
+    const {data:ups}=await supabaseClient.from('universe_posts').select('id,project_id');
+    if(ups&&ups.length)ups.forEach(r=>{if(r.project_id)ownPosts[r.project_id]=r.id;});
+  }catch(upErr){console.warn('[loadProjects] universe status',upErr.message);}
   if(!data||data.length===0){
     grid.innerHTML=`
       <button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>
@@ -2079,7 +2239,10 @@ async function loadProjects(){
     card.onclick=()=>openProject(p.id);
     card.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(p.id);}};
     const date=new Date(p.updated_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-    card.innerHTML=`<button class="delete-project" title="Delete project" aria-label="Delete ${p.name}" onclick="event.stopPropagation();deleteProject(${p.id},this.parentElement)">&#x2715;</button><div class="project-thumb"><span class="thumb-icon">${isFp?'&#x1F3E0;':'&#x1F6CB;&#xFE0F;'}</span></div><div class="project-info"><div class="project-name">${p.name}${isFp?'<span class="project-type-tag">Floor plan</span>':''}</div><div class="project-date">Modified ${date}</div></div>`;
+    const chip=ownPosts[p.id]
+      ?`<button class="universe-chip published" data-post="${ownPosts[p.id]}" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','${ownPosts[p.id]}',this)" aria-label="Published to Universe; click to unpublish"><span class="chip-dot">&#9679;</span>In Universe &mdash; tap to unpublish</button>`
+      :`<button class="universe-chip" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','',this)" aria-label="Publish this project to Universe">&#x1F310; Publish to Universe</button>`;
+    card.innerHTML=`<button class="delete-project" title="Delete project" aria-label="Delete ${p.name}" onclick="event.stopPropagation();deleteProject(${p.id},this.parentElement)">&#x2715;</button><div class="project-thumb"><span class="thumb-icon">${isFp?'&#x1F3E0;':'&#x1F6CB;&#xFE0F;'}</span></div><div class="project-info"><div class="project-name">${p.name}${isFp?'<span class="project-type-tag">Floor plan</span>':''}</div><div class="project-date">Modified ${date}</div></div><div class="project-actions-row">${chip}</div>`;
     grid.appendChild(card);
   });
 }
@@ -2089,6 +2252,323 @@ async function deleteProject(id,cardEl){
   if(error){setStatus('Delete failed: '+error.message);return;}
   if(cardEl&&cardEl.parentElement)cardEl.parentElement.classList.add('removing');
   setTimeout(()=>loadProjects(),120);
+}
+// ══════════════════════════════════════════
+//  UNIVERSE FEED
+// ══════════════════════════════════════════
+let universeUid=null;
+let universeCache=[];
+async function currentUserUid(){
+  try{const {data:{user}}=await supabaseClient.auth.getUser();return user?user.id:null;}catch(err){return null;}
+}
+function escHtml(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function uTime(iso){
+  const d=new Date(iso),now=new Date();
+  const diff=Math.max(0,Math.floor((now-d)/1000));
+  if(diff<60)return 'just now';
+  if(diff<3600)return Math.floor(diff/60)+'m ago';
+  if(diff<86400)return Math.floor(diff/3600)+'h ago';
+  if(diff<604800)return Math.floor(diff/86400)+'d ago';
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+}
+function openUniverse(){goTo('universe');loadUniverse();}
+function universeDims(kind,data){
+  if(kind==='Floor Plan')return '';
+  const rc=(data&&data.roomConfig)||{};
+  if(!rc.w||!rc.h)return'';
+  return (Math.round(rc.w*10)/10)+' \u00D7 '+(Math.round(rc.h*10)/10)+' m';
+}
+async function loadUniverse(){
+  const feed=document.getElementById('universe-feed');
+  if(!feed)return;
+  feed.innerHTML='<div class="u-empty"><div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">Loading the Universe&hellip;</div></div>';
+  universeUid=await currentUserUid();
+  try{
+    const {data,error}=await supabaseClient.rpc('universe_list');
+    if(error)throw error;
+    universeCache=data||[];
+  }catch(err){
+    console.error('[universe]',err);
+    feed.innerHTML='<div class="u-empty"><div class="empty-state-icon">&#x26A0;&#xFE0F;</div><div class="empty-state-title">Could not load the Universe</div><div class="empty-state-text">'+escHtml(err.message||'Try again later.')+'</div></div>';
+    return;
+  }
+  if(!universeCache.length){
+    feed.innerHTML='<div class="u-empty"><div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">No templates here yet</div><div class="empty-state-text">Be the first &mdash; save a design and hit the &#x1F310; button in the editor, or tap Publish on a project card, to share your layout.</div></div>';
+    return;
+  }
+  feed.innerHTML=universeCache.map(universeCardHtml).join('');
+  feed.querySelectorAll('canvas.u-thumb').forEach(cv=>{
+    const post=universeCache.find(p=>p.id===cv.dataset.post);
+    if(post)drawUniverseThumb(cv,post.data);
+  });
+}
+function universeCardHtml(p){
+  const mine=p.user_id===universeUid;
+  const liked=!!p.my_like;
+  const dims=universeDims(p.kind,p.data);
+  return `<article class="universe-card" data-post="${p.id}">
+    <canvas class="u-thumb" width="640" height="320" data-post="${p.id}" aria-label="Preview of a ${escHtml(p.kind)} template"></canvas>
+    <div class="u-head">
+      <button class="u-avatar" onclick="openUniverseProfile('${p.user_id}')" aria-label="View ${escHtml(p.username)}'s profile" title="View profile">${escHtml((p.username||'?').charAt(0).toUpperCase())}</button>
+      <div class="u-creator">
+        <button class="u-name" onclick="openUniverseProfile('${p.user_id}')">${escHtml(p.username)}</button>
+        <div class="u-date">${uTime(p.created_at)} &middot; ${escHtml(p.kind)}${dims?' &middot; '+escHtml(dims):''}</div>
+      </div>
+      ${p.is_official?'<span class="u-badge" title="Published by an admin">Official</span>':''}
+    </div>
+    ${p.caption?`<div class="u-caption">${escHtml(p.caption)}</div>`:''}
+    <div class="u-actions">
+      <button class="u-btn ${liked?'liked':''}" onclick="toggleUniverseLike('${p.id}',this)" aria-pressed="${liked}" aria-label="Like this template"><span class="u-heart">${liked?'&#x2665;':'&#x2661;'}</span><span class="u-likes-count">${p.likes}</span></button>
+      <button class="u-btn primary" onclick="useUniverseTemplate('${p.id}')">Copy this layout</button>
+      ${mine?`<button class="u-btn gmuted" onclick="universeRemovePost('${p.id}',this)">Unpublish</button>`:''}
+    </div>
+  </article>`;
+}
+function drawUniverseThumb(cv,data){
+  if(!cv||!data)return;
+  const x=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  x.clearRect(0,0,W,H);
+  x.fillStyle=cssVar('--color-bg-sunken')||'#ede8e0';x.fillRect(0,0,W,H);
+  const floors={wood:'#c8a878',tile:'#d8d4cc',carpet:'#b8aeb0',concrete:'#a8b0b8'};
+  const fs=(rc)=>(rc&&rc.floor&&floors[rc.floor.style])||'#c8a878';
+  if(data.type==='floor'&&Array.isArray(data.rooms)){
+    const rooms=data.rooms.filter(r=>r&&r.rect&&r.roomConfig);
+    if(rooms.length){
+      let maxX=0,maxY=0;
+      rooms.forEach(r=>{maxX=Math.max(maxX,r.rect.x+r.rect.w);maxY=Math.max(maxY,r.rect.y+r.rect.h);});
+      const s=Math.min((W-60)/Math.max(maxX,1),(H-60)/Math.max(maxY,1));
+      const ox=(W-maxX*s)/2,oy=(H-maxY*s)/2;
+      rooms.forEach(r=>{
+        const rc=r.roomConfig;
+        x.fillStyle=(rc.floor&&rc.floor.color)||fs(rc);
+        x.fillRect(ox+r.rect.x*s,oy+r.rect.y*s,r.rect.w*s,r.rect.h*s);
+        x.strokeStyle='rgba(70,50,30,.35)';x.lineWidth=2;
+        x.strokeRect(ox+r.rect.x*s,oy+r.rect.y*s,r.rect.w*s,r.rect.h*s);
+        x.fillStyle='rgba(255,255,255,.85)';
+        x.font='600 12px DM Sans, sans-serif';
+        x.textAlign='center';x.textBaseline='middle';
+        x.fillText((rc.label||rc.type||'Room').split(' ')[0],ox+(r.rect.x+r.rect.w/2)*s,oy+(r.rect.y+r.rect.h/2)*s);
+      });
+    }else{
+      x.fillStyle='rgba(70,50,30,.25)';
+      x.font='600 14px DM Sans, sans-serif';
+      x.textAlign='center';x.textBaseline='middle';
+      x.fillText('Floor Plan',W/2,H/2);
+    }
+    return;
+  }
+  const rc=data.roomConfig;if(!rc)return;
+  const w=rc.w||5,h=rc.h||4;
+  const s=Math.min((W-70)/w,(H-70)/h);
+  const ox=(W-w*s)/2,oy=(H-h*s)/2;
+  x.fillStyle=(rc.floor&&rc.floor.color)||fs(rc);
+  x.fillRect(ox,oy,w*s,h*s);
+  x.strokeStyle='rgba(70,50,30,.35)';x.lineWidth=2;
+  x.strokeRect(ox,oy,w*s,h*s);
+  (data.furniture||[]).forEach(f=>{
+    const def=FURNITURE_DEFS.find(d=>d.id===f.defId);if(!def)return;
+    const cx=itemCenter(f).x,cy=itemCenter(f).y;
+    const pw=f.w*s,ph=f.h*s;
+    x.save();x.translate(cx*s+ox,cy*s+oy);x.rotate(f.rot||0);
+    x.fillStyle=def.color||'#8c6040';
+    if(def.type==='circle'){x.beginPath();x.arc(0,0,pw/2,0,Math.PI*2);x.fill();x.stroke();}
+    else{x.fillRect(-pw/2,-ph/2,pw,ph);x.strokeRect(-pw/2,-ph/2,pw,ph);}
+    x.fillStyle='rgba(255,255,255,.85)';
+    x.font='600 '+Math.max(8,Math.min(pw,ph)*0.38)+'px DM Sans, sans-serif';
+    x.textAlign='center';x.textBaseline='middle';
+    x.fillText((def.label.split(' ')[0]||'?').charAt(0),0,0);
+    x.restore();
+  });
+}
+async function toggleUniverseLike(postId,btn){
+  if(!btn)return;
+  const heart=btn.querySelector('.u-heart'),countEl=btn.querySelector('.u-likes-count');
+  const prevLiked=btn.classList.contains('liked');
+  const prevCount=parseInt(countEl?countEl.textContent:'0',10)||0;
+  btn.classList.toggle('liked');btn.setAttribute('aria-pressed',String(!prevLiked));
+  if(heart)heart.innerHTML=!prevLiked?'&#x2665;':'&#x2661;';
+  if(countEl)countEl.textContent=String(Math.max(0,prevCount+(prevLiked?-1:1)));
+  try{
+    const {data,error}=await supabaseClient.rpc('universe_toggle_like',{post_id:postId});
+    if(error)throw error;
+    if(data!==prevLiked){
+      btn.classList.toggle('liked',!!data);btn.setAttribute('aria-pressed',String(!!data));
+      if(heart)heart.innerHTML=data?'&#x2665;':'&#x2661;';
+      if(countEl)countEl.textContent=String(Math.max(0,parseInt(countEl.textContent,10)+(data?1:-1)));
+    }
+  }catch(err){
+    console.error('[like]',err);
+    btn.classList.toggle('liked',prevLiked);btn.setAttribute('aria-pressed',String(prevLiked));
+    if(heart)heart.innerHTML=prevLiked?'&#x2665;':'&#x2661;';
+    if(countEl)countEl.textContent=String(prevCount);
+  }
+}
+function universeMiniCard(p){
+  const mine=p.user_id===universeUid;
+  return `<article class="universe-card" data-post="${p.id}">
+    <canvas class="u-thumb" width="640" height="320" data-post="${p.id}" aria-label="Preview of a ${escHtml(p.kind)} template"></canvas>
+    <div class="u-head">
+      <div class="u-creator"><div class="u-date">${uTime(p.created_at)} &middot; ${escHtml(p.kind)}</div></div>
+      ${p.is_official?'<span class="u-badge">Official</span>':''}
+    </div>
+    ${p.caption?`<div class="u-caption">${escHtml(p.caption)}</div>`:''}
+    <div class="u-actions">
+      <button class="u-btn ${p.my_like?'liked':''}" onclick="toggleUniverseLike('${p.id}',this)" aria-pressed="${!!p.my_like}" aria-label="Like this template"><span class="u-heart">${p.my_like?'&#x2665;':'&#x2661;'}</span><span class="u-likes-count">${p.likes}</span></button>
+      <button class="u-btn primary" onclick="useUniverseTemplate('${p.id}')">Copy this layout</button>
+      ${mine?`<button class="u-btn gmuted" onclick="universeRemovePost('${p.id}',this)">Unpublish</button>`:''}
+    </div>
+  </article>`;
+}
+async function openUniverseProfile(uid){
+  goTo('profile');
+  const head=document.getElementById('profile-head');
+  const grid=document.getElementById('profile-posts');
+  if(head)head.innerHTML='<div class="u-empty" style="padding:26px 20px">Loading profile&hellip;</div>';
+  if(grid)grid.innerHTML='';
+  try{
+    const {data:prof,error:pe}=await supabaseClient.rpc('universe_profile_for',{target:uid});
+    if(pe)throw pe;
+    const p=prof&&prof[0];
+    const name=escHtml(p?p.username:'user');
+    const disp=escHtml((p&&p.display_name)||name);
+    if(head){
+      head.innerHTML=`<div class="profile-avatar">${escHtml((p?p.username:'?').charAt(0).toUpperCase())}</div>
+        <div class="profile-info">
+          <div class="profile-name">${disp}</div>
+          <div class="profile-handle">@${name}</div>
+          <div class="profile-meta">${p?p.post_count:0} published template${(p&&p.post_count===1)?'':'s'} &middot; joined ${p?new Date(p.joined).toLocaleDateString(undefined,{month:'long',year:'numeric'}):'&mdash;'}</div>
+        </div>`;
+    }
+    const {data:posts,error:pe2}=await supabaseClient.rpc('universe_posts_for',{target:uid});
+    if(pe2)throw pe2;
+    if(grid){
+      if(!posts||!posts.length){
+        grid.innerHTML='<div class="u-empty" style="grid-column:1/-1"><div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">No templates published yet</div></div>';
+        return;
+      }
+      grid.innerHTML=posts.map(universeMiniCard).join('');
+      grid.querySelectorAll('canvas.u-thumb').forEach(cv=>{
+        const post=posts.find(q=>q.id===cv.dataset.post);
+        if(post)drawUniverseThumb(cv,post.data);
+      });
+    }
+  }catch(err){
+    console.error('[profile]',err);
+    if(head)head.innerHTML='<div class="u-empty" style="padding:26px 20px">Could not load this profile.</div>';
+  }
+}
+function cloneDesignData(data){
+  const copy=JSON.parse(JSON.stringify(data));
+  let n=1;
+  const reindex=(o)=>{
+    if(Array.isArray(o)){o.forEach(reindex);return;}
+    if(o&&typeof o==='object'){
+      if(typeof o.id==='number')o.id=n++;
+      Object.values(o).forEach(reindex);
+    }
+  };
+  reindex(copy);
+  return copy;
+}
+async function useUniverseTemplate(postId){
+  try{
+    const {data:row,error:qe}=await supabaseClient.from('universe_posts').select('id,data,caption').eq('id',postId).single();
+    if(qe)throw qe;
+    const {data:{user}}=await supabaseClient.auth.getUser();
+    if(!user){setStatus('Sign in to copy this template.');return;}
+    if(!row||!row.data)throw new Error('This template has no layout data.');
+    const data=cloneDesignData(row.data);
+    const kind=(data.type==='floor'?'Floor Plan':((data.roomConfig&&data.roomConfig.type)||'Room'));
+    const {data:ins,error:insErr}=await supabaseClient.from('projects').insert({user_id:user.id,name:'Copy of '+kind+' template',data}).select().single();
+    if(insErr)throw insErr;
+    setStatus('Copied template to your projects \u2713');
+    openProject(ins.id);
+  }catch(err){
+    console.error('[useTemplate]',err);
+    setStatus('Could not copy: '+(err.message||'unknown error'));
+  }
+}
+async function universeRemovePost(postId,btn){
+  try{
+    const {error}=await supabaseClient.rpc('universe_unpublish',{post_id:postId});
+    if(error)throw error;
+    universeCache=universeCache.filter(p=>p.id!==postId);
+    const card=btn.closest('.universe-card');
+    if(card)card.remove();
+    setStatus('Removed from Universe.');
+  }catch(err){
+    console.error('[unpublish]',err);
+    setStatus('Unpublish failed: '+err.message);
+  }
+}
+function updateUniverseCharNote(){
+  const cap=document.getElementById('universe-caption'),note=document.getElementById('universe-char-note');
+  if(cap&&note)note.textContent=(cap.value||'').length+' / 200';
+}
+async function openUniverseModal(){
+  if(fpEditing||currentScreen==='fp-canvas'){
+    await saveFloorPlan();
+  }else if(!currentProjectId){
+    await saveProject();
+  }
+  const cap=document.getElementById('universe-caption');
+  if(cap)cap.value='';
+  updateUniverseCharNote();
+  openModal('modal-universe');
+}
+async function confirmUniversePublish(){
+  const pid=currentProjectId||fpProjectId;
+  if(!pid){setStatus('Save your design first.');return;}
+  const capEl=document.getElementById('universe-caption');
+  const capText=capEl?(capEl.value||'').trim():'';
+  const btn=document.getElementById('btn-universe-publish');
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  try{
+    const {error}=await supabaseClient.rpc('universe_publish',{pid:pid,pcap:capText});
+    if(error)throw error;
+    closeModal('modal-universe');
+    setStatus('Published to Universe \u2713');
+  }catch(err){
+    console.error('[publish]',err);
+    setStatus('Could not publish: '+(err.message||'unknown error'));
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove('loading');}
+  }
+}
+async function projectUniverseToggle(projectId,postId,btn){
+  if(btn)btn.disabled=true;
+  try{
+    if(postId){
+      const {error}=await supabaseClient.rpc('universe_unpublish',{post_id:postId});
+      if(error)throw error;
+      setStatus('Removed from Universe.');
+    }else{
+      const {error}=await supabaseClient.rpc('universe_publish',{pid:projectId,pcap:''});
+      if(error)throw error;
+      setStatus('Published to Universe \u2713');
+    }
+    loadProjects();
+  }catch(err){
+    console.error('[projectToggle]',err);
+    if(btn)btn.disabled=false;
+    setStatus('Could not update: '+(err.message||'unknown error'));
+  }
+}
+async function universeAdminRemove(postId,btn){
+  if(!window.confirm('Remove this post from the Universe?'))return;
+  try{
+    const {error}=await supabaseClient.rpc('universe_admin_remove',{post_id:postId});
+    if(error)throw error;
+    const tr=btn.closest('tr');
+    if(tr)tr.remove();
+    const tbody=document.getElementById('admin-universe').querySelector('tbody');
+    if(tbody&&!tbody.children.length)tbody.innerHTML='<tr><td colspan="5" style="color:var(--color-text-muted);font-size:12px">No published posts.</td></tr>';
+    setStatus('Post removed.');
+  }catch(err){
+    console.error('[adminRemove]',err);
+    setStatus('Remove failed: '+err.message);
+  }
 }
 function sanitizeLayout(){
   const notes=[];
@@ -2181,9 +2661,9 @@ async function saveProject(){
       currentProjectId=data.id;
     }
     setStatus('Project saved \u2713');
-    toast.textContent='\u2713 Project saved';
-    toast.classList.add('show');
-    setTimeout(()=>toast.classList.remove('show'),2500);
+    toast.innerHTML='\u2713 Project saved<button class="toast-act" onclick="openUniverseModal()">Add to Universe</button>';
+    toast.classList.add('show','with-actions');
+    setTimeout(()=>toast.classList.remove('show'),3500);
   }catch(err){
     console.error('[saveProject]',err);
     setStatus('Save failed: '+err.message);
