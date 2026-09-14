@@ -334,7 +334,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .canvas-area { flex: 1; position: relative; overflow: hidden; background: var(--color-bg-sunken); }
 canvas { display: block; }
 #canvas3d { display: none; position: absolute; top: 0; left: 0; }
-.hint3d { display: none; position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(26,20,16,.75); color: #f0ebe4; padding: 8px 20px; border-radius: 24px; font-size: 12px; pointer-events: none; white-space: nowrap; backdrop-filter: blur(8px); font-weight: 500; }
+.hint3d { display: none; position: fixed; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: rgba(26,20,16,.75); color: #f0ebe4; padding: 8px 20px; border-radius: 24px; font-size: 12px; pointer-events: none; white-space: nowrap; backdrop-filter: blur(8px); font-weight: 500; max-width: min(460px, calc(100vw - 220px)); }
 .hint3d .view-btn { pointer-events: auto; display: inline-block; background: rgba(176,122,64,.92); color: #fff; border: none; border-radius: 14px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 10px; vertical-align: middle; font-family: inherit; }
 .hint3d .view-btn:hover { background: #b07a40; }
 .canvas-overlay { position: absolute; top: 14px; left: 14px; display: flex; gap: 8px; pointer-events: none; }
@@ -744,8 +744,8 @@ canvas { display: block; }
 /* Panel headers for collapsed sheets (mobile) */
 .side-head, .rp-head { display: none; }
 
-/* Virtual joystick (3D walk on touch) */
-.joy-base { position: absolute; left: 0; top: 0; width: 104px; height: 104px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent); background: color-mix(in srgb, var(--color-surface) 42%, transparent); box-shadow: inset 0 0 22px color-mix(in srgb, var(--color-accent) 16%, transparent); pointer-events: none; z-index: 22; display: none; transform: translate(-50%, -50%); }
+/* Virtual joystick (3D walk on touch) — fixed bottom-left, safe-area aware */
+.joy-base { position: fixed; left: calc(20px + env(safe-area-inset-left, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: 104px; height: 104px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent); background: color-mix(in srgb, var(--color-surface) 42%, transparent); box-shadow: inset 0 0 22px color-mix(in srgb, var(--color-accent) 16%, transparent); pointer-events: none; z-index: 22; display: none; }
 .joy-knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--color-accent-light) 88%, #fff 10%), var(--color-accent)); box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent) 55%, transparent); transform: translate(-50%, -50%); }
 
 /* Floating toggle buttons (hidden on desktop) */
@@ -875,7 +875,7 @@ canvas { display: block; }
   .room-type-btn, .shape-btn, .floor-style-btn { min-height: 44px; }
 
   .statusbar { padding: 6px 10px; font-size: 12px; }
-  .hint3d { white-space: normal; max-width: 92vw; font-size: 11px; line-height: 1.6; padding: 8px 14px; }
+  .hint3d { white-space: normal; max-width: calc(100vw - 220px); font-size: 11px; line-height: 1.5; padding: 7px 13px; }
   .hint3d .view-btn { min-height: 40px; padding: 7px 14px; font-size: 13px; }
 }
 
@@ -922,20 +922,34 @@ canvas { display: block; }
       stop content from overflowing into the next section on small screens. */
 #screen-landing > * { flex-shrink: 0; }
 
-/* Editor topbar transition used by immersive 3D mode */
-#screen-editor .editor-topbar { transition: transform var(--transition-base) var(--ease-soft), opacity var(--transition-base) var(--ease-soft); }
+/* 1) 3D View: the entire top nav bar is removed — no logo, theme toggle, camera/
+      screenshot, lightbulb, save, home, or separators render or occupy space.
+      Only the 2D Edit / 3D View switches stay, as semi-transparent floating
+      pills centered at the very top. Switching back to 2D restores the nav bar. */
+#screen-editor.view-3d .editor-topbar {
+  position: absolute; inset: 0 0 auto; height: auto; padding: 12px 16px 0;
+  background: none; border-bottom: none; box-shadow: none;
+  pointer-events: none; justify-content: center; overflow: visible; z-index: 24;
+}
+#screen-editor.view-3d .editor-topbar > *:not(.tab-btn) { display: none !important; }
+#screen-editor.view-3d .tab-btn {
+  pointer-events: auto; border-radius: 999px; padding: 8px 18px; font-size: 13px; font-weight: 600;
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
+  color: var(--color-text-secondary); backdrop-filter: blur(8px);
+  box-shadow: 0 3px 14px color-mix(in srgb, rgba(10,10,10,.28) 60%, transparent);
+}
+#screen-editor.view-3d .tab-btn:hover:not(.active) { color: var(--color-text); border-color: var(--color-accent); }
+#screen-editor.view-3d .tab-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-text-inverse); }
 
 /* 5) Room Style/properties panel is tied ONLY to 2D view — never 3D — at every breakpoint */
 #screen-editor.view-3d .right-panel { display: none !important; }
 #screen-editor.view-3d .canvas-side-toggle.rp,
 #screen-editor.view-3d .canvas-side-toggle.side { display: none; }
 
-/* 7) Immersive 3D top nav bar (auto-hide + swipe/tap-to-reveal) */
-#screen-editor.editor-immersive .editor-topbar { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-
 /* 8) Fixed vertical movement control (bottom-right) for 3D touch */
 .vert-zone {
-  position: absolute; right: 14px; bottom: 86px; z-index: 22;
+  position: fixed; right: calc(20px + env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 22;
   display: none; flex-direction: column; align-items: center; gap: 6px;
   width: 62px; padding: 8px 4px; border-radius: 18px;
   border: 1.5px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
@@ -970,6 +984,9 @@ canvas { display: block; }
 }
 @media (max-width: 380px) {
   #screen-editor .editor-topbar .brand { display: none; }
+}
+@media (max-width: 480px) {
+  .hint3d { font-size: 10.5px; padding: 6px 10px; max-width: calc(100vw - 200px); }
 }
 
 /* Reduced motion */
@@ -4323,11 +4340,8 @@ function switchEditorView(v){
     resizeCanvas();
     build3d();
     enterFreeFly();
-    showEditorNav(true);
   }
   else {
-    clearTimeout(navHideTimer);
-    if(ed)ed.classList.remove('editor-immersive');
     if(walkMode)exitWalkMode();if(animId){cancelAnimationFrame(animId);animId=null;}resizeCanvas();
     syncTouch3DControls();
   }
@@ -4996,7 +5010,7 @@ function frameRoom3D(){
 }
 function update3dHint(){
   const h=document.getElementById('hint-walk');
-  if(h)h.textContent=isTouchDev?'Joystick: move \u00B7 Up/Down: climb \u00B7 Drag: look \u00B7 Tap top edge: menu':'WASD to fly \u00B7 Mouse to look \u00B7 Click canvas to lock mouse';
+  if(h)h.textContent=isTouchDev?'Joystick: move \u00B7 Up/Down: climb \u00B7 Drag: look':'WASD to fly \u00B7 Mouse to look \u00B7 Click canvas to lock mouse';
 }
 function exitWalkMode(){
   if(document.pointerLockElement)document.exitPointerLock();
@@ -5023,7 +5037,6 @@ function view3dTop(){
   walkPos.z=cz;
   walkYaw=0;walkPitch=-Math.PI/2;
   applyWalkCamera();
-  showEditorNav();
 }
 function applyWalkCamera(){
   camera.position.set(walkPos.x,walkPos.y,walkPos.z);
@@ -5166,9 +5179,6 @@ function stepWalk(dt){
   walkPos.x+=vx*speed*dt;
   walkPos.y=Math.max(0.1,Math.min(40,walkPos.y+vy*speed*dt+vv*speed*dt));
   walkPos.z+=vz*speed*dt;
-  if(Math.abs(fb)+Math.abs(sd)+Math.abs(vv)>0.001&&typeof hideEditorNav==='function'){
-    try{hideEditorNav();}catch(_){}
-  }
   applyWalkCamera();
 }
 function requestLock(c3){
@@ -5188,14 +5198,6 @@ function setup3dMouse(){
   });
   c3.addEventListener('contextmenu',e=>e.preventDefault());
   c3.addEventListener('wheel',e=>{if(editorView!=='3d')return;flyDolly(-e.deltaY*0.012);e.preventDefault();},{passive:false});
-  c3.addEventListener('mousemove',e=>{
-    if(editorView!=='3d')return;
-    if(document.pointerLockElement){hideEditorNav();return;}
-    if(e.clientY<=104&&typeof showEditorNav==='function'){try{showEditorNav();}catch(_){}};
-  });
-  document.addEventListener('pointerlockchange',()=>{
-    if(editorView==='3d'&&!document.pointerLockElement&&typeof showEditorNav==='function'){try{showEditorNav();}catch(_){}};
-  });
 }
 const touchJoy={active:false,x:0,y:0};
 const touchLook={active:false,lx:0,ly:0};
@@ -5205,7 +5207,6 @@ const joyKnob=document.getElementById('joy-knob');
 const joyRadius=96;
 function joyShow(){
   if(!joyBase)return;
-  joyBase.style.left='0px';joyBase.style.top='0px';
   joyBase.style.display='block';
 }
 function joyMove(){
@@ -5232,33 +5233,13 @@ function setVertFill(){
   const tr=vertZone?vertZone.querySelector('.vert-track'):null;
   if(vertFill&&tr){const dir=touchVert.v>=0?0:Math.min(1,Math.abs(touchVert.v));vertFill.style.top='0px';vertFill.style.height=Math.round(dir*tr.clientHeight)+'px';vertFill.style.opacity=touchVert.v?1:0;}
 }
-/* Place the fixed joystick (bottom-left) and vertical control (bottom-right)
-   relative to the 3D canvas, then show them the moment touch mode is on. */
+/* The movement joystick (bottom-left) and vertical control (bottom-right) use
+   fixed positioning (see CSS) so they stay anchored to the screen corners in 3D
+   View at every breakpoint and across orientation changes. */
 function syncTouch3DControls(){
-  const c3=document.getElementById('canvas3d');
-  if(!c3||editorView!=='3d')return;
-  const rect=c3.getBoundingClientRect();
-  if(joyBase){
-    joyBase.style.left=Math.round(88)+'px';
-    joyBase.style.top=Math.round(rect.height-joyRadius-16)+'px';
-  }
-  if(vertZone)vertZone.style.bottom='calc(96px)';
-  if(rect.height&&isTouchDev){joyShow();vertShow();}
-}
-function showEditorNav(){
-  const ed=document.getElementById('screen-editor');
-  if(!ed||editorView!=='3d')return;
-  ed.classList.remove('editor-immersive');
-  if(typeof scheduleNavHide==='function')scheduleNavHide();
-}
-function scheduleNavHide(){
-  clearTimeout(navHideTimer);
-  navHideTimer=setTimeout(()=>{hideEditorNav();},3400);
-}
-function hideEditorNav(){
-  const ed=document.getElementById('screen-editor');
-  if(!ed)return;
-  if(walkMode&&editorView==='3d')ed.classList.add('editor-immersive');
+  if(editorView!=='3d')return;
+  if(isTouchDev){joyShow();vertShow();}
+  else{joyHide();vertHide();}
 }
 function setup3dTouch(){
   const c3=document.getElementById('canvas3d');
@@ -5272,9 +5253,6 @@ function setup3dTouch(){
     e.preventDefault();
     if(e.touches.length!==1)return;
     const t=e.touches[0];
-    if(t.clientY<=104&&t.clientY>=0&&t.clientX>=0){
-      showEditorNav();
-    }
     if(joyBase&&inZone(t.clientX,t.clientY,joyBase)&&!touchLook.active){
       touchJoy.active=true;touchJoy.x=0;touchJoy.y=0;
       joyMove();
@@ -5283,10 +5261,8 @@ function setup3dTouch(){
       if(t.clientY<vertZone.getBoundingClientRect().top+vertZone.getBoundingClientRect().height/2)touchVert.v=1;
       else touchVert.v=-1;
       setVertFill();
-      if(typeof hideEditorNav==='function'){try{hideEditorNav();}catch(_){}};
     }else{
       touchLook.active=true;touchLook.lx=t.clientX;touchLook.ly=t.clientY;
-      if(typeof hideEditorNav==='function'){try{hideEditorNav();}catch(_){}};
     }
   },{passive:false});
   c3.addEventListener('touchmove',e=>{
@@ -5302,7 +5278,6 @@ function setup3dTouch(){
       touchJoy.x=Math.max(-1,Math.min(1,(dx/d)*cl));
       touchJoy.y=Math.max(-1,Math.min(1,(dy/d)*cl));
       joyMove();
-      if(typeof hideEditorNav==='function'){try{hideEditorNav();}catch(_){}};
     }else if(touchVert.active){
       const vz=vertZone.getBoundingClientRect();
       const mid=vz.top+vz.height/2;
@@ -5333,7 +5308,6 @@ function setup3dTouch(){
   c3.addEventListener('touchcancel',stopTouches,{passive:false});
 }
 setup3dTouch();
-let navHideTimer=null;
 
 window.addEventListener('resize',resizeCanvas);
 window.addEventListener('orientationchange',()=>setTimeout(()=>{if(currentScreen==='editor')resizeCanvas();if(currentScreen==='fp-canvas')resizeFpCanvas();},120));
