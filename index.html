@@ -220,6 +220,30 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .dash-tab:hover { color: var(--color-text); }
 .dash-tab.active { background: var(--color-primary); color: var(--color-text-inverse); }
 .dash-tab .dash-tab-count { opacity: .7; font-weight: 500; }
+/* Universe feed as a paginated table */
+.universe-empty { padding: 40px 20px 10px; }
+.universe-table-wrap { background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); overflow-x: auto; box-shadow: var(--shadow-sm); }
+.universe-table { width: 100%; border-collapse: collapse; min-width: 660px; }
+.universe-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-muted); padding: 12px 14px; border-bottom: 1px solid var(--color-border-light); white-space: nowrap; }
+.universe-table td { padding: 10px 14px; border-bottom: 1px solid var(--color-border-light); vertical-align: middle; }
+.universe-table tbody tr:last-child td { border-bottom: none; }
+.universe-table tbody tr:hover { background: color-mix(in srgb, var(--color-bg-sunken) 55%, transparent); }
+.u-col-thumb { width: 110px; }
+.u-col-actions { text-align: right; white-space: nowrap; }
+.u-td-thumb { width: 1%; }
+.u-td-actions { text-align: right; white-space: nowrap; }
+.u-td-actions .u-btn { padding: 6px 12px; }
+.u-tthumb { display: block; width: 96px; height: 48px; border-radius: var(--radius-sm); background: var(--color-bg-sunken); }
+.u-td-name .u-name-main { font-family: var(--font-body); font-size: 13.5px; font-weight: 600; color: var(--color-text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.u-td-name .u-name-sub { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.u-td-owner .u-name { font-size: 12.5px; }
+.u-td-time { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
+.u-badge-td { margin-left: 0 !important; font-size: 9px; padding: 2px 7px; }
+.universe-pager { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 16px 0 6px; flex-wrap: wrap; }
+.u-page-btn { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary); padding: 7px 14px; border-radius: 999px; font-family: var(--font-body); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
+.u-page-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+.u-page-btn:disabled { opacity: .45; cursor: not-allowed; }
+.u-page-info { font-size: 12px; color: var(--color-text-muted); }
 @media (max-width: 700px) {
   .dash-tabs { width: 100%; }
   .dash-tab { flex: 1; }
@@ -1541,7 +1565,23 @@ canvas { display: block; }
     <div class="dash-title">Universe</div>
     <div class="dash-subtitle">Community room templates — browse, like, and remix someone's layout</div>
     <div class="save-toast" id="universe-toast" style="position:fixed;top:84px;right:24px;z-index:90" aria-live="polite"></div>
-    <div class="universe-feed" id="universe-feed"></div>
+    <div class="universe-empty" id="universe-empty" aria-live="polite"></div>
+    <div class="universe-table-wrap">
+      <table class="universe-table" id="universe-table">
+        <thead>
+          <tr>
+            <th class="u-col-thumb" scope="col">Preview</th>
+            <th scope="col">Name</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Created</th>
+            <th scope="col">Likes</th>
+            <th class="u-col-actions" scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="universe-table-body"></tbody>
+      </table>
+    </div>
+    <div class="universe-pager" id="universe-pager"></div>
   </div>
 </div>
 
@@ -2362,10 +2402,16 @@ function universeMeta(kind,data){
   }
   return parts.join(' \u00B7 ');
 }
+const UNIVERSE_PAGE_SIZE=12;
+let universePage=0;
+function universeGoPage(n){
+  universePage=n;
+  renderUniverseTable();
+}
 async function loadUniverse(){
-  const feed=document.getElementById('universe-feed');
-  if(!feed)return;
-  feed.innerHTML='<div class="u-empty"><div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">Loading the Universe&hellip;</div></div>';
+  const empty=document.getElementById('universe-empty');
+  if(empty)empty.style.display='block';
+  if(empty)empty.innerHTML='<div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">Loading the Universe&hellip;</div>';
   universeUid=await currentUserUid();
   try{
     const {data,error}=await supabaseClient.rpc('universe_list');
@@ -2373,18 +2419,63 @@ async function loadUniverse(){
     universeCache=data||[];
   }catch(err){
     console.error('[universe]',err);
-    feed.innerHTML='<div class="u-empty"><div class="empty-state-icon">&#x26A0;&#xFE0F;</div><div class="empty-state-title">Could not load the Universe</div><div class="empty-state-text">'+escHtml(err.message||'Try again later.')+'</div></div>';
+    if(empty)empty.innerHTML='<div class="empty-state-icon">&#x26A0;&#xFE0F;</div><div class="empty-state-title">Could not load the Universe</div><div class="empty-state-text">'+escHtml(err.message||'Try again later.')+'</div>';
     return;
   }
-  if(!universeCache.length){
-    feed.innerHTML='<div class="u-empty"><div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">No templates here yet</div><div class="empty-state-text">Be the first &mdash; save a design and hit the &#x1F310; button in the editor, or tap Publish on a project card, to share your layout.</div></div>';
+  universePage=0;
+  renderUniverseTable();
+  if(empty){
+    empty.style.display=universeCache.length?'none':'block';
+    if(!universeCache.length)empty.innerHTML='<div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">No templates here yet</div><div class="empty-state-text">Be the first &mdash; save a design and hit the &#x1F310; button in the editor, or tap Publish on a project card, to share your layout.</div>';
+  }
+}
+function renderUniverseTable(){
+  const tbody=document.getElementById('universe-table-body');
+  const pager=document.getElementById('universe-pager');
+  const empty=document.getElementById('universe-empty');
+  if(!tbody)return;
+  const total=universeCache.length;
+  if(empty)empty.style.display=total?'none':'block';
+  if(!total){
+    if(pager)pager.innerHTML='';
+    tbody.innerHTML='';
     return;
   }
-  feed.innerHTML=universeCache.map(universeCardHtml).join('');
-  feed.querySelectorAll('canvas.u-thumb').forEach(cv=>{
+  const pages=Math.max(1,Math.ceil(total/UNIVERSE_PAGE_SIZE));
+  universePage=Math.max(0,Math.min(universePage,pages-1));
+  const slice=universeCache.slice(universePage*UNIVERSE_PAGE_SIZE,(universePage+1)*UNIVERSE_PAGE_SIZE);
+  tbody.innerHTML=slice.map(universeRowHtml).join('');
+  tbody.querySelectorAll('canvas.u-tthumb').forEach(cv=>{
     const post=universeCache.find(p=>p.id===cv.dataset.post);
     if(post)drawUniverseThumb(cv,post.data);
   });
+  if(pager){
+    pager.innerHTML=`<button class="u-page-btn" ${universePage===0?'disabled':''} onclick="universeGoPage(${universePage-1})" aria-label="Previous page">&#x2039; Prev</button>
+      <span class="u-page-info">Page ${universePage+1} of ${pages} &middot; ${total} template${total===1?'':'s'}</span>
+      <button class="u-page-btn" ${universePage>=pages-1?'disabled':''} onclick="universeGoPage(${universePage+1})" aria-label="Next page">Next &#x203A;</button>`;
+  }
+}
+function universeRowHtml(p){
+  const mine=p.user_id===universeUid;
+  const liked=!!p.my_like;
+  const caption=(p.caption||'').trim();
+  return `<tr class="universe-row ${mine?'mine':''}" data-post="${p.id}">
+    <td class="u-td-thumb"><canvas class="u-tthumb" width="160" height="80" data-post="${p.id}" aria-label="Preview of a ${escHtml(p.kind)} template"></canvas></td>
+    <td class="u-td-name">
+      <div class="u-name-main">${escHtml(p.kind)}${p.is_official?'<span class="u-badge u-badge-td" title="Published by an admin">Official</span>':''}</div>
+      ${caption?`<div class="u-name-sub" title="${escHtml(caption)}">${escHtml(caption)}</div>`:''}
+    </td>
+    <td class="u-td-owner"><button class="u-name" onclick="openUniverseProfile('${p.user_id}')" aria-label="View ${escHtml(p.username)}'s profile" title="View profile">${escHtml(p.username)}</button></td>
+    <td class="u-td-time">${uTime(p.created_at)}</td>
+    <td class="u-td-likes">
+      <button class="u-btn ${liked?'liked':''}" onclick="toggleUniverseLike('${p.id}',this)" aria-pressed="${liked}" aria-label="Like this template"><span class="u-heart">${liked?'&#x2665;':'&#x2661;'}</span><span class="u-likes-count">${p.likes}</span></button>
+    </td>
+    <td class="u-td-actions">
+      <button class="u-btn primary" onclick="useUniverseTemplate('${p.id}')">Use this project</button>
+      <button class="u-btn" onclick="saveUniversePost('${p.id}',this)">Save</button>
+      ${mine?`<button class="u-btn gmuted" onclick="universeRemovePost('${p.id}',this)">Unpublish</button>`:''}
+    </td>
+  </tr>`;
 }
 function universeCardHtml(p){
   const mine=p.user_id===universeUid;
@@ -2672,8 +2763,9 @@ async function universeRemovePost(postId,btn){
     const {error}=await supabaseClient.rpc('universe_unpublish',{post_id:postId});
     if(error)throw error;
     universeCache=universeCache.filter(p=>p.id!==postId);
-    const card=btn.closest('.universe-card');
-    if(card)card.remove();
+    const el=btn.closest('.universe-card,tr');
+    if(el)el.remove();
+    renderUniverseTable();
     setStatus('Removed from Universe.');
   }catch(err){
     console.error('[unpublish]',err);
