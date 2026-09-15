@@ -214,6 +214,16 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .universe-drawer-scroll { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
 .universe-drawer .universe-card { box-shadow: none; }
 .universe-drawer .u-likes-count { min-width: 1ch; }
+/* Project list tabs (My Projects / Saved Projects) */
+.dash-tabs { display: inline-flex; gap: 6px; padding: 4px; background: var(--color-bg-sunken); border: 1px solid var(--color-border-light); border-radius: 999px; margin-bottom: 20px; }
+.dash-tab { border: none; background: transparent; padding: 8px 16px; border-radius: 999px; font-family: var(--font-body); font-size: 12.5px; font-weight: 600; color: var(--color-text-muted); cursor: pointer; transition: all var(--transition-fast); }
+.dash-tab:hover { color: var(--color-text); }
+.dash-tab.active { background: var(--color-primary); color: var(--color-text-inverse); }
+.dash-tab .dash-tab-count { opacity: .7; font-weight: 500; }
+@media (max-width: 700px) {
+  .dash-tabs { width: 100%; }
+  .dash-tab { flex: 1; }
+}
 @media (max-width: 700px) {
   .universe-feed { gap: 14px; }
   .u-actions .u-btn { flex: 1; justify-content: center; }
@@ -1405,6 +1415,10 @@ canvas { display: block; }
   <div class="dash-body">
     <div class="dash-title">My Projects</div>
     <div class="dash-subtitle">Pick up where you left off, or start a new design</div>
+    <div class="dash-tabs" role="tablist" aria-label="Project lists">
+      <button class="dash-tab active" id="tab-mine" role="tab" aria-selected="true" onclick="setProjectsTab('mine')">My Projects</button>
+      <button class="dash-tab" id="tab-saved" role="tab" aria-selected="false" onclick="setProjectsTab('saved')">Saved Projects</button>
+    </div>
     <div class="project-grid" id="project-grid">
       <button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>
     </div>
@@ -1526,6 +1540,7 @@ canvas { display: block; }
   <div class="dash-body">
     <div class="dash-title">Universe</div>
     <div class="dash-subtitle">Community room templates — browse, like, and remix someone's layout</div>
+    <div class="save-toast" id="universe-toast" style="position:fixed;top:84px;right:24px;z-index:90" aria-live="polite"></div>
     <div class="universe-feed" id="universe-feed"></div>
   </div>
 </div>
@@ -2233,28 +2248,65 @@ async function adminDeleteProject(id,btn){
 // ══════════════════════════════════════════
 //  PROJECTS (Supabase)
 // ══════════════════════════════════════════
+let dashProjectsTab='mine';
+let myProjectsCache=[];
+let savedProjectsCache=[];
+let ownPostsCache={};
 async function loadProjects(){
-  const grid=document.getElementById('project-grid');
-  grid.innerHTML=`<button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>`;
-  const {data,error}=await supabaseClient.from('projects').select('id,name,updated_at,data').order('updated_at',{ascending:false});
-  if(error){console.error('[loadProjects]',error);return;}
-  const ownPosts={};
+  let mine=[],saved=[];
+  let mineFailed=false,savedFailed=false;
+  await Promise.all([
+    supabaseClient.rpc('my_projects').then(r=>{if(r.error)throw r.error;mine=r.data||[];}).catch(e=>{mineFailed=true;console.error('[my_projects]',e.message);}),
+    supabaseClient.rpc('my_saved_projects').then(r=>{if(r.error)throw r.error;saved=r.data||[];}).catch(e=>{savedFailed=true;console.error('[my_saved_projects]',e.message);})
+  ]);
+  // Before the new RPCs are applied in the SQL editor, fall back to a plain
+  // projects query so the dashboard keeps working exactly as before.
+  if(mineFailed&&savedFailed){
+    try{
+      const {data,error}=await supabaseClient.from('projects').select('id,name,updated_at,data').order('updated_at',{ascending:false});
+      if(error)throw error;
+      mine=data||[];saved=[];
+    }catch(e){console.error('[loadProjects:fb]',e.message);}
+  }
+  myProjectsCache=mine;savedProjectsCache=saved;
   try{
     const {data:ups}=await supabaseClient.from('universe_posts').select('id,project_id');
-    if(ups&&ups.length)ups.forEach(r=>{if(r.project_id)ownPosts[r.project_id]=r.id;});
+    ownPostsCache={};
+    if(ups&&ups.length)ups.forEach(r=>{if(r.project_id)ownPostsCache[r.project_id]=r.id;});
   }catch(upErr){console.warn('[loadProjects] universe status',upErr.message);}
-  if(!data||data.length===0){
-    grid.innerHTML=`
-      <button class="new-card" onclick="goTo('start')" aria-label="Start a new design"><div class="plus">+</div><span>New Design</span></button>
-      <div class="empty-state" style="grid-column:1/-1">
-        <div class="empty-state-icon">&#x1F3E0;</div>
-        <div class="empty-state-title">No projects yet</div>
-        <div class="empty-state-text">Create your first design to get started. Sketch a single room or lay out a whole floor plan, then furnish and style each room.</div>
-      </div>`;
+  renderProjectsGrid(document.getElementById('project-grid'));
+}
+function setProjectsTab(tab){
+  dashProjectsTab=tab;
+  const tm=document.getElementById('tab-mine'),ts=document.getElementById('tab-saved');
+  if(tm&&ts){
+    tm.classList.toggle('active',tab==='mine');tm.setAttribute('aria-selected',String(tab==='mine'));
+    ts.classList.toggle('active',tab==='saved');ts.setAttribute('aria-selected',String(tab==='saved'));
+  }
+  renderProjectsGrid(document.getElementById('project-grid'));
+}
+function renderProjectsGrid(grid){
+  if(!grid)return;
+  const isSaved=dashProjectsTab==='saved';
+  const list=isSaved?savedProjectsCache:myProjectsCache;
+  grid.innerHTML='';
+  if(!isSaved){
+    const nc=document.createElement('button');
+    nc.className='new-card';nc.setAttribute('aria-label','Start a new design');nc.onclick=()=>goTo('start');
+    nc.innerHTML='<div class="plus">+</div><span>New Design</span>';
+    grid.appendChild(nc);
+  }
+  if(!list.length){
+    const es=document.createElement('div');es.className='empty-state';es.style.gridColumn='1/-1';
+    es.innerHTML=isSaved
+      ?'<div class="empty-state-icon">&#x1F310;</div><div class="empty-state-title">No saved projects yet</div><div class="empty-state-text">Open the Universe and tap &ldquo;Save&rdquo; on a template you like &mdash; it will show up here as an editable copy.</div>'
+      :'<div class="empty-state-icon">&#x1F3E0;</div><div class="empty-state-title">No projects yet</div><div class="empty-state-text">Create your first design to get started. Sketch a single room or lay out a whole floor plan, then furnish and style each room.</div>';
+    grid.appendChild(es);
     return;
   }
-  data.forEach(p=>{
+  list.forEach(p=>{
     const isFp=p.data&&p.data.type==='floor';
+    const date=new Date(isSaved?(p.saved_at||p.created_at||p.updated_at):p.updated_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
     const card=document.createElement('div');
     card.className='project-card';
     card.setAttribute('tabindex','0');
@@ -2262,11 +2314,16 @@ async function loadProjects(){
     card.setAttribute('aria-label','Open project: '+p.name);
     card.onclick=()=>openProject(p.id);
     card.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(p.id);}};
-    const date=new Date(p.updated_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-    const chip=ownPosts[p.id]
-      ?`<button class="universe-chip published" data-post="${ownPosts[p.id]}" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','${ownPosts[p.id]}',this)" aria-label="Published to Universe; click to unpublish"><span class="chip-dot">&#9679;</span>In Universe &mdash; tap to unpublish</button>`
-      :`<button class="universe-chip" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','',this)" aria-label="Publish this project to Universe">&#x1F310; Publish to Universe</button>`;
-    card.innerHTML=`<button class="delete-project" title="Delete project" aria-label="Delete ${p.name}" onclick="event.stopPropagation();deleteProject(${p.id},this.parentElement)">&#x2715;</button><div class="project-thumb"><span class="thumb-icon">${isFp?'&#x1F3E0;':'&#x1F6CB;&#xFE0F;'}</span></div><div class="project-info"><div class="project-name">${p.name}${isFp?'<span class="project-type-tag">Floor plan</span>':''}</div><div class="project-date">Modified ${date}</div></div><div class="project-actions-row">${chip}</div>`;
+    let chip;
+    if(isSaved){
+      chip='<span class="universe-chip" aria-label="Saved from Universe">&#x1F310; Saved from Universe</span>';
+    }else if(ownPostsCache[p.id]){
+      chip=`<button class="universe-chip published" data-post="${ownPostsCache[p.id]}" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','${ownPostsCache[p.id]}',this)" aria-label="Published to Universe; click to unpublish"><span class="chip-dot">&#9679;</span>In Universe &mdash; tap to unpublish</button>`;
+    }else{
+      chip=`<button class="universe-chip" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','',this)" aria-label="Publish this project to Universe">&#x1F310; Publish to Universe</button>`;
+    }
+    const del=isSaved?'':`<button class="delete-project" title="Delete project" aria-label="Delete ${p.name}" onclick="event.stopPropagation();deleteProject('${p.id}',this.parentElement)">&#x2715;</button>`;
+    card.innerHTML=`${del}<div class="project-thumb"><span class="thumb-icon">${isFp?'&#x1F3E0;':'&#x1F6CB;&#xFE0F;'}</span></div><div class="project-info"><div class="project-name">${p.name}${isFp?'<span class="project-type-tag">Floor plan</span>':''}</div><div class="project-date">${isSaved?'Saved '+date:'Modified '+date}</div></div><div class="project-actions-row">${chip}</div>`;
     grid.appendChild(card);
   });
 }
@@ -2345,7 +2402,8 @@ function universeCardHtml(p){
     ${p.caption?`<div class="u-caption">${escHtml(p.caption)}</div>`:''}
     <div class="u-actions">
       <button class="u-btn ${liked?'liked':''}" onclick="toggleUniverseLike('${p.id}',this)" aria-pressed="${liked}" aria-label="Like this template"><span class="u-heart">${liked?'&#x2665;':'&#x2661;'}</span><span class="u-likes-count">${p.likes}</span></button>
-      <button class="u-btn primary" onclick="useUniverseTemplate('${p.id}')">Copy this layout</button>
+      <button class="u-btn primary" onclick="useUniverseTemplate('${p.id}')">Use this project</button>
+      <button class="u-btn" onclick="saveUniversePost('${p.id}',this)">Save</button>
       ${mine?`<button class="u-btn gmuted" onclick="universeRemovePost('${p.id}',this)">Unpublish</button>`:''}
     </div>
   </article>`;
@@ -2441,7 +2499,8 @@ function universeMiniCard(p){
     ${p.caption?`<div class="u-caption">${escHtml(p.caption)}</div>`:''}
     <div class="u-actions">
       <button class="u-btn ${p.my_like?'liked':''}" onclick="toggleUniverseLike('${p.id}',this)" aria-pressed="${!!p.my_like}" aria-label="Like this template"><span class="u-heart">${p.my_like?'&#x2665;':'&#x2661;'}</span><span class="u-likes-count">${p.likes}</span></button>
-      <button class="u-btn primary" onclick="useUniverseTemplate('${p.id}')">Copy this layout</button>
+      <button class="u-btn primary" onclick="useUniverseTemplate('${p.id}')">Use this project</button>
+      <button class="u-btn" onclick="saveUniversePost('${p.id}',this)">Save</button>
       ${mine?`<button class="u-btn gmuted" onclick="universeRemovePost('${p.id}',this)">Unpublish</button>`:''}
     </div>
   </article>`;
@@ -2619,6 +2678,47 @@ async function universeRemovePost(postId,btn){
   }catch(err){
     console.error('[unpublish]',err);
     setStatus('Unpublish failed: '+err.message);
+  }
+}
+async function saveUniversePost(postId,btn){
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  try{
+    const {data,error}=await supabaseClient.rpc('save_universe_project',{target_post_id:postId});
+    if(error)throw error;
+    showUniverseToast('Successfully saved!',false);
+    await refreshSavedProjects();
+  }catch(err){
+    console.error('[saveUniverse]',err);
+    showUniverseToast('Save failed \u2014 '+(err.message||'try again later.'),true);
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove('loading');}
+  }
+}
+function showUniverseToast(msg,isErr){
+  const toast=document.getElementById('universe-toast');
+  if(!toast)return;
+  if(isErr){
+    toast.style.background='var(--color-danger-bg)';
+    toast.style.borderColor='var(--color-danger-border)';
+    toast.style.color='var(--color-danger)';
+  }else{
+    toast.style.background='';
+    toast.style.borderColor='';
+    toast.style.color='';
+  }
+  toast.textContent=msg;
+  toast.classList.add('show');
+  clearTimeout(showUniverseToast._t);
+  showUniverseToast._t=setTimeout(()=>toast.classList.remove('show'),3200);
+}
+async function refreshSavedProjects(){
+  try{
+    const {data,error}=await supabaseClient.rpc('my_saved_projects');
+    if(error)throw error;
+    savedProjectsCache=data||[];
+    if(dashProjectsTab==='saved')renderProjectsGrid(document.getElementById('project-grid'));
+  }catch(err){
+    console.error('[saved refresh]',err.message);
   }
 }
 function updateUniverseCharNote(){

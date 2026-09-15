@@ -43,6 +43,17 @@ create policy "Authenticated users can view public projects"
   on public.projects for select
   using (is_public and auth.role() = 'authenticated');
 
+-- ── 1c) "Saved from Universe" marker on projects.
+-- save_universe_project() copies a Universe post into the caller's account and
+-- stamps source_post_id on the copy. my_projects() (user-created) and
+-- my_saved_projects() (imported from the feed) use it to tell the two apart.
+-- The source may later be deleted or unshared without affecting the saved copy.
+alter table public.projects
+  add column if not exists source_post_id uuid;
+
+create index if not exists projects_source_post_idx
+  on public.projects(source_post_id) where source_post_id is not null;
+
 -- ── 2) Universe posts: a COPY of the design data taken at publish time, so a
 -- published template is a stable public snapshot while the source project
 -- remains private. One post per project if linked (users may publish again to
@@ -300,6 +311,61 @@ begin
   return found;
 end $$;
 
+-- ── 4b) Universe "save" + My/Saved project lists ──
+-- Copies a published Universe post into the caller's account as an editable
+-- project and returns the new project id. The saved copy is independent of the
+-- original post (deleting or unpublishing the source doesn't touch it).
+create or replace function public.save_universe_project(target_post_id uuid)
+returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  vdata jsonb;
+  vname text;
+  vnew uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Not signed in';
+  end if;
+  select data into vdata
+    from public.universe_posts
+    where id = target_post_id;
+  if vdata is null then
+    raise exception 'Project not found in Universe';
+  end if;
+  vname := 'Copy of '
+        || case when vdata->>'type' = 'floor'
+                then 'Floor Plan'
+                else coalesce(vdata->'roomConfig'->>'type', 'Room')
+           end
+        || ' template';
+  insert into public.projects (user_id, name, data, is_public, source_post_id)
+  values (auth.uid(), vname, vdata, false, target_post_id)
+  returning id into vnew;
+  return vnew;
+end $$;
+
+-- Projects the current user created themselves (not imported from Universe).
+create or replace function public.my_projects()
+returns table (id uuid, name text, data jsonb, created_at timestamptz, updated_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.name, p.data, p.created_at, p.updated_at
+  from public.projects p
+  where p.user_id = auth.uid()
+    and p.source_post_id is null
+  order by p.updated_at desc;
+$$;
+
+-- Projects the current user saved from Universe (copied in from the feed).
+create or replace function public.my_saved_projects()
+returns table (id uuid, name text, data jsonb, saved_at timestamptz, source_post_id uuid)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.name, p.data, p.created_at, p.source_post_id
+  from public.projects p
+  where p.user_id = auth.uid()
+    and p.source_post_id is not null
+  order by p.created_at desc;
+$$;
+
 -- ─────────────────────────────────────────────────────────────
 -- 5) Access control for the RPCs
 -- Supabase grants EXECUTE on new functions to 'public' by default,
@@ -315,6 +381,9 @@ revoke execute on function public.universe_unpublish(uuid) from public;
 revoke execute on function public.universe_toggle_like(uuid) from public;
 revoke execute on function public.universe_admin_list() from public;
 revoke execute on function public.universe_admin_remove(uuid) from public;
+revoke execute on function public.save_universe_project(uuid) from public;
+revoke execute on function public.my_projects() from public;
+revoke execute on function public.my_saved_projects() from public;
 
 grant execute on function public.universe_list() to authenticated;
 grant execute on function public.universe_profile_for(uuid) to authenticated;
@@ -325,3 +394,6 @@ grant execute on function public.universe_unpublish(uuid) to authenticated;
 grant execute on function public.universe_toggle_like(uuid) to authenticated;
 grant execute on function public.universe_admin_list() to authenticated;
 grant execute on function public.universe_admin_remove(uuid) to authenticated;
+grant execute on function public.save_universe_project(uuid) to authenticated;
+grant execute on function public.my_projects() to authenticated;
+grant execute on function public.my_saved_projects() to authenticated;

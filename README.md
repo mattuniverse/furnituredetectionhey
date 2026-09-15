@@ -84,8 +84,12 @@ git remote add origin <url> && git push -u origin main
 7. **Universe feed** (community templates): open the SQL editor again, paste
    `supabase/universe-schema.sql`, and run it. This adds public feed identity columns
    (`username`/`display_name`/`avatar_url`) to `user_profiles`, the `universe_posts` and
-   `universe_likes` tables, and the RPCs the frontend calls. Run it **after** `schema.sql`
-   (it uses `is_admin()`); it's re-runnable.
+   `universe_likes` tables, the `projects.is_public` + `source_post_id` flags (with RLS so
+   any signed-in user can read public projects), and the RPCs the frontend calls —
+   including `save_universe_project()` (saves a template into your account) plus the
+   `my_projects()` / `my_saved_projects()` lists that back the dashboard's **My Projects**
+   and **Saved Projects** tabs. Run it **after** `schema.sql` (it uses `is_admin()`); it's
+   re-runnable.
 8. (Optional) **Demo accounts**: run `supabase/demo-account.sql` to seed two demo
    logins side by side — `demo@floorplan.studio` / `DemoPass123!` as an **admin**
    (Admin panel, moderation, "Official" badge) and `user@floorplan.studio` /
