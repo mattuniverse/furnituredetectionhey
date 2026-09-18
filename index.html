@@ -4796,6 +4796,15 @@ function drawFurniture(vio){
       ctx.fillStyle='#fff';ctx.font='bold 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(String(mine.length),pw+8,0);
     }
+    const flashing=f.id&&fpArchFlash&&fpArchFlash.indexOf(f.id)>-1;
+    if(flashing){
+      ctx.strokeStyle='#c4633a';
+      ctx.lineWidth=3;
+      ctx.shadowColor='rgba(196,99,58,.8)';
+      ctx.shadowBlur=12;
+      ctx.strokeRect(-6,-6,pw+12,ph+12);
+      ctx.shadowBlur=0;
+    }
     ctx.restore();
   });
 }
@@ -7770,6 +7779,9 @@ function fpEnsureFurnitureIds(){
   fpRooms.forEach(r=>{(r.furniture||[]).forEach(f=>{if(f&&!f.id)f.id=uid();});});
 }
 function archiContext(){
+  return currentScreen==='editor'?archiEditorContext():archiFloorPlanContext();
+}
+function archiFloorPlanContext(){
   fpEnsureFurnitureIds();
   const lines=['Current floor plan state:'];
   if(!fpRooms.length){
@@ -7788,6 +7800,26 @@ function archiContext(){
   }
   lines.push('Positions are in meters measured from each room\u2019s top-left corner; rotations are clockwise in degrees. Use the exact id and roomId strings listed above in any actions, and never change an id.');
   lines.push('Furniture library you may ADD via "add" actions: '+FURNITURE_DEFS.filter(d=>d.cat!=='Structure').map(d=>d.id+' ('+d.label+')').join(', ')+'.');
+  return lines.join('\n');
+}
+function archiEditorContext(){
+  (furniture||[]).forEach(f=>{if(f&&!f.id)f.id=uid();});
+  const roomId=fpEditing&&fpSelId?fpSelId:'room';
+  const w=Math.max(Number(roomConfig.w)||5,0.5),h=Math.max(Number(roomConfig.h)||4,0.5);
+  const lines=['Current floor plan state:'];
+  lines.push('- Editing a single room (roomId '+roomId+'): '+(roomConfig.type&&roomConfig.type!=='Custom'?roomConfig.type:'Custom')+', '+w.toFixed(1)+'m \u00D7 '+h.toFixed(1)+'m ('+(w*h).toFixed(1)+' m\u00B2), wall height '+(roomConfig.wallH||2.7)+'m, '+(walls||[]).length+' walls.');
+  if(!furniture.length){
+    lines.push('  This room is empty \u2014 no furniture placed yet.');
+  }else{
+    lines.push('  Furniture ('+furniture.length+' piece'+(furniture.length===1?'':'s')+'):');
+    furniture.forEach(f=>{
+      const def=FURNITURE_DEFS.find(d=>d.id===f.defId);
+      const label=def?def.label:(f.defId||'piece');
+      lines.push('    - id '+f.id+', '+label+' ('+f.defId+'): size '+f.w.toFixed(2)+'m \u00D7 '+f.h.toFixed(2)+'m, at ('+f.x.toFixed(2)+','+f.y.toFixed(2)+'), rotation '+Math.round((((f.rot||0)%(2*Math.PI)+2*Math.PI)%(2*Math.PI))*(180/Math.PI))+'\u00B0');
+    });
+  }
+  lines.push('Positions are in meters measured from the room\u2019s top-left corner; rotations are clockwise in degrees. Use the exact id and roomId strings listed above in any actions, and never change an id.');
+  lines.push('Furniture library you may ADD via "add" actions (use roomId '+roomId+'): '+FURNITURE_DEFS.filter(d=>d.cat!=='Structure').map(d=>d.id+' ('+d.label+')').join(', ')+'.');
   return lines.join('\n');
 }
 function fpFindFurniture(ref){
@@ -7817,11 +7849,12 @@ function fpApplyArchitectActions(actions){
     const kind=String(a.action||'').toLowerCase();
     if(kind==='move'||kind==='rotate'||kind==='remove'){
       const hit=fpFindFurniture(a.furnitureId);
-      if(!hit)return;
+      if(!hit){console.warn('[architect] fp-canvas: no furniture matched ref "'+a.furnitureId+'"');return;}
       const {room,item}=hit;
       if(kind==='remove'){
         room.furniture=room.furniture.filter(f=>f!==item);
         touched=true;
+        console.log('[architect] fp-canvas: removed',a.furnitureId);
         return;
       }
       if(typeof a.x==='number')item.x=Math.max(0,Math.min(a.x,room.rect.w-(item.w||0)));
@@ -7829,11 +7862,12 @@ function fpApplyArchitectActions(actions){
       const deg=(typeof a.degrees==='number'?a.degrees:(typeof a.rotation==='number'?a.rotation:(typeof a.rot==='number'?a.rot:null)));
       if(typeof deg==='number')item.rot=((((deg%360)+360)%360)*(Math.PI/180));
       touched=true;touchIds.push(item.id);
+      console.log('[architect] fp-canvas: '+kind+' "'+a.furnitureId+'" -> pos '+item.x.toFixed(2)+','+item.y.toFixed(2)+' rot '+Math.round((((item.rot||0)%(2*Math.PI)+2*Math.PI)%(2*Math.PI))*(180/Math.PI))+'\u00B0');
     }else if(kind==='add'){
       const def=FURNITURE_DEFS.find(d=>d.id===a.defId);
-      if(!def)return;
+      if(!def){console.warn('[architect] fp-canvas: no def for add defId "'+a.defId+'"');return;}
       const room=a.roomId?fpRoomById(a.roomId):(fpRoomById(fpSelId)||fpRooms[0]);
-      if(!room)return;
+      if(!room){console.warn('[architect] fp-canvas: no room for add roomId "'+(a.roomId||'')+'"');return;}
       const w=(typeof a.w==='number'&&a.w>0)?a.w:def.w;
       const h=(typeof a.h==='number'&&a.h>0)?a.h:def.h;
       const x=typeof a.x==='number'?Math.max(0,Math.min(a.x,room.rect.w-w)):Math.max((room.rect.w-w)/2,0);
@@ -7842,14 +7876,69 @@ function fpApplyArchitectActions(actions){
       const item={id:uid(),defId:def.id,x:Math.round(x*100)/100,y:Math.round(y*100)/100,w,h,rot,h3d:def.h3d||0.9};
       room.furniture.push(item);
       touched=true;touchIds.push(item.id);
+      console.log('[architect] fp-canvas: added "'+def.id+'" into room "'+room.id+'" at '+item.x+','+item.y);
     }
   });
-  if(!touched)return;
+  if(!touched){console.log('[architect] fp-canvas: no actions applied');return;}
   fpArchFlash=touchIds;
   clearTimeout(fpArchFlashTimer);
   fpArchFlashTimer=setTimeout(()=>{fpArchFlash=[];if(currentScreen!=='editor')drawFpCanvas();},1400);
   if(currentScreen==='editor'){try{if(typeof buildFurnList==='function')buildFurnList();}catch(e){}try{updateBadge();}catch(e){}draw2d();}
   else{fpRenderRoomList();fpUpdateInfo();drawFpCanvas();}
+}
+function archiApplyActions(actions){
+  if(!Array.isArray(actions)||!actions.length){console.log('[architect] no actions to apply');return;}
+  if(currentScreen==='editor'){applyEditorActions(actions);}
+  else{fpApplyArchitectActions(actions);}
+}
+function applyEditorActions(actions){
+  if(!Array.isArray(actions)||!actions.length)return;
+  (furniture||[]).forEach(f=>{if(f&&!f.id)f.id=uid();});
+  const roomW=Math.max(Number(roomConfig.w)||5,0.5),roomH=Math.max(Number(roomConfig.h)||4,0.5);
+  let touched=false,touchIds=[];
+  (actions||[]).forEach(a=>{
+    if(!a||typeof a!=='object')return;
+    const kind=String(a.action||'').toLowerCase();
+    if(kind==='move'||kind==='rotate'||kind==='remove'){
+      const q=String(a.furnitureId||'').trim().toLowerCase();
+      const item=furniture.find(f=>String(f.id||'').toLowerCase()===q)
+        ||furniture.find(f=>{const def=FURNITURE_DEFS.find(d=>d.id===f.defId);return (def?String(def.label).toLowerCase():'')===q||String(f.defId||'').toLowerCase()===q;})
+        ||(q.length>=3?furniture.find(f=>{const def=FURNITURE_DEFS.find(d=>d.id===f.defId);return String(def?def.label:'').toLowerCase().indexOf(q)>-1;}):null);
+      if(!item){console.warn('[architect] editor: no furniture matched ref "'+a.furnitureId+'"');return;}
+      if(kind==='remove'){
+        const ix=furniture.indexOf(item);
+        if(ix>-1)furniture.splice(ix,1);
+        touched=true;
+        console.log('[architect] editor: removed "'+a.furnitureId+'"');
+        return;
+      }
+      if(typeof a.x==='number')item.x=Math.max(0,Math.min(a.x,roomW-(item.w||0)));
+      if(typeof a.y==='number')item.y=Math.max(0,Math.min(a.y,roomH-(item.h||0)));
+      const deg=(typeof a.degrees==='number'?a.degrees:(typeof a.rotation==='number'?a.rotation:(typeof a.rot==='number'?a.rot:null)));
+      if(typeof deg==='number')item.rot=((((deg%360)+360)%360)*(Math.PI/180));
+      touched=true;touchIds.push(item.id);
+      console.log('[architect] editor: '+kind+' "'+a.furnitureId+'" -> pos '+item.x.toFixed(2)+','+item.y.toFixed(2)+' rot '+Math.round((((item.rot||0)%(2*Math.PI)+2*Math.PI)%(2*Math.PI))*(180/Math.PI))+'\u00B0');
+    }else if(kind==='add'){
+      const def=FURNITURE_DEFS.find(d=>d.id===a.defId);
+      if(!def){console.warn('[architect] editor: no def for add defId "'+a.defId+'"');return;}
+      const w=(typeof a.w==='number'&&a.w>0)?a.w:def.w;
+      const h=(typeof a.h==='number'&&a.h>0)?a.h:def.h;
+      const x=typeof a.x==='number'?Math.max(0,Math.min(a.x,roomW-w)):Math.max((roomW-w)/2,0);
+      const y=typeof a.y==='number'?Math.max(0,Math.min(a.y,roomH-h)):Math.max((roomH-h)/2,0);
+      const rot=typeof a.rot==='number'?((((a.rot%360)+360)%360)*(Math.PI/180)):0;
+      const item={id:uid(),defId:def.id,x:Math.round(x*100)/100,y:Math.round(y*100)/100,w,h,rot,h3d:def.h3d||0.9};
+      furniture.push(item);
+      touched=true;touchIds.push(item.id);
+      console.log('[architect] editor: added "'+def.id+'" at '+item.x+','+item.y);
+    }
+  });
+  if(!touched){console.log('[architect] editor: no actions applied');return;}
+  fpArchFlash=touchIds;
+  clearTimeout(fpArchFlashTimer);
+  fpArchFlashTimer=setTimeout(()=>{fpArchFlash=[];if(currentScreen==='editor'){try{draw2d();}catch(e){}}},1400);
+  try{draw2d();}catch(e){console.warn('[architect] editor redraw:',e&&e.message);}
+  try{if(typeof buildFurnList==='function')buildFurnList();}catch(e){}
+  try{updateBadge();}catch(e){}
 }
 function archiAppend(role,text){
   const box=document.getElementById('archi-msgs');
@@ -7886,7 +7975,9 @@ async function archiAsk(message){
     throw new Error(detail||('Request failed ('+res.status+')'));
   }
   const data=await res.json();
-  return{reply:(data.reply||''),actions:Array.isArray(data.actions)?data.actions:[]};
+  console.log('[architect] raw Claude reply:',data.raw||data.reply);
+  console.log('[architect] parsed message:',data.reply,'| parsed '+((Array.isArray(data.actions)?data.actions.length:0)+' action(s)'));
+  return{reply:(data.reply||''),actions:Array.isArray(data.actions)?data.actions:[],raw:data.raw};
 }
 async function archiSend(){
   const input=document.getElementById('archi-input');
@@ -7901,10 +7992,11 @@ async function archiSend(){
   if(sendBtn)sendBtn.disabled=true;
   archiAppend('assistant','Thinking about that\u2026');
   try{
-    const {reply,actions}=await archiAsk(msg);
+    const {reply,actions,raw}=await archiAsk(msg);
     archiHistory.push({role:'assistant',content:reply});
     archiSaveMessage('assistant',reply);
-    fpApplyArchitectActions(actions);
+    console.log('[architect] applying '+actions.length+' action(s) to the '+(currentScreen==='editor'?'single-room editor':'floor plan canvas'));
+    archiApplyActions(actions);
     const msgs=document.querySelectorAll('#archi-msgs .archi-msg');
     if(msgs.length&&msgs[msgs.length-1].textContent==='Thinking about that\u2026'){
       msgs[msgs.length-1].textContent=reply;

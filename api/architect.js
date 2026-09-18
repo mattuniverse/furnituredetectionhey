@@ -8,6 +8,12 @@
 // Responses carry a friendly, conversational architect voice. The floorplan
 // context is injected ahead of the latest user message so Claude speaks to the
 // actual design on the canvas.
+//
+// The assistant returns ONLY a JSON object of the form
+//   {"message":"...","actions":[ ... ]}
+// so the browser can apply furniture actions directly to the canvas. The raw
+// Claude reply is passed back as `raw` (alongside `reply` and `actions`) so the
+// client can log what the model actually produced during debugging.
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -25,46 +31,69 @@ function parseBody(raw) {
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL_NAME = process.env.MODEL_NAME || "claude-haiku-4-5-20251001";
-const MAX_TOKENS = 600;
+const MAX_TOKENS = 900;
 
+const sliceStr = (s, n) => String(s || "").slice(0, n || 250);
+
+// Strict JSON-only contract. The model must reply with ONE JSON object and
+// nothing else — no markdown code fences, no leading prose, no "Here is the
+// JSON:" preamble. It should default to ACTING on the canvas (making sensible
+// ergonomic assumptions) and ask at most ONE clarifying question.
 const SYSTEM_PROMPT =
-  "You are a friendly AI architect assistant that can control furniture directly on the user's floorplan canvas. " +
-  "Whenever the user asks you to move, place, rotate, remove, or rearrange furniture, respond with ONLY a JSON object and no other text. " +
-  'The JSON must match {"message": "...", "actions": [...]}. ' +
-  '"message" is a short, friendly explanation of what you changed and why (reference an ergonomic/design principle). ' +
-  'Each entry in "actions" is one of: ' +
-  '{"action":"move","furnitureId":"<id>","x":<meters>,"y":<meters>} — move a piece; x and y are both optional so you can report just the axis you change. ' +
-  '{"action":"rotate","furnitureId":"<id>","degrees":<0-359>} — rotate a piece clockwise in degrees. ' +
-  '{"action":"remove","furnitureId":"<id>"} — delete a piece from the canvas. ' +
-  '{"action":"add","defId":"<defId>","x":<meters>,"y":<meters>,"rot":<0-359>,"roomId":"<roomId>"} — add a new piece; only use defId values from the furniture library listed in the floorplan state, and only to a roomId that exists. ' +
-  "Always copy the exact id and roomId strings shown in the floorplan state \u2014 never invent or repurpose ids. " +
-  "Coordinates are meters measured from that room's top-left corner; the room dimensions are provided in the state. " +
-  'If the user only asks for advice or a question (no on-canvas change needed), return {"message":"...","actions":[]}. ' +
-  "Keep the message under ~3 sentences.";
+  "You are an AI architect assistant in a web app that lets you edit a floor plan canvas directly by controlling furniture. " +
+  "Your output contract is STRICT: every reply must be exactly ONE JSON object and NOTHING else — " +
+  "no markdown code fences, no ```json blocks, no text before or after the JSON, no bullet lists, no 'Here is the JSON:' prefixes, no quoting. " +
+  "The very first character of your reply must be '{' and nothing may follow the closing '}'. Everything outside the JSON is discarded, so never send it.\n" +
+  'The JSON must have exactly this shape: {"message":"...","actions":[...]}. "message" is a short (2-3 sentence), friendly explanation of what you did and why, referencing an ergonomic or design principle. ' +
+  '"actions" is an array (possibly empty) of action objects:\n' +
+  '  - move:  {"action":"move","furnitureId":"<exact id>","x":<meters>,"y":<meters>}  — x and y are optional; include only the axis you change.\n' +
+  '  - rotate: {"action":"rotate","furnitureId":"<exact id>","degrees":<0-359>}  — clockwise in degrees.\n' +
+  '  - remove: {"action":"remove","furnitureId":"<exact id>"}  — delete a piece.\n' +
+  '  - add:   {"action":"add","defId":"<defId from library>","x":<meters>,"y":<meters>,"rot":<0-359>,"roomId":"<exact roomId>"}  — add a new piece; only use defId values from the furniture library and roomIds that exist.\n' +
+  "Always copy id, roomId, and defId strings EXACTLY from the floorplan state below — never invent, guess, or repurpose ids. " +
+  "Coordinates are meters measured from that room's top-left corner; room dimensions are provided in the state.\n" +
+  "Prefer ACTING over asking. When the user gives enough context, make a sensible ergonomic placement decision and apply it immediately; if a detail is missing or ambiguous, make reasonable assumptions, briefly state them in \"message\", and proceed. " +
+  "Ask AT MOST ONE clarifying question, and only when the request is impossible without it. " +
+  'If the user only wants advice or information (no on-canvas change), return {"message":"...","actions":[]}.\n' +
+  'Valid example (ids are placeholders — use the real ids from your state): ' +
+  '{"message":"I moved the sofa to the opposite wall and rotated it 90\u00B0 for a better TV sight line, keeping a 90cm walkway to the door.","actions":[{"action":"move","furnitureId":"a1b2c3","x":0.4,"y":2.3},{"action":"rotate","furnitureId":"a1b2c3","degrees":90}]}';
 
 function extractActions(rawReply) {
   const text = String(rawReply || "").trim();
-  if (!text) return { reply: "", actions: [] };
-  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (!text) return { reply: "", actions: [], raw: rawReply };
+
+  // Try, in order: ```json fenced block, first "{..." onwards, whole text.
   let obj = null;
-  if (fence) {
-    try { obj = JSON.parse(fence[1].trim()); } catch (e) { obj = null; }
+  const candidates = [];
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) candidates.push(fence[1].trim());
+  const start = text.indexOf("{");
+  if (start > -1) candidates.push(text.slice(start));
+  candidates.push(text);
+
+  for (const c of candidates) {
+    if (!c) continue;
+    try { obj = JSON.parse(c); if (obj && typeof obj === "object" && !Array.isArray(obj)) break; }
+    catch (e) { obj = null; }
   }
-  if (!obj) {
-    const start = text.indexOf("{");
-    if (start > -1) {
-      try { obj = JSON.parse(text.slice(start)); } catch (e) { obj = null; }
-    }
-  }
-  if (!obj) {
-    try { obj = JSON.parse(text); } catch (e) { obj = null; }
-  }
+
   if (obj && typeof obj === "object") {
-    const message = typeof obj.message === "string" ? obj.message.trim() : "";
-    const actions = Array.isArray(obj.actions) ? obj.actions : [];
-    return { reply: message || "Got it.", actions };
+    let actions = Array.isArray(obj.actions) ? obj.actions : [];
+    if (!actions.length && obj.action && typeof obj.action === "string") actions = [obj];
+    if (!actions.length && obj.actions && typeof obj.actions === "object" && !Array.isArray(obj.actions)) actions = [obj.actions];
+    actions = actions.filter((a) => a && typeof a === "object");
+    const message =
+      typeof obj.message === "string" && obj.message.trim()
+        ? obj.message.trim()
+        : typeof obj.reply === "string" && obj.reply.trim()
+          ? obj.reply.trim()
+          : "Got it.";
+    console.log(`[architect] parse OK -> actions: ${actions.length}, message: ${sliceStr(message, 120)}`);
+    return { reply: message, actions, raw: rawReply };
   }
-  return { reply: rawReply, actions: [] };
+
+  console.warn(`[architect] Claude reply was NOT JSON: ${sliceStr(text, 300)}`);
+  return { reply: rawReply, actions: [], raw: rawReply };
 }
 
 function cleanTurns(history) {
@@ -74,6 +103,11 @@ function cleanTurns(history) {
     .slice(-12)
     .map((t) => ({ role: t.role, content: t.content }));
 }
+
+// Reinforces the JSON-only contract right next to the live request, where
+// model compliance is strongest. Not persisted in chat history.
+const OUTPUT_REMINDER =
+  "\n\nRemember: reply with ONLY a single JSON object of the form {\"message\":\"...\",\"actions\":[...]} — no markdown, no code fences, no prose before or after. The first character must be '{'.";
 
 async function askClaude(message, history, context) {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -89,7 +123,7 @@ async function askClaude(message, history, context) {
     : "";
   const messages = [
     ...turns,
-    { role: "user", content: `${ctxBlock}${message}` },
+    { role: "user", content: `${ctxBlock}${message}${OUTPUT_REMINDER}` },
   ];
 
   let response;
@@ -160,9 +194,9 @@ export default async function handler(req, res) {
 
   try {
     const raw = await askClaude(message, body.history, body.context);
-    const { reply, actions } = extractActions(raw);
+    const { reply, actions, raw: passthrough } = extractActions(raw);
     console.log("[architect] replied, actions:", Array.isArray(actions) ? actions.length : 0);
-    res.status(200).json({ reply, actions });
+    res.status(200).json({ reply, actions, raw: passthrough });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message || "Architect request failed" });
   }
