@@ -7002,12 +7002,33 @@ function fpDrawRoom(r,sel){
   (r.furniture||[]).forEach(f=>{
     const c=itemCenter(f);
     const s=fpToScreen(b.x+c.x,b.y+c.y);
+    const flashing=f.id&&fpArchFlash&&fpArchFlash.indexOf(f.id)>-1;
     if(f.defId==='door'||f.defId==='window'){
+      if(flashing){
+        fpctx.save();
+        fpctx.strokeStyle='#c4633a';fpctx.lineWidth=3;
+        fpctx.shadowColor='rgba(196,99,58,.8)';fpctx.shadowBlur=12;
+        fpctx.strokeRect(s.x-(f.w*fpView.scale)/2-5,s.y-6,f.w*fpView.scale+10,12);
+        fpctx.restore();
+      }
       fpctx.fillStyle='#8c6040';
       fpctx.fillRect(s.x-(f.w*fpView.scale)/2,s.y-1.5,f.w*fpView.scale,3);
     }else{
+      const wd=f.w*fpView.scale,ht=f.h*fpView.scale;
+      fpctx.save();
+      fpctx.translate(s.x,s.y);
+      fpctx.rotate(f.rot||0);
+      if(flashing){
+        fpctx.strokeStyle='#c4633a';
+        fpctx.lineWidth=3;
+        fpctx.shadowColor='rgba(196,99,58,.8)';
+        fpctx.shadowBlur=12;
+        fpctx.strokeRect(-wd/2-5,-ht/2-5,wd+10,ht+10);
+        fpctx.shadowBlur=0;
+      }
       fpctx.fillStyle='rgba(140,96,64,.55)';
-      fpctx.fillRect(s.x-(f.w*fpView.scale)/2,s.y-(f.h*fpView.scale)/2,f.w*fpView.scale,f.h*fpView.scale);
+      fpctx.fillRect(-wd/2,-ht/2,wd,ht);
+      fpctx.restore();
     }
   });
 }
@@ -7505,6 +7526,7 @@ window.addEventListener('drop',e=>e.preventDefault());
 // ══════════════════════════════════════════
 const archiHistory=[];
 let archiBusy=false;
+let fpArchFlash=[],fpArchFlashTimer=null;
 const ARCHI_WELCOME='Hi! I\u2019m your AI architect. Tell me about your space or ask me anything. For example: \u201CWhere should I put the bedroom?\u201D';
 async function archiSaveMessage(role,content){
   try{
@@ -7556,7 +7578,11 @@ function syncArchiVisibility(){
   fab.style.display=show?'flex':'none';
   if(!show&&card.classList.contains('open')){card.classList.remove('open');card.setAttribute('aria-hidden','true');fab.setAttribute('aria-expanded','false');}
 }
+function fpEnsureFurnitureIds(){
+  fpRooms.forEach(r=>{(r.furniture||[]).forEach(f=>{if(f&&!f.id)f.id=uid();});});
+}
 function archiContext(){
+  fpEnsureFurnitureIds();
   const lines=['Current floor plan state:'];
   if(!fpRooms.length){
     lines.push('- No rooms yet \u2014 the canvas is empty (project "'+(fpProjectName||'Untitled')+'").');
@@ -7564,10 +7590,78 @@ function archiContext(){
     lines.push('- Project: "'+(fpProjectName||'Floor Plan')+'", '+fpRooms.length+' room'+(fpRooms.length===1?'':'s')+':');
     fpRooms.forEach(r=>{
       const t=r.roomConfig&&r.roomConfig.type&&r.roomConfig.type!=='Custom'?r.roomConfig.type:(fpSuggestions[r.id]?fpSuggestions[r.id].type:'type not set');
-      lines.push('  - '+r.label+': '+r.rect.w.toFixed(1)+'m \u00D7 '+r.rect.h.toFixed(1)+'m ('+(r.rect.w*r.rect.h).toFixed(1)+' m\u00B2), '+t+', '+(r.furniture?r.furniture.length:0)+' furniture piece'+(r.furniture&&r.furniture.length===1?'':'s'));
+      lines.push('  - "'+r.label+'" (roomId '+r.id+'): '+r.rect.w.toFixed(1)+'m \u00D7 '+r.rect.h.toFixed(1)+'m ('+(r.rect.w*r.rect.h).toFixed(1)+' m\u00B2), '+t+', '+(r.furniture?r.furniture.length:0)+' furniture piece'+(r.furniture&&r.furniture.length===1?'':'s'));
+      (r.furniture||[]).forEach(f=>{
+        const def=FURNITURE_DEFS.find(d=>d.id===f.defId);
+        const label=def?def.label:(f.defId||'piece');
+        lines.push('    - id '+f.id+', '+label+' ('+f.defId+'): size '+f.w.toFixed(2)+'m \u00D7 '+f.h.toFixed(2)+'m, at ('+f.x.toFixed(2)+','+f.y.toFixed(2)+'), rotation '+Math.round((((f.rot||0)%(2*Math.PI)+2*Math.PI)%(2*Math.PI))*(180/Math.PI))+'\u00B0');
+      });
     });
   }
+  lines.push('Positions are in meters measured from each room\u2019s top-left corner; rotations are clockwise in degrees. Use the exact id and roomId strings listed above in any actions, and never change an id.');
+  lines.push('Furniture library you may ADD via "add" actions: '+FURNITURE_DEFS.filter(d=>d.cat!=='Structure').map(d=>d.id+' ('+d.label+')').join(', ')+'.');
   return lines.join('\n');
+}
+function fpFindFurniture(ref){
+  const q=String(ref||'').trim().toLowerCase();
+  if(!q)return null;
+  const scan=(matcher)=>{
+    for(const room of fpRooms){
+      for(const item of (room.furniture||[])){
+        if(matcher(item,room))return{room,item};
+      }
+    }
+    return null;
+  };
+  const byId=scan((i)=>String(i.id||'').toLowerCase()===q);
+  if(byId)return byId;
+  const byExact=scan((i)=>{const def=FURNITURE_DEFS.find(d=>d.id===i.defId);return (def?String(def.label).toLowerCase():'')===q||String(i.defId||'').toLowerCase()===q;});
+  if(byExact)return byExact;
+  if(q.length>=3)return scan((i)=>{const def=FURNITURE_DEFS.find(d=>d.id===i.defId);return String(def?def.label:'').toLowerCase().indexOf(q)>-1;});
+  return null;
+}
+function fpApplyArchitectActions(actions){
+  if(!Array.isArray(actions)||!actions.length)return;
+  fpEnsureFurnitureIds();
+  let touched=false,touchIds=[];
+  (actions||[]).forEach(a=>{
+    if(!a||typeof a!=='object')return;
+    const kind=String(a.action||'').toLowerCase();
+    if(kind==='move'||kind==='rotate'||kind==='remove'){
+      const hit=fpFindFurniture(a.furnitureId);
+      if(!hit)return;
+      const {room,item}=hit;
+      if(kind==='remove'){
+        room.furniture=room.furniture.filter(f=>f!==item);
+        touched=true;
+        return;
+      }
+      if(typeof a.x==='number')item.x=Math.max(0,Math.min(a.x,room.rect.w-(item.w||0)));
+      if(typeof a.y==='number')item.y=Math.max(0,Math.min(a.y,room.rect.h-(item.h||0)));
+      const deg=(typeof a.degrees==='number'?a.degrees:(typeof a.rotation==='number'?a.rotation:(typeof a.rot==='number'?a.rot:null)));
+      if(typeof deg==='number')item.rot=((((deg%360)+360)%360)*(Math.PI/180));
+      touched=true;touchIds.push(item.id);
+    }else if(kind==='add'){
+      const def=FURNITURE_DEFS.find(d=>d.id===a.defId);
+      if(!def)return;
+      const room=a.roomId?fpRoomById(a.roomId):(fpRoomById(fpSelId)||fpRooms[0]);
+      if(!room)return;
+      const w=(typeof a.w==='number'&&a.w>0)?a.w:def.w;
+      const h=(typeof a.h==='number'&&a.h>0)?a.h:def.h;
+      const x=typeof a.x==='number'?Math.max(0,Math.min(a.x,room.rect.w-w)):Math.max((room.rect.w-w)/2,0);
+      const y=typeof a.y==='number'?Math.max(0,Math.min(a.y,room.rect.h-h)):Math.max((room.rect.h-h)/2,0);
+      const rot=typeof a.rot==='number'?((((a.rot%360)+360)%360)*(Math.PI/180)):0;
+      const item={id:uid(),defId:def.id,x:Math.round(x*100)/100,y:Math.round(y*100)/100,w,h,rot,h3d:def.h3d||0.9};
+      room.furniture.push(item);
+      touched=true;touchIds.push(item.id);
+    }
+  });
+  if(!touched)return;
+  fpArchFlash=touchIds;
+  clearTimeout(fpArchFlashTimer);
+  fpArchFlashTimer=setTimeout(()=>{fpArchFlash=[];if(currentScreen!=='editor')drawFpCanvas();},1400);
+  if(currentScreen==='editor'){try{if(typeof buildFurnList==='function')buildFurnList();}catch(e){}try{updateBadge();}catch(e){}draw2d();}
+  else{fpRenderRoomList();fpUpdateInfo();drawFpCanvas();}
 }
 function archiAppend(role,text){
   const box=document.getElementById('archi-msgs');
@@ -7604,7 +7698,7 @@ async function archiAsk(message){
     throw new Error(detail||('Request failed ('+res.status+')'));
   }
   const data=await res.json();
-  return (data.reply||'');
+  return{reply:(data.reply||''),actions:Array.isArray(data.actions)?data.actions:[]};
 }
 async function archiSend(){
   const input=document.getElementById('archi-input');
@@ -7619,9 +7713,10 @@ async function archiSend(){
   if(sendBtn)sendBtn.disabled=true;
   archiAppend('assistant','Thinking about that\u2026');
   try{
-    const reply=await archiAsk(msg);
+    const {reply,actions}=await archiAsk(msg);
     archiHistory.push({role:'assistant',content:reply});
     archiSaveMessage('assistant',reply);
+    fpApplyArchitectActions(actions);
     const msgs=document.querySelectorAll('#archi-msgs .archi-msg');
     if(msgs.length&&msgs[msgs.length-1].textContent==='Thinking about that\u2026'){
       msgs[msgs.length-1].textContent=reply;
