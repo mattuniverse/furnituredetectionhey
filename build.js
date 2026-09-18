@@ -32,7 +32,6 @@ let html = readFileSync('index.html', 'utf8');
 // Inject Vercel env vars
 html = injectToken(html, '__SUPABASE_URL__', env.SUPABASE_URL);
 html = injectToken(html, '__SUPABASE_ANON_KEY__', env.SUPABASE_ANON_KEY);
-html = injectToken(html, '__DETECT_API_BASE__', env.DETECT_API_BASE);
 
 // Inject shared rules (named exports)
 html = injectJsConst(html, 'FURNITURE_DEFS', shared.FURNITURE_DEFS);

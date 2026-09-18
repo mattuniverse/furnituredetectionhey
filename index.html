@@ -563,8 +563,9 @@ canvas { display: block; }
 }
 
 /* Landscape Prompt Toast */
-.landscape-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px 24px; box-shadow: var(--shadow-xl); display: flex; align-items: center; gap: 12px; max-width: 90vw; opacity: 0; transition: transform var(--transition-slow) var(--ease-soft), opacity var(--transition-slow); z-index: 300; }
-.landscape-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.landscape-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px 24px; box-shadow: var(--shadow-xl); display: flex; align-items: center; gap: 12px; max-width: 90vw; opacity: 0; transition: transform var(--transition-slow) var(--ease-soft), opacity var(--transition-slow); z-index: 300; pointer-events: none; }
+.landscape-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: none; }
+.landscape-toast .landscape-toast-btn, .landscape-toast .landscape-toast-dismiss { pointer-events: auto; }
 .landscape-toast-icon { font-size: 24px; flex-shrink: 0; }
 .landscape-toast-text { font-size: 13px; color: var(--color-text); line-height: 1.5; flex: 1; }
 .landscape-toast-btn { padding: 8px 16px; background: var(--color-primary); color: var(--color-text-inverse); border: none; border-radius: var(--radius-md); font-family: var(--font-body); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
@@ -576,6 +577,13 @@ canvas { display: block; }
 @media (max-width: 768px), (orientation: landscape) and (max-height: 560px) {
   .landscape-toast { bottom: 100px; left: 16px; right: 16px; transform: translateY(100px); max-width: none; }
   .landscape-toast.show { transform: translateY(0); }
+}
+
+/* Mobile: room-setup screen scrolls instead of clipping; cap the color picker height */
+@media (max-width: 768px) {
+  #screen-room-setup { overflow-y: auto; padding-bottom: 100px; justify-content: flex-start; align-items: flex-start; }
+  #screen-room-setup .setup-card { margin: 0 auto; width: 100%; max-width: 94vw; max-height: none; }
+  #screen-room-setup .cw-canvas { max-width: 200px; max-height: 200px; }
 }
 
 /* Screen reader only */
@@ -2101,8 +2109,7 @@ canvas { display: block; }
 // ══════════════════════════════════════════
 const FLOORPLAN_ENV = {
   SUPABASE_URL: '__SUPABASE_URL__',
-  SUPABASE_ANON_KEY: '__SUPABASE_ANON_KEY__',
-  DETECT_API_BASE: '__DETECT_API_BASE__'
+  SUPABASE_ANON_KEY: '__SUPABASE_ANON_KEY__'
 };
 const envTok=(v,def)=>(v&&typeof v==='string'&&v.indexOf('__')!==0)?v:def;
 const SUPABASE_URL = envTok(FLOORPLAN_ENV.SUPABASE_URL,'https://labtkuhvvkrlvpfbispd.supabase.co');
@@ -5007,11 +5014,8 @@ function updateBadge(){document.getElementById('badge-room').textContent=`${room
 function setStatus(msg){document.getElementById('statusbar-text').textContent=msg;}
 
 // ══════════════════════════════════════════
-//  FURNITURE DETECTION (Render ONNX backend)
+//  FURNITURE DETECTION (Claude API)
 // ══════════════════════════════════════════
-// Same-origin Vercel proxy (/api/detect-furniture -> RENDER_BACKEND_URL) avoids stale URLs + CORS.
-// Override with window.FLOORPLAN_API_BASE or VERCEL env DETECT_API_BASE to hit a backend directly.
-const DETECT_API_BASE = window.FLOORPLAN_API_BASE || envTok(FLOORPLAN_ENV.DETECT_API_BASE,'');
 const uploadedPhotos={};
 let activePhotoSlot=null;
 
@@ -5298,7 +5302,7 @@ function confirmVerification(){
 
 async function detectFurnitureInImage(file){
   const imageBase64=await resizeImageToBase64(file,1600,0.82);
-  const res=await fetch(`${DETECT_API_BASE}/api/detect-furniture`,{
+  const res=await fetch('/api/detect-furniture',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({image:imageBase64}),
