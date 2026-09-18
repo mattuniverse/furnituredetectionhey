@@ -25,16 +25,23 @@ This folder is the "online" version of your app:
 ```
 /
 ├── index.html            ← the whole frontend (canvas editor, 3D view, auth, save/load)
+├── api/
+│   ├── detect-furniture.js ← Claude vision detection (serverless)
+│   ├── architect.js        ← AI Architect chat (serverless)
+│   └── suggest-layout.js   ← AI room suggestions (serverless)
+├── shared/
+│   └── rules.js          ← furniture defs + layout rules (injected at build)
 ├── supabase/
 │   └── schema.sql         ← run once in Supabase to create the projects table + admin
 ├── package.json
+├── build.js              ← generates public/index.html with shared rules + env injected
 ├── vercel.json
 └── .gitignore
 ```
 
-No build step, no framework, no serverless functions — Vercel serves `index.html` as a
-static file. Furniture detection is handled by a **separate ONNX service on Render**
-(see section 3), which the frontend calls directly via its public URL.
+No build step, no framework — Vercel serves `index.html` as a static file and runs the
+serverless function `api/detect-furniture.js`, which sends room photos to the **Anthropic
+Claude vision API** for furniture detection (see sections 3 and 4).
 
 ## 1. GitHub
 
@@ -80,29 +87,20 @@ git remote add origin <url> && git push -u origin main
    "Confirm email" temporarily, so you can sign up and sign in immediately without checking
    an inbox. Turn it back on before sharing the site with real users.
 
-## 3. Render (AI furniture detection backend)
+## 3. AI furniture detection (Claude, serverless)
 
-The frontend detects furniture by calling a FastAPI + ONNX service. That service lives in
-a **separate repo** so the model binary (`best.onnx`) is baked in and isn't part of the
-frontend deploy.
+Furniture detection no longer uses an ONNX service on Render. Room photos are sent by the
+Vercel serverless function `api/detect-furniture.js` to the **Anthropic Claude vision API**
+(`claude-haiku-4-5-20251001` by default), which returns the furniture/fixture detections.
+There is no separate backend to deploy — Vercel runs the function for you.
 
-1. On [render.com](https://render.com) → **New → Web Service**, import that repo
-   (e.g. `mattuniverse/rendereed_floorplan`).
-2. It ships a `Dockerfile` + `render.yaml`, so Render will build and run it as-is.
-3. Render gives a URL like `https://rendee-onnx-updated.onrender.com`.
-4. The frontend already points at it by default — in `index.html`:
-   ```js
-   const DETECT_API_BASE = window.FLOORPLAN_API_BASE || 'https://rendee-onnx-updated.onrender.com';
-   ```
-   Change the default value if your Render URL differs, or override it at runtime with
-   `window.FLOORPLAN_API_BASE` before the script runs.
-5. **CORS** is enabled for all origins by default, so your Vercel domain can call it.
-   To lock it down, set an env var on the Render service:
-   ```
-   ALLOWED_ORIGINS=https://your-app.vercel.app
-   ```
-6. Health check: open `https://<your-render-url>/` — you should see
-   `{"status":"ok","model":"best.onnx","runtime":"onnxruntime"}`.
+1. Add your Anthropic API key as a Vercel environment variable: `ANTHROPIC_API_KEY`.
+2. (Optional) Override the model with `MODEL_NAME` (default is `claude-haiku-4-5-20251001`).
+3. The frontend calls the function through the `vercel.json` rewrite: `/api/detect-furniture`
+   → `api/detect-furniture.js`. The response shape is unchanged, so existing client code
+   keeps working.
+4. If a key isn't set, `/api/detect-furniture` returns a clear "ANTHROPIC_API_KEY is not set"
+   error, and the "Scan Furniture" flow reports the detection failure.
 
 ## 4. Vercel
 
@@ -111,20 +109,20 @@ frontend deploy.
 2. Framework preset: **Other**.
 3. **Build settings** (Project → Settings → General):
    - Build Command: `npm run build`
-   - Output Directory: `dist`
+   - Output Directory: `public`
    - Root Directory: `.` (default)
-4. **Environment variables** (Project → Settings → Environment Variables) — optional, but
-   recommended so you can switch projects without touching code. Any that are unset fall back
-   to the defaults baked into `index.html`:
+4. **Environment variables** (Project → Settings → Environment Variables) — required for
+   cloud features, but any that are unset fall back to the defaults baked into `index.html`:
 
    | Name              | Example                                          |
    | ----------------- | ------------------------------------------------ |
    | `SUPABASE_URL`    | `https://binubqetpsugdnwtarvt.supabase.co`        |
    | `SUPABASE_ANON_KEY` | `sb_publishable_...`                            |
-   | `DETECT_API_BASE` | `https://rendee-onnx-updated.onrender.com`        |
+   | `ANTHROPIC_API_KEY` | `sk-ant-...`                                   |
+   | `MODEL_NAME`      | `claude-haiku-4-5-20251001` (optional)           |
 
-   `build.js` replaces the `__NAME__` placeholders in `index.html` with these values at build
-   time; with none set, the built site still works using the hardcoded defaults.
+   `build.js` replaces the `__NAME__`/token placeholders in `index.html` with these values at
+   build time; with none set, the built site still works using the hardcoded defaults.
 5. Deploy. Vercel gives you a `*.vercel.app` URL.
 6. Every future `git push` to `main` auto-redeploys (rebuild + redeploy).
 
@@ -134,7 +132,7 @@ frontend deploy.
 2. Create a new room, add some furniture, hit **Save** (💾 in the editor topbar) — it should
    say "Project saved ✓". Go back to the dashboard — you should see the project card.
 3. In the room-setup photo modal, upload a real room photo and hit **Scan Furniture** →
-   confirms detection against the Render service works.
+   confirms detection against the Claude API works.
 4. Log out, log back in — your projects should still be there (they're in Supabase now, not
    just in-memory).
 
@@ -143,7 +141,7 @@ frontend deploy.
 ```
 Login/Register → Supabase Auth → Dashboard → Create Project
    → Upload Room Photos → Supabase Storage (room-images bucket)
-   → AI Furniture Detection (Render ONNX service, direct API call)
+   → AI Furniture Detection (Anthropic Claude vision API, via Vercel serverless function)
    → Interactive Object Verification (review/uncheck/relabel each detection)
    → Room Measurements + reference width (used to scale detections onto the plan)
    → Generate Editable 2D Floor Plan → Drag/Resize/Rotate Furniture
@@ -153,11 +151,10 @@ Login/Register → Supabase Auth → Dashboard → Create Project
 
 ## Notes / limitations
 
-- **Furniture class mapping is best-effort.** The model's class names are mapped to this
-  app's furniture ids inside the Render service's `app.py` (`_DEFAULT_CLASS_MAP`). If
-  detections come back with `unmappedClasses`, extend that map.
+- **Furniture class mapping is best-effort.** The Claude model's labels are mapped to this
+  app's furniture ids inside `api/detect-furniture.js` (`labelToFurnitureId`). Items it
+  can't map to a known id come back under `unmappedClasses` — extend that map if needed.
 - **Placement is approximate.** A single 2D photo doesn't give true top-down coordinates —
   detections are mapped onto the room footprint using the wall reference width. Expect to
   drag items into their correct spot after confirming them in the verification step.
-- **Render free tier cold-starts.** The first request after the service idles can take
-  ~30–60s. Subsequent calls are fast.
+- **Claude costs apply.** Every scan calls the Anthropic API; watch usage on large uploads.

@@ -5,11 +5,13 @@ create table if not exists public.projects (
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null default 'Untitled project',
   data jsonb not null,
+  archived boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists projects_user_id_idx on public.projects(user_id);
+create index if not exists projects_archived_idx on public.projects(archived);
 
 -- Row Level Security: every user can only see/change their own projects.
 alter table public.projects enable row level security;
