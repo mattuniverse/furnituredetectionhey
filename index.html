@@ -130,6 +130,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 /* Dashboard */
 #screen-dashboard { background: var(--color-bg); }
 .dash-header { display: flex; align-items: center; gap: 12px; padding: 12px 28px; background: var(--color-surface); border-bottom: 1px solid var(--color-border-light); flex-shrink: 0; box-shadow: var(--shadow-sm); }
+.dash-fp-cta { font-size: 13px; padding: 9px 16px; white-space: nowrap; }
 .dash-header .brand { font-size: 20px; margin-bottom: 0; }
 .dash-header-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--color-primary); color: var(--color-text-inverse); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
@@ -928,6 +929,51 @@ canvas { display: block; }
 .fp-actions .btn-proceed { font-size: 13px; }
 .fp-actions .btn-outline { text-align: left; }
 .fp-empty { color: var(--color-text-muted); font-size: 13px; line-height: 1.6; }
+
+/* Room template chips (drag to canvas) */
+.fp-tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.fp-tpl-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-secondary); cursor: grab; font-family: var(--font-body); transition: all var(--transition-fast) var(--ease-soft); touch-action: none; user-select: none; -webkit-user-select: none; }
+.fp-tpl-chip:hover { border-color: var(--color-accent); background: var(--color-accent-light); color: var(--color-primary); }
+.fp-tpl-chip:active { cursor: grabbing; }
+.fp-tpl-chip .fchip-icon { font-size: 18px; line-height: 1; }
+.fp-tpl-chip .fchip-label { font-size: 11px; font-weight: 600; }
+.fp-tpl-chip .fchip-size { font-size: 10px; color: var(--color-text-muted); }
+.fp-tpl-ghost { position: fixed; z-index: 400; pointer-events: none; background: var(--color-primary); color: var(--color-text-inverse); font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 12px; box-shadow: var(--shadow-xl); font-family: var(--font-body); }
+.fp-canvas-area.fp-drop-ok canvas { outline: 2px dashed var(--color-accent); outline-offset: -6px; }
+.fp-canvas-area.fp-drop-ok { background: color-mix(in srgb, var(--color-accent-light) 60%, var(--color-bg-sunken)); }
+
+/* AI Architect floating assistant */
+.archi-fab { position: fixed; right: calc(18px + env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 280; width: 56px; height: 56px; border-radius: 50%; border: none; background: linear-gradient(135deg, #d9a55a, #b07940); color: #fff; display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 24px color-mix(in srgb, rgba(140,96,64,.45) 60%, transparent); transition: transform var(--transition-fast) var(--ease-soft), box-shadow var(--transition-fast); }
+.archi-fab:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 12px 30px color-mix(in srgb, rgba(140,96,64,.55) 60%, transparent); }
+.archi-fab svg { width: 28px; height: 28px; }
+.archi-fab[aria-expanded="true"] { transform: rotate(90deg); }
+.archi-card { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 290; width: 340px; max-width: calc(100vw - 24px); height: 440px; max-height: calc(100vh - 140px); display: flex; flex-direction: column; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); box-shadow: var(--shadow-xl); opacity: 0; visibility: hidden; transform: translateY(14px) scale(.97); transition: transform var(--transition-base) var(--ease-soft), opacity var(--transition-base) var(--ease-soft), visibility var(--transition-base); overflow: hidden; }
+.archi-card.open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.archi-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 18%, var(--color-surface)), var(--color-surface)); border-bottom: 1px solid var(--color-border-light); }
+.archi-id { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.archi-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #d9a55a, #b07940); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.archi-name { font-family: var(--font-display); font-size: 15px; color: var(--color-primary); font-weight: 600; }
+.archi-x { border: none; background: transparent; color: var(--color-text-muted); font-size: 19px; cursor: pointer; width: 32px; height: 32px; border-radius: 8px; line-height: 1; transition: background var(--transition-fast), color var(--transition-fast); }
+.archi-x:hover { background: var(--color-surface-hover); color: var(--color-text-strong); }
+.archi-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.archi-msg { max-width: 88%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+.archi-msg.user { align-self: flex-end; background: var(--color-primary); color: var(--color-text-inverse); border-bottom-right-radius: 4px; }
+.archi-msg.assistant { align-self: flex-start; background: var(--color-bg-sunken); color: var(--color-text); border: 1px solid var(--color-border-light); border-bottom-left-radius: 4px; }
+.archi-inputs { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--color-border-light); }
+.archi-inputs input { flex: 1; min-width: 0; padding: 10px 12px; border: 1.5px solid var(--color-border-light); border-radius: var(--radius-md); background: var(--color-bg-sunken); color: var(--color-text); font-family: var(--font-body); font-size: 13px; }
+.archi-inputs input:focus { border-color: var(--color-accent); outline: none; }
+.archi-context, .archi-send { width: 38px; height: 38px; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; flex-shrink: 0; transition: background var(--transition-fast), transform var(--transition-fast); }
+.archi-context { background: var(--color-surface-hover); color: var(--color-accent); }
+.archi-context:hover { background: var(--color-accent-light); transform: scale(1.06); }
+.archi-send { background: linear-gradient(135deg, #d9a55a, #b07940); color: #fff; }
+.archi-send:hover:not(:disabled) { transform: scale(1.08); }
+.archi-send:disabled { opacity: .5; cursor: default; }
+@media (max-height: 560px){
+  .archi-card { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); height: calc(100vh - 40px); max-height: calc(100vh - 36px); }
+}
+@media (max-width: 480px){
+  .archi-card { width: calc(100vw - 20px); height: 420px; }
+}
 .fp-ed-banner { display: none; align-items: center; gap: 10px; background: var(--color-accent-light); border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent); border-radius: var(--radius-md); padding: 6px 12px; font-size: 13px; color: var(--color-text); margin: 0 12px; }
 .fp-ed-banner.show { display: flex; }
 .fp-ed-banner b { color: var(--color-primary); }
@@ -1183,6 +1229,7 @@ canvas { display: block; }
   /* 2) Logged-in app headers collapse into the same hamburger pattern */
   .dash-header-right > .theme-toggle { display: none; }
   .dash-header-right > .btn-outline:not([data-admin-link]) { display: none; }
+  .dash-fp-cta { font-size: 12px; padding: 8px 13px; }
   .dash-header .nav-burger { display: inline-flex; }
 }
 @media (max-width: 380px) {
@@ -1529,12 +1576,14 @@ canvas { display: block; }
       </button>
       <button class="btn-outline" data-admin-link onclick="openAdmin()" style="display:none" aria-label="Open admin panel">Admin</button>
       <button class="btn-outline" onclick="openUniverse()" aria-label="Browse community templates">Universe</button>
+      <button class="btn-proceed dash-fp-cta" onclick="quickStartFloorPlan()" aria-label="Create a new floor plan">&#x1F3E0; Create Floorplan</button>
       <div class="avatar" data-avatar aria-label="User avatar">U</div>
       <button class="btn-outline" onclick="logout()" aria-label="Log out">Log out</button>
       <button class="nav-burger" id="dash-burger" onclick="toggleAppMenu('dash-menu')" aria-label="Open user menu" aria-expanded="false" aria-controls="dash-menu" title="Menu">&#9776;</button>
     </div>
     <div class="app-drop" id="dash-menu">
       <button onclick="goTo('start')">&#xFF0B; New Design</button>
+      <button onclick="quickStartFloorPlan()">&#x1F3E0; Create Floorplan</button>
       <button onclick="openUniverse()">&#x1F310; Universe</button>
       <button onclick="toggleTheme()">&#x263E; Switch theme</button>
       <button onclick="logout()">&#x21B5; Log out</button>
@@ -1822,6 +1871,15 @@ canvas { display: block; }
           <div class="sidebar-label">Tools</div>
           <button class="tool-btn active" id="fp-tool-room" onclick="setFpTool('room')" aria-label="Draw room tool"><span class="ticon">&#x25AD;</span><span>Draw Room</span></button>
           <button class="tool-btn" id="fp-tool-select" onclick="setFpTool('select')" aria-label="Select and edit room tool"><span class="ticon">&#x2196;</span><span>Edit Room</span></button>
+          <div class="sidebar-label" style="margin-top:14px">Drag a room onto the canvas</div>
+          <div class="fp-tpl-grid" id="fp-tpl-grid" role="listbox" aria-label="Room templates — drag onto the canvas">
+            <button class="fp-tpl-chip" data-tpl='{"label":"Bedroom","w":4,"h":4,"type":"Bedroom"}' onpointerdown="fpTplGrab(this,event)"><span class="fchip-icon">&#x1F6CF;&#xFE0F;</span><span class="fchip-label">Bedroom</span><span class="fchip-size">4&times;4</span></button>
+            <button class="fp-tpl-chip" data-tpl='{"label":"Living Room","w":5.5,"h":4,"type":"Living Room"}' onpointerdown="fpTplGrab(this,event)"><span class="fchip-icon">&#x1F6CB;&#xFE0F;</span><span class="fchip-label">Living Room</span><span class="fchip-size">5.5&times;4</span></button>
+            <button class="fp-tpl-chip" data-tpl='{"label":"Kitchen","w":3.5,"h":3,"type":"Kitchen"}' onpointerdown="fpTplGrab(this,event)"><span class="fchip-icon">&#x1F373;</span><span class="fchip-label">Kitchen</span><span class="fchip-size">3.5&times;3</span></button>
+            <button class="fp-tpl-chip" data-tpl='{"label":"Dining Room","w":4,"h":3,"type":"Dining Room"}' onpointerdown="fpTplGrab(this,event)"><span class="fchip-icon">&#x1F37D;&#xFE0F;</span><span class="fchip-label">Dining Room</span><span class="fchip-size">4&times;3</span></button>
+            <button class="fp-tpl-chip" data-tpl='{"label":"Bathroom","w":2.5,"h":2,"type":"Bathroom"}' onpointerdown="fpTplGrab(this,event)"><span class="fchip-icon">&#x1F6BF;</span><span class="fchip-label">Bathroom</span><span class="fchip-size">2.5&times;2</span></button>
+            <button class="fp-tpl-chip" data-tpl='{"label":"Office","w":3.5,"h":2.5,"type":"Office"}' onpointerdown="fpTplGrab(this,event)"><span class="fchip-icon">&#x1F4BC;</span><span class="fchip-label">Office</span><span class="fchip-size">3.5&times;2.5</span></button>
+          </div>
           <div class="sidebar-label" style="margin-top:14px">Rooms (<span id="fp-count-label">0</span> / <span id="fp-count-target">1</span>)</div>
         </div>
         <div class="fp-rooms-scroll" id="fp-rooms-list"></div>
@@ -1839,6 +1897,22 @@ canvas { display: block; }
     <div class="statusbar">
       <span id="fp-status">Ready</span>
       <span id="fp-coords"></span>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK FLOORPLAN NAME MODAL -->
+<div class="modal-overlay" id="modal-fp-name" role="dialog" aria-modal="true" aria-labelledby="fp-name-title">
+  <div class="modal">
+    <div class="modal-title" id="fp-name-title">Name this floor plan</div>
+    <div class="modal-sub">Give your project a name so it's easy to find again.</div>
+    <div class="form-group" style="margin-bottom:18px">
+      <label for="fp-name-input">Project name</label>
+      <input class="prop-input" type="text" id="fp-name-input" maxlength="80" value="My Floor Plan" style="width:100%;padding:11px 12px">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('modal-fp-name')">Cancel</button>
+      <button class="modal-ok" id="fp-name-ok" onclick="quickStartFloorPlanGo()">Create Floorplan &rarr;</button>
     </div>
   </div>
 </div>
@@ -3450,7 +3524,13 @@ function backToDashboard(){
 // ══════════════════════════════════════════
 //  NAVIGATION
 // ══════════════════════════════════════════
-function goTo(s){document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));document.getElementById('screen-'+s).classList.add('active');currentScreen=s;if(s==='room-setup'){roomConfig=roomConfig||{};roomConfig.type=roomConfig.type||'Living Room';renderSetupFloorControls();}}
+function goTo(s){
+  document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+  document.getElementById('screen-'+s).classList.add('active');
+  currentScreen=s;
+  syncArchiVisibility();
+  if(s==='room-setup'){roomConfig=roomConfig||{};roomConfig.type=roomConfig.type||'Living Room';renderSetupFloorControls();}
+}
 function backFromSetup(){
   const hadUser=sessionStorage.getItem('roomai_signed_in')==='1';
   if(hadUser){goTo('dashboard');loadProjects();}
@@ -6601,6 +6681,7 @@ window.addEventListener('orientationchange',()=>setTimeout(()=>{if(currentScreen
 //  FLOOR PLAN MODE
 // ══════════════════════════════════════════
 let fpRooms=[],fpRoomCount=1,fpProjectId=null,fpEditing=false,fpSelId=null,fpTool='room',fpDrag=null;
+let fpProjectName=null;
 let fpSuggestions={},fpView={scale:40,ox:0,oy:0},fpW=0,fpH=0;
 const canvasFp=document.getElementById('canvas-fp');
 const fpctx=canvasFp?canvasFp.getContext('2d'):null;
@@ -6787,7 +6868,7 @@ function fpRenderRoomList(){
   const el=document.getElementById('fp-rooms-list');if(!el)return;
   const target=document.getElementById('fp-count-target');if(target)target.textContent=fpRoomCount;
   const cnt=document.getElementById('fp-count-label');if(cnt)cnt.textContent=fpRooms.length;
-  const title=document.getElementById('fp-title');if(title)title.textContent='Floor Plan \u2014 '+fpRooms.length+' of '+fpRoomCount+' rooms';
+  const title=document.getElementById('fp-title');if(title)title.textContent=(fpProjectName&&fpProjectName.trim())?fpProjectName.trim():('Floor Plan \u2014 '+fpRooms.length+' of '+fpRoomCount+' rooms');
   const dp=document.getElementById('fp-done-count');if(dp)dp.textContent=fpRooms.length;
   const done=document.getElementById('fp-done');if(done)done.classList.toggle('on',fpRooms.length>=fpRoomCount);
   el.innerHTML='';
@@ -6994,7 +7075,7 @@ async function saveFloorPlan(){
       const {error}=await supabaseClient.from('projects').update({data:payload,updated_at:new Date().toISOString()}).eq('id',fpProjectId);
       if(error)throw error;
     }else{
-      const name=('Floor Plan \u2014 '+fpRooms.length+(fpRooms.length===1?' room':' rooms')+' \u2014 '+new Date().toLocaleDateString());
+      const name=(fpProjectName&&fpProjectName.trim())||('Floor Plan \u2014 '+fpRooms.length+(fpRooms.length===1?' room':' rooms')+' \u2014 '+new Date().toLocaleDateString());
       const {data,error}=await supabaseClient.from('projects').insert({user_id:user.id,name,data:payload}).select().single();
       if(error)throw error;
       fpProjectId=data.id;
@@ -7104,6 +7185,209 @@ if(canvasFp&&fpctx){
 }
 window.addEventListener('resize',()=>{if(currentScreen==='fp-canvas')resizeFpCanvas();});
 
+// ══════════════════════════════════════════
+//  QUICK FLOORPLAN START (dashboard → editor)
+// ══════════════════════════════════════════
+function quickStartFloorPlan(){
+  const inp=document.getElementById('fp-name-input');
+  if(inp)inp.value='My Floor Plan \u2014 '+new Date().toLocaleDateString();
+  openModal('modal-fp-name');
+  setTimeout(()=>{const i=document.getElementById('fp-name-input');if(i)i.focus();},60);
+}
+function quickStartFloorPlanGo(){
+  closeModal('modal-fp-name');
+  const inp=document.getElementById('fp-name-input');
+  fpProjectName=(inp&&inp.value)?inp.value.trim():'My Floor Plan';
+  if(!fpProjectName)fpProjectName='My Floor Plan';
+  fpRooms=[];fpSuggestions={};fpDrag=null;fpSelId=null;fpEditing=false;fpProjectId=null;
+  fpRoomCount=4;
+  goTo('fp-canvas');
+  setTimeout(()=>{resizeFpCanvas();setFpTool('room');fpRenderRoomList();fpUpdateInfo();drawFpCanvas();},50);
+}
+document.getElementById('fp-name-input')&&document.getElementById('fp-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')quickStartFloorPlanGo();});
+
+// ══════════════════════════════════════════
+//  ROOM TEMPLATE DRAG-TO-CANVAS
+// ══════════════════════════════════════════
+let fpTplDrag=null;
+function fpTplGrab(chip,ev){
+  if(ev.button!==undefined&&ev.button!==0)return;
+  const tpl=(()=>{try{return JSON.parse(chip.getAttribute('data-tpl')||'{}');}catch(e){return null;}})();
+  if(!tpl||!(tpl.w>0)||!(tpl.h>0))return;
+  ev.preventDefault();
+  const ghost=document.createElement('div');
+  ghost.className='fp-tpl-ghost';
+  ghost.textContent=tpl.label+'  '+tpl.w+'\u00D7'+tpl.h+'m';
+  document.body.appendChild(ghost);
+  fpTplDrag={tpl,ghost,ptx:0,pty:0};
+  fpTplMove(ev);
+  chip.setPointerCapture?chip.setPointerCapture(ev.pointerId):null;
+  const move=(e)=>{e.preventDefault();fpTplMove(e);};
+  const up=(e)=>{
+    chip.removeEventListener('pointermove',move);
+    chip.removeEventListener('pointerup',up);
+    chip.removeEventListener('pointercancel',cancel);
+    fpTplDrop(e);
+  };
+  const cancel=()=>{
+    chip.removeEventListener('pointermove',move);
+    chip.removeEventListener('pointerup',up);
+    chip.removeEventListener('pointercancel',cancel);
+    if(fpTplDrag&&fpTplDrag.ghost){fpTplDrag.ghost.remove();}
+    fpTplDrag=null;
+    document.getElementById('fp-canvas-area').classList.remove('fp-drop-ok');
+  };
+  chip.addEventListener('pointermove',move);
+  chip.addEventListener('pointerup',up);
+  chip.addEventListener('pointercancel',cancel);
+}
+function fpTplMove(e){
+  if(!fpTplDrag)return;
+  fpTplDrag.ptx=e.clientX;fpTplDrag.pty=e.clientY;
+  if(fpTplDrag.ghost){fpTplDrag.ghost.style.left=(e.clientX+10)+'px';fpTplDrag.ghost.style.top=(e.clientY+12)+'px';}
+  const area=document.getElementById('fp-canvas-area');
+  if(area){const r=area.getBoundingClientRect();const over=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;area.classList.toggle('fp-drop-ok',over);}
+}
+function fpTplDrop(e){
+  const area=document.getElementById('fp-canvas-area');
+  const ghost=fpTplDrag?fpTplDrag.ghost:null;
+  const tpl=fpTplDrag?fpTplDrag.tpl:null;
+  if(ghost)ghost.remove();
+  fpTplDrag=null;
+  if(area)area.classList.remove('fp-drop-ok');
+  if(!tpl)return;
+  if(!area)return;
+  const ar=area.getBoundingClientRect();
+  const isOver=e.clientX>=ar.left&&e.clientX<=ar.right&&e.clientY>=ar.top&&e.clientY<=ar.bottom;
+  if(!isOver){fpStatus('Drop the room onto the canvas to place it.');return;}
+  const w=fpToWorld(e.clientX-ar.left,e.clientY-ar.top);
+  let x=w.x-tpl.w/2,y=w.y-tpl.h/2;
+  if(x<0)x=0;if(y<0)y=0;
+  const r=fpMakeRoomFromRect({x,y,w:tpl.w,h:tpl.h},fpRooms.length+1);
+  r.label=tpl.label;
+  r.roomConfig.type=tpl.type||'Custom';
+  fpRooms.push(r);
+  if(fpRoomCount<fpRooms.length)fpRoomCount=fpRooms.length;
+  fpSelId=r.id;
+  fpStatus('Added '+r.label+' ('+tpl.w+'m \u00D7 '+tpl.h+'m) \u2014 move or resize it on the canvas, then customize.');
+  fpRenderRoomList();fpUpdateInfo();drawFpCanvas();
+}
+window.addEventListener('dragover',e=>e.preventDefault());
+window.addEventListener('drop',e=>e.preventDefault());
+
+// ══════════════════════════════════════════
+//  AI ARCHITECT FLOATING CHAT
+// ══════════════════════════════════════════
+const archiHistory=[];
+let archiBusy=false;
+function syncArchiVisibility(){
+  const fab=document.getElementById('archi-fab');
+  const card=document.getElementById('archi-card');
+  if(!fab||!card)return;
+  const show=(currentScreen==='fp-canvas'||currentScreen==='editor');
+  fab.style.display=show?'flex':'none';
+  if(!show&&card.classList.contains('open')){card.classList.remove('open');card.setAttribute('aria-hidden','true');fab.setAttribute('aria-expanded','false');}
+}
+function archiContext(){
+  const lines=['Current floor plan state:'];
+  if(!fpRooms.length){
+    lines.push('- No rooms yet \u2014 the canvas is empty (project "'+(fpProjectName||'Untitled')+'").');
+  }else{
+    lines.push('- Project: "'+(fpProjectName||'Floor Plan')+'", '+fpRooms.length+' room'+(fpRooms.length===1?'':'s')+':');
+    fpRooms.forEach(r=>{
+      const t=r.roomConfig&&r.roomConfig.type&&r.roomConfig.type!=='Custom'?r.roomConfig.type:(fpSuggestions[r.id]?fpSuggestions[r.id].type:'type not set');
+      lines.push('  - '+r.label+': '+r.rect.w.toFixed(1)+'m \u00D7 '+r.rect.h.toFixed(1)+'m ('+(r.rect.w*r.rect.h).toFixed(1)+' m\u00B2), '+t+', '+(r.furniture?r.furniture.length:0)+' furniture piece'+(r.furniture&&r.furniture.length===1?'':'s'));
+    });
+  }
+  return lines.join('\n');
+}
+function archiAppend(role,text){
+  const box=document.getElementById('archi-msgs');
+  if(!box)return;
+  const el=document.createElement('div');
+  el.className='archi-msg '+role;
+  el.textContent=text;
+  box.appendChild(el);
+  box.scrollTop=box.scrollHeight;
+}
+function toggleArchi(){
+  const card=document.getElementById('archi-card');
+  const fab=document.getElementById('archi-fab');
+  if(card.classList.contains('open')){closeArchi();return;}
+  card.classList.add('open');
+  card.setAttribute('aria-hidden','false');
+  fab.setAttribute('aria-expanded','true');
+  if(!document.querySelector('#archi-msgs .archi-msg')){
+    archiAppend('assistant','Hi! I\u2019m your AI architect. Tell me about your space or ask me anything. For example: \u201CWhere should I put the bedroom?\u201D');
+  }
+  const inp=document.getElementById('archi-input');
+  if(inp)setTimeout(()=>inp.focus(),60);
+}
+function closeArchi(){
+  const card=document.getElementById('archi-card');
+  const fab=document.getElementById('archi-fab');
+  card.classList.remove('open');
+  card.setAttribute('aria-hidden','true');
+  fab.setAttribute('aria-expanded','false');
+}
+async function archiAsk(message){
+  const res=await fetch('/api/architect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:message,history:archiHistory,context:archiContext()})});
+  if(!res.ok){
+    let detail='';
+    try{detail=(await res.json()).error||'';}catch(e){}
+    throw new Error(detail||('Request failed ('+res.status+')'));
+  }
+  const data=await res.json();
+  return (data.reply||'');
+}
+async function archiSend(){
+  const input=document.getElementById('archi-input');
+  const msg=input?input.value.trim():'';
+  if(!msg||archiBusy)return;
+  input.value='';
+  archiAppend('user',msg);
+  archiHistory.push({role:'user',content:msg});
+  archiBusy=true;
+  const sendBtn=document.getElementById('archi-send-btn');
+  if(sendBtn)sendBtn.disabled=true;
+  archiAppend('assistant','Thinking about that\u2026');
+  try{
+    const reply=await archiAsk(msg);
+    archiHistory.push({role:'assistant',content:reply});
+    const msgs=document.querySelectorAll('#archi-msgs .archi-msg');
+    if(msgs.length&&msgs[msgs.length-1].textContent==='Thinking about that\u2026'){
+      msgs[msgs.length-1].textContent=reply;
+    }else{
+      archiAppend('assistant',reply);
+    }
+  }catch(err){
+    console.warn('[architect]',err.message);
+    const msgs=document.querySelectorAll('#archi-msgs .archi-msg');
+    if(msgs.length&&msgs[msgs.length-1].textContent==='Thinking about that\u2026'){
+      msgs[msgs.length-1].textContent='\u26A0\uFE0F I couldn\u2019t reach the AI architect right now ('+err.message+'). Check that ANTHROPIC_API_KEY is set on the server, then try again.';
+    }else{
+      archiAppend('assistant','\u26A0\uFE0F I couldn\u2019t reach the AI architect right now ('+err.message+'). Check that ANTHROPIC_API_KEY is set on the server, then try again.');
+    }
+  }finally{
+    archiBusy=false;
+    if(sendBtn)sendBtn.disabled=false;
+    if(input)input.focus();
+  }
+}
+function archiPasteContext(){
+  const input=document.getElementById('archi-input');
+  if(!input)return;
+  input.value=archiContext().split('\n').slice(1).join(' ');
+  input.focus();
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target&&e.target.id==='archi-input'){e.preventDefault();archiSend();}
+});
+document.addEventListener('pointerdown',e=>{
+  const card=document.getElementById('archi-card');
+  if(card&&card.classList.contains('open')&&e.target&&e.target.closest&&e.target.closest('#archi-card'))e.stopPropagation();
+});
+
 /* Mobile drawer functions removed — ARNEL's relocate-panels (.canvas-side-toggle) replaces the bottom sheet.
    Ported setBurgerIcon glyph-swap now drives ARNEL's .canvas-side-toggle buttons. */
 function setBurgerIcon(open, btn){
@@ -7190,6 +7474,25 @@ window.addEventListener('DOMContentLoaded',async()=>{
 });
 
 </script>
+<!-- AI Architect floating assistant -->
+<button class="archi-fab" id="archi-fab" onclick="toggleArchi()" aria-label="Ask the AI architect" title="Ask the AI architect" aria-expanded="false" aria-controls="archi-card">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z"/><path d="M5 16l.7 1.6L7.3 18l-1.6.7L5 20.3l-.7-1.6L2.7 18l1.6-.7L5 16z"/></svg>
+</button>
+<div class="archi-card" id="archi-card" aria-hidden="true">
+  <div class="archi-head">
+    <div class="archi-id">
+      <span class="archi-avatar" aria-hidden="true">&#x2728;</span>
+      <span class="archi-name">AI Architect</span>
+    </div>
+    <button class="archi-x" onclick="closeArchi()" aria-label="Close AI architect" title="Close">&#xD7;</button>
+  </div>
+  <div class="archi-body" id="archi-msgs" aria-live="polite"></div>
+  <div class="archi-inputs">
+    <button class="archi-context" onclick="archiPasteContext()" title="Insert current floor plan details" aria-label="Insert current floor plan details">&#x1F3D8;</button>
+    <input type="text" id="archi-input" placeholder="Ask about your space…" autocomplete="off" aria-label="Ask the AI architect">
+    <button class="archi-send" id="archi-send-btn" onclick="archiSend()" aria-label="Send question">&#x27A4;</button>
+  </div>
+</div>
 <!-- Landscape prompt toast -->
 <div class="landscape-toast" id="landscape-toast" role="status" aria-live="polite">
   <span class="landscape-toast-icon" aria-hidden="true">&#x1F4F1;</span>

@@ -9,6 +9,10 @@
       "destination": "/api/detect-furniture.js" 
     },
     { 
+      "source": "/api/architect", 
+      "destination": "/api/architect.js" 
+    },
+    { 
       "source": "/(.*)", 
       "destination": "/index.html" 
     }
