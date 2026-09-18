@@ -60,6 +60,80 @@ export const ANCHOR_ORDER = {
   'Office':['desk','chair','shelf','cabinet']
 };
 
+// Suggested starter layouts per room type (used by the "Try suggested layout" flow)
+export const SUGGESTED_LAYOUTS = {
+  'Living Room':{
+    roomConfig:{type:'Living Room',shape:'rect',w:6,h:5,wallH:2.7,wallT:0.15,
+      floor:{style:'wood',color:'#c8a878',pattern:'boards'},
+      wallFinish:{style:'solid',color:'#ddd0be'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:6,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:6,y1:0,x2:6,y2:5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:6,y1:5,x2:0,y2:5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'sofa_3',x:0.4,y:1.9,w:2.2,h:0.85,rot:0,h3d:0.8},
+      {defId:'coffee',x:2.8,y:2.1,w:1.0,h:0.5,rot:0,h3d:0.4},
+      {defId:'tv',x:4.5,y:1.8,w:1.4,h:0.4,rot:0,h3d:0.5},
+      {defId:'chair',x:0.6,y:3.6,w:0.6,h:0.6,rot:0,h3d:0.9},
+      {defId:'plant',x:5.3,y:0.4,w:0.5,h:0.5,rot:0,h3d:1.2},
+      {defId:'rug',x:2.0,y:2.85,w:2.6,h:1.8,rot:0,h3d:0.02}]},
+  'Bedroom':{
+    roomConfig:{type:'Bedroom',shape:'rect',w:5,h:4.5,wallH:2.7,wallT:0.15,
+      floor:{style:'carpet',color:'#b8aeb0',pattern:'plush'},
+      wallFinish:{style:'solid',color:'#e8ddd2'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:5,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:5,y1:0,x2:5,y2:4.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:5,y1:4.5,x2:0,y2:4.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:4.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'bed_k',x:1.3,y:0.3,w:2.0,h:2.2,rot:0,h3d:0.55},
+      {defId:'wardrobe',x:3.8,y:0.3,w:1.0,h:0.6,rot:0,h3d:2.0},
+      {defId:'cabinet',x:0.3,y:3.4,w:0.6,h:0.5,rot:0,h3d:0.9},
+      {defId:'plant',x:4.4,y:3.8,w:0.4,h:0.4,rot:0,h3d:0.7}]},
+  'Kitchen':{
+    roomConfig:{type:'Kitchen',shape:'rect',w:4,h:3.5,wallH:2.7,wallT:0.15,
+      floor:{style:'tile',color:'#d8d4cc',pattern:'ceramic'},
+      wallFinish:{style:'solid',color:'#f0ebe3'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:4,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:4,y1:0,x2:4,y2:3.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:4,y1:3.5,x2:0,y2:3.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:3.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'table_rect',x:1.2,y:1.5,w:1.0,h:0.7,rot:0,h3d:0.75},
+      {defId:'cabinet',x:0.3,y:0.3,w:0.6,h:0.5,rot:0,h3d:0.9},
+      {defId:'sink',x:3.2,y:0.3,w:0.7,h:0.5,rot:0,h3d:0.85}]},
+  'Bathroom':{
+    roomConfig:{type:'Bathroom',shape:'rect',w:3.5,h:2.5,wallH:2.7,wallT:0.15,
+      floor:{style:'tile',color:'#c8c4bc',pattern:'hex'},
+      wallFinish:{style:'solid',color:'#e8e4dc'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:3.5,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:3.5,y1:0,x2:3.5,y2:2.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:3.5,y1:2.5,x2:0,y2:2.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:2.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'bathtub',x:1.6,y:0.3,w:1.7,h:0.8,rot:0,h3d:0.6},
+      {defId:'toilet',x:0.3,y:1.5,w:0.45,h:0.7,rot:0,h3d:0.45},
+      {defId:'sink',x:2.7,y:1.5,w:0.55,h:0.45,rot:0,h3d:0.85}]},
+  'Office':{
+    roomConfig:{type:'Office',shape:'rect',w:4,h:3.5,wallH:2.7,wallT:0.15,
+      floor:{style:'concrete',color:'#a8b0b8',pattern:'polished'},
+      wallFinish:{style:'solid',color:'#d8d4cc'}},
+    walls:[
+      {id:1,x1:0,y1:0,x2:4,y2:0,t:0.15,wh:2.7,label:'North'},
+      {id:2,x1:4,y1:0,x2:4,y2:3.5,t:0.15,wh:2.7,label:'East'},
+      {id:3,x1:4,y1:3.5,x2:0,y2:3.5,t:0.15,wh:2.7,label:'South'},
+      {id:4,x1:0,y1:3.5,x2:0,y2:0,t:0.15,wh:2.7,label:'West'}],
+    furniture:[
+      {defId:'desk',x:0.3,y:0.3,w:1.4,h:0.7,rot:0,h3d:0.75},
+      {defId:'chair',x:0.7,y:1.2,w:0.55,h:0.55,rot:0,h3d:0.9},
+      {defId:'shelf',x:3.2,y:0.3,w:0.5,h:1.2,rot:0,h3d:1.8},
+      {defId:'cabinet',x:3.2,y:2.5,w:0.6,h:0.5,rot:0,h3d:0.9}]}
+};
+
 // Room-type walkway minimums
 export const WALKWAY_BY_TYPE = {
   bedroom: 0.9,

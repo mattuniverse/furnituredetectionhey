@@ -39,6 +39,7 @@ html = injectJsConst(html, 'FURNITURE_DEFS', shared.FURNITURE_DEFS);
 html = injectJsConst(html, 'PASSIVE_IDS', shared.PASSIVE_IDS);
 html = injectJsConst(html, 'CLEARANCE_RULES', shared.CLEARANCE_RULES);
 html = injectJsConst(html, 'ANCHOR_ORDER', shared.ANCHOR_ORDER);
+html = injectJsConst(html, 'SUGGESTED_LAYOUTS', shared.SUGGESTED_LAYOUTS);
 
 mkdirSync('public', { recursive: true });
 writeFileSync('public/index.html', html);
