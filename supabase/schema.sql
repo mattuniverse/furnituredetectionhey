@@ -63,6 +63,40 @@ create policy "Users can delete their own room photos"
   using (bucket_id = 'room-images' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ─────────────────────────────────────────────────────────────
+-- AI ARCHITECT: chat history stored per project so a project's
+-- conversation continues where the user left off.
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.architect_messages (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null check (role in ('user','assistant')),
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists architect_messages_project_created_idx
+  on public.architect_messages(project_id, created_at);
+
+alter table public.architect_messages enable row level security;
+
+-- Users can only read, insert, and delete their own messages.
+create policy "Users can view their own architect messages"
+  on public.architect_messages for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own architect messages"
+  on public.architect_messages for insert
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from public.projects p where p.id = project_id and p.user_id = auth.uid())
+  );
+
+create policy "Users can delete their own architect messages"
+  on public.architect_messages for delete
+  using (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
 -- ADMIN PANEL: role system + admin-only access.
 -- Run the whole file once; this part adds:
 --   • user_profiles.role ('user' | 'admin')

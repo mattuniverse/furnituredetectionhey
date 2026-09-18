@@ -970,6 +970,9 @@ canvas { display: block; }
 .archi-name { font-family: var(--font-display); font-size: 15px; color: var(--color-primary); font-weight: 600; }
 .archi-x { border: none; background: transparent; color: var(--color-text-muted); font-size: 19px; cursor: pointer; width: 32px; height: 32px; border-radius: 8px; line-height: 1; transition: background var(--transition-fast), color var(--transition-fast); }
 .archi-x:hover { background: var(--color-surface-hover); color: var(--color-text-strong); }
+.archi-trash { border: none; background: transparent; color: var(--color-text-muted); cursor: pointer; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background var(--transition-fast), color var(--transition-fast); }
+.archi-trash:hover { background: var(--color-danger-bg); color: var(--color-danger); }
+.archi-trash svg { width: 17px; height: 17px; }
 .archi-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .archi-msg { max-width: 88%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
 .archi-msg.user { align-self: flex-end; background: var(--color-primary); color: var(--color-text-inverse); border-bottom-right-radius: 4px; }
@@ -7502,6 +7505,49 @@ window.addEventListener('drop',e=>e.preventDefault());
 // ══════════════════════════════════════════
 const archiHistory=[];
 let archiBusy=false;
+const ARCHI_WELCOME='Hi! I\u2019m your AI architect. Tell me about your space or ask me anything. For example: \u201CWhere should I put the bedroom?\u201D';
+async function archiSaveMessage(role,content){
+  try{
+    const pid=fpProjectId;
+    if(!pid)return;
+    const {data:{user}}=await supabaseClient.auth.getUser();
+    if(!user)return;
+    const {error}=await supabaseClient.from('architect_messages').insert({project_id:pid,user_id:user.id,role,content});
+    if(error)console.warn('[architect:save]',error.message);
+  }catch(err){console.warn('[architect:save]',err.message);}
+}
+async function archiLoadLastTurns(){
+  const pid=fpProjectId;
+  if(!pid)return[];
+  const {data,error}=await supabaseClient.from('architect_messages').select('role,content,created_at').eq('project_id',pid).order('created_at',{ascending:false}).limit(20);
+  if(error){console.warn('[architect:load]',error.message);return[];}
+  return (data||[]).slice().reverse().map(m=>({role:m.role,content:m.content}));
+}
+async function archiClearHistory(){
+  const pid=fpProjectId;
+  if(!pid)return;
+  const {error}=await supabaseClient.from('architect_messages').delete().eq('project_id',pid);
+  if(error)console.warn('[architect:clear]',error.message);
+}
+async function archiLoadPersisted(){
+  const box=document.getElementById('archi-msgs');
+  if(!box||box.querySelector('.archi-msg'))return;
+  archiAppend('assistant',ARCHI_WELCOME);
+  const turns=await archiLoadLastTurns();
+  if(!turns||!turns.length)return;
+  archiHistory.length=0;
+  archiHistory.push(...turns);
+  box.innerHTML='';
+  turns.forEach(t=>archiAppend(t.role,t.content));
+}
+async function archiClearChat(){
+  if(!window.confirm('Delete this project\u2019s AI Architect chat history?'))return;
+  archiHistory.length=0;
+  await archiClearHistory();
+  const box=document.getElementById('archi-msgs');
+  if(box)box.innerHTML='';
+  archiAppend('assistant',ARCHI_WELCOME);
+}
 function syncArchiVisibility(){
   const fab=document.getElementById('archi-fab');
   const card=document.getElementById('archi-card');
@@ -7539,9 +7585,7 @@ function toggleArchi(){
   card.classList.add('open');
   card.setAttribute('aria-hidden','false');
   fab.setAttribute('aria-expanded','true');
-  if(!document.querySelector('#archi-msgs .archi-msg')){
-    archiAppend('assistant','Hi! I\u2019m your AI architect. Tell me about your space or ask me anything. For example: \u201CWhere should I put the bedroom?\u201D');
-  }
+  archiLoadPersisted();
   const inp=document.getElementById('archi-input');
   if(inp)setTimeout(()=>inp.focus(),60);
 }
@@ -7553,7 +7597,7 @@ function closeArchi(){
   fab.setAttribute('aria-expanded','false');
 }
 async function archiAsk(message){
-  const res=await fetch('/api/architect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:message,history:archiHistory,context:archiContext()})});
+  const res=await fetch('/api/architect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:message,history:archiHistory.slice(-10),context:archiContext()})});
   if(!res.ok){
     let detail='';
     try{detail=(await res.json()).error||'';}catch(e){}
@@ -7569,6 +7613,7 @@ async function archiSend(){
   input.value='';
   archiAppend('user',msg);
   archiHistory.push({role:'user',content:msg});
+  archiSaveMessage('user',msg);
   archiBusy=true;
   const sendBtn=document.getElementById('archi-send-btn');
   if(sendBtn)sendBtn.disabled=true;
@@ -7576,6 +7621,7 @@ async function archiSend(){
   try{
     const reply=await archiAsk(msg);
     archiHistory.push({role:'assistant',content:reply});
+    archiSaveMessage('assistant',reply);
     const msgs=document.querySelectorAll('#archi-msgs .archi-msg');
     if(msgs.length&&msgs[msgs.length-1].textContent==='Thinking about that\u2026'){
       msgs[msgs.length-1].textContent=reply;
@@ -7706,6 +7752,9 @@ window.addEventListener('DOMContentLoaded',async()=>{
       <span class="archi-avatar" aria-hidden="true">&#x2728;</span>
       <span class="archi-name">AI Architect</span>
     </div>
+    <button class="archi-trash" id="archi-trash" onclick="archiClearChat()" aria-label="Clear chat history" title="Clear chat history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+    </button>
     <button class="archi-x" onclick="closeArchi()" aria-label="Close AI architect" title="Close">&#xD7;</button>
   </div>
   <div class="archi-body" id="archi-msgs" aria-live="polite"></div>
