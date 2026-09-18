@@ -40,7 +40,7 @@ html = injectJsConst(html, 'PASSIVE_IDS', shared.PASSIVE_IDS);
 html = injectJsConst(html, 'CLEARANCE_RULES', shared.CLEARANCE_RULES);
 html = injectJsConst(html, 'ANCHOR_ORDER', shared.ANCHOR_ORDER);
 
-mkdirSync('dist', { recursive: true });
-writeFileSync('dist/index.html', html);
+mkdirSync('public', { recursive: true });
+writeFileSync('public/index.html', html);
 
-console.log('[build] dist/index.html generated with shared rules injected');
+console.log('[build] public/index.html generated with shared rules injected');
