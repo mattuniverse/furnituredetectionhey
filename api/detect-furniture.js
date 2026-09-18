@@ -10,6 +10,13 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+function parseBody(raw) {
+  if (raw == null || raw === "" || raw === "{}") return {};
+  if (typeof raw === "object" && !Array.isArray(raw) && !Buffer.isBuffer(raw)) return raw;
+  const str = Buffer.isBuffer(raw) ? raw.toString("utf8") : String(raw);
+  return JSON.parse(str);
+}
+
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL_NAME = process.env.MODEL_NAME || "claude-haiku-4-5-20251001";
@@ -244,7 +251,7 @@ export default async function handler(req, res) {
 
   let body;
   try {
-    body = JSON.parse(req.body || "{}");
+    body = parseBody(req.body);
   } catch {
     res.status(400).json({ error: "Invalid JSON body" });
     return;
