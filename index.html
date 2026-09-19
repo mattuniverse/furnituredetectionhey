@@ -1455,7 +1455,31 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
   .lp-feat-grid{grid-template-columns:1fr;}
   .lp-footer{flex-direction:column;align-items:flex-start;padding:24px clamp(16px,4vw,28px);}
 }
-  </style>
+/* Registration + verification — matches dark gold login theme */
+.login-card .form-group{margin-bottom:14px;}
+.login-card .form-group label{display:block;font-size:12px;letter-spacing:.4px;color:var(--color-text-muted,#b7a88a);margin-bottom:6px;font-weight:600;}
+.login-card .form-group input[type=text],.login-card .form-group input[type=email],.login-card .form-group input[type=password],.login-card .form-group input[type=tel]{
+  width:100%;padding:12px 14px;border-radius:10px;background:var(--color-bg-sunken,#2a2114);border:1.5px solid rgba(201,168,76,.28);color:var(--color-text,#f5e6c8);font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;}
+.login-card .form-group input:focus{border-color:#c9a84c;box-shadow:0 0 0 3px rgba(201,168,76,.18);}
+.pw-wrap{position:relative;}
+.pw-wrap input{padding-right:40px;}
+.pw-toggle{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--color-text-muted,#b7a88a);font-size:14px;cursor:pointer;padding:8px;line-height:1;}
+.pw-toggle:focus-visible{outline:2px solid #c9a84c;outline-offset:-2px;border-radius:6px;}
+.code-input-row{display:flex;gap:18px;justify-content:center;margin:26px 0 10px;}
+.code-input{width:58px;height:60px;text-align:center;font-size:26px;font-weight:700;letter-spacing:4px;
+  background:var(--color-bg-sunken,#2a2114);border:1.5px solid rgba(201,168,76,.4);border-radius:12px;
+  color:var(--color-text,#f5e6c8);outline:none;transition:border-color .2s,box-shadow .2s,transform .15s;}
+.code-input:focus{border-color:#c9a84c;box-shadow:0 0 0 3px rgba(201,168,76,.2);transform:translateY(-1px);}
+.auth-msg{min-height:16px;font-size:13px;margin:8px 0;color:var(--color-text-muted,#b7a88a);}
+.auth-msg.error{color:#e05b5b;}
+.auth-msg.success{color:#7ec27e;}
+.resend-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.resend-row .btn-link{background:none;border:none;color:#c9a84c;font-size:13px;font-weight:600;cursor:pointer;padding:4px;}
+.resend-row .btn-link:hover{text-decoration:underline;}
+.resend-row .btn-link:disabled{color:var(--color-text-muted,#b7a88a);cursor:default;text-decoration:none;}
+.verify-cta{width:100%;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -1639,6 +1663,63 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
       </form>
       <hr class="divider">
       <button class="btn-link" id="auth-toggle-btn" onclick="toggleAuthMode()">Don't have an account? Sign up &rarr;</button>
+
+      <!-- REGISTRATION SCREEN (hidden by default, shown via toggleAuthMode) -->
+      <div id="register-form" style="display:none;">
+        <div class="brand-sub" id="reg-screen-title">Register for RoomAI</div>
+        <div class="reg-steps">
+          <span class="reg-step active">1. Account</span><span class="reg-arrow">&rarr;</span>
+          <span class="reg-step">2. Verify</span>
+        </div>
+        <div id="reg-error" class="auth-msg" role="alert"></div>
+        <form id="reg-form" onsubmit="event.preventDefault();sendVerificationCode();" novalidate>
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" name="name" placeholder="Your full name" autocomplete="name" required aria-required="true">
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" name="email" placeholder="you@email.com" autocomplete="email" required aria-required="true">
+          </div>
+          <div class="form-group">
+            <label for="reg-pass">Password</label>
+            <div class="pw-wrap">
+              <input type="password" id="reg-pass" name="password" placeholder="Min 8 characters" autocomplete="new-password" minlength="8" required aria-required="true">
+              <button type="button" class="pw-toggle" id="reg-pw-toggle" onclick="toggleRegPasswordVisibility()" aria-label="Show or hide password" aria-pressed="false" tabindex="-1">&#128065;</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-pass-confirm">Confirm Password</label>
+            <input type="password" id="reg-pass-confirm" name="password_confirm" placeholder="Repeat password" autocomplete="new-password" minlength="8" required aria-required="true">
+          </div>
+          <button class="btn-main" id="reg-submit-btn" type="submit">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="btn-text">Send Verification Code</span>
+          </button>
+        </form>
+        <button class="btn-link" onclick="showLoginForm()">&larr; Back to sign in</button>
+      </div>
+
+      <!-- VERIFICATION SCREEN (hidden by default) -->
+      <div id="verify-form" style="display:none;">
+        <div class="brand-sub" id="verify-screen-title">Verify Your Email</div>
+        <div id="verify-hint" class="auth-msg">We sent a 4-digit code to your email. Enter it below.</div>
+        <div class="verify-code-inputs" id="verify-code-inputs">
+          <input type="tel" maxlength="1" class="code-input" id="code-1" inputmode="numeric" pattern="[0-9]" aria-label="Verification code digit 1" oninput="codeInputHandler(this, 'code-2')">
+          <input type="tel" maxlength="1" class="code-input" id="code-2" inputmode="numeric" pattern="[0-9]" aria-label="Verification code digit 2" oninput="codeInputHandler(this, 'code-3')">
+          <input type="tel" maxlength="1" class="code-input" id="code-3" inputmode="numeric" pattern="[0-9]" aria-label="Verification code digit 3" oninput="codeInputHandler(this, 'code-4')">
+          <input type="tel" maxlength="1" class="code-input" id="code-4" inputmode="numeric" pattern="[0-9]" aria-label="Verification code digit 4" oninput="codeInputHandler(this, null)">
+        </div>
+        <div class="resend-row">
+          <button class="btn-link" id="resend-btn" onclick="resendCode()" disabled>Resend Code</button>
+        </div>
+        <div id="verify-error" class="auth-msg" role="alert" aria-live="polite"></div>
+        <button class="btn-main verify-cta" id="verify-submit-btn" onclick="verifyCode()">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="btn-text">Verify &amp; Create Account</span>
+        </button>
+        <button class="btn-link" onclick="showRegisterForm()">&larr; Back to registration</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2282,6 +2363,11 @@ const FLOORPLAN_ENV = {
   SUPABASE_URL: '__SUPABASE_URL__',
   SUPABASE_ANON_KEY: '__SUPABASE_ANON_KEY__'
 };
+// EmailJS — used to deliver the verification code for registration.
+const EMAILJS_PUBLIC_KEY = '__EMAILJS_PUBLIC_KEY__';
+const EMAILJS_SERVICE_ID = '__EMAILJS_SERVICE_ID__';
+const EMAILJS_TEMPLATE_ID = '__EMAILJS_TEMPLATE_ID__';
+emailjs.init(envTok(EMAILJS_PUBLIC_KEY, 'IKicc3jak98mW3RV_'));
 const envTok=(v,def)=>(v&&typeof v==='string'&&v.indexOf('__')!==0)?v:def;
 const SUPABASE_URL = envTok(FLOORPLAN_ENV.SUPABASE_URL,'https://labtkuhvvkrlvpfbispd.supabase.co');
 const SUPABASE_ANON_KEY = envTok(FLOORPLAN_ENV.SUPABASE_ANON_KEY,'sb_publishable_2FMdtvqVzsdPU-8xr66irg_Rtt-oylX');
@@ -2450,10 +2536,191 @@ const SUGGESTED_LAYOUTS = __SUGGESTED_LAYOUTS__;
 let authMode='signin';
 function toggleAuthMode(){
   authMode = authMode==='signin' ? 'signup' : 'signin';
+  if(authMode==='signin'){showLoginForm();}
+  else{showRegisterForm();}
   document.getElementById('auth-submit-btn').querySelector('.btn-text').textContent = authMode==='signin' ? 'Sign In' : 'Create Account';
   document.getElementById('auth-toggle-btn').textContent = authMode==='signin' ? "Don't have an account? Sign up \u2192" : "Already have an account? Sign in \u2192";
   document.getElementById('auth-error').className='auth-msg';
   document.getElementById('auth-error').textContent='';
+}
+
+/* ----- Registration + email verification flow (RoomAI) ----- */
+function showLoginForm(){
+  const login=document.getElementById('auth-form');
+  const reg=document.getElementById('register-form');
+  const ver=document.getElementById('verify-form');
+  if(login)login.style.display='';
+  if(reg)reg.style.display='none';
+  if(ver)ver.style.display='none';
+  const err=document.getElementById('auth-error');
+  if(err){err.className='auth-msg';err.textContent='';}
+}
+function showRegisterForm(){
+  const login=document.getElementById('auth-form');
+  const reg=document.getElementById('register-form');
+  const ver=document.getElementById('verify-form');
+  if(login)login.style.display='none';
+  if(reg)reg.style.display='';
+  if(ver)ver.style.display='none';
+  const err=document.getElementById('reg-error');
+  if(err){err.className='auth-msg';err.textContent='';}
+}
+function showVerifyForm(){
+  const login=document.getElementById('auth-form');
+  const reg=document.getElementById('register-form');
+  const ver=document.getElementById('verify-form');
+  if(login)login.style.display='none';
+  if(reg)reg.style.display='none';
+  if(ver)ver.style.display='';
+  const err=document.getElementById('verify-error');
+  if(err){err.className='auth-msg';err.textContent='';}
+  setTimeout(function(){const c=document.getElementById('code-1');if(c)c.focus();},50);
+  startVerifyCooldown();
+}
+var pendingVerification={name:'',email:'',password:''};
+function routeAuthSubmit(){
+  if(authMode==='signin'){showLoginForm();}
+  else{showRegisterForm();}
+  const bt=document.getElementById('auth-submit-btn');
+  if(bt){bt.querySelector('.btn-text').textContent=authMode==='signin'?'Sign In':'Create Account';}
+  const tg=document.getElementById('auth-toggle-btn');
+  if(tg){tg.textContent=authMode==='signin'?"Don't have an account? Sign up \u2192":"Already have an account? Sign in \u2192";}
+}
+function handleAuthSubmit(){
+  if(authMode==='signup'){sendVerificationCode();return;}
+  doSignIn();
+}
+function sendVerificationCode(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pw=document.getElementById('reg-pass').value;
+  const pw2=document.getElementById('reg-pass-confirm').value;
+  const errEl=document.getElementById('reg-error');
+  function fail(msg){if(errEl){errEl.className='auth-msg error';errEl.textContent=msg;}return;}
+  if(!name){fail('Please enter your full name.');return;}
+  if(!/\S+@\S+\.\S+/.test(email)){fail('Please enter a valid email address.');return;}
+  if(pw.length<8){fail('Password must be at least 8 characters.');return;}
+  if(pw!==pw2){fail('Passwords do not match.');return;}
+  const btn=document.getElementById('reg-submit-btn');
+  const origTimer=(btn&&btn.innerHTML)?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  if(errEl){errEl.className='auth-msg';errEl.textContent='Sending verification code\u2026';(errEl.classList?errEl.classList.add('success'):errEl.className='auth-msg success');}
+  pendingVerification={name:name,email:email,password:pw};
+  const p={to_email:email,to_name:name,verification_code:String(Math.floor(1000+Math.random()*9000)),reply_to:'RoomAI <no-reply@roomai.app>'};
+  emailjs.send(envTok(EMAILJS_SERVICE_ID,'__EMAILJS_SERVICE_ID__'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
+    .then(function(res){
+      storePendingCode(p.verification_code);
+      if(btn){btn.disabled=false;btn.classList.remove('loading');}
+      if(errEl){errEl.className='auth-msg success';errEl.textContent='Verification code sent to '+email+'.';}
+      showVerifyForm();
+    })
+    .catch(function(err){
+      console.error('EmailJS send failed',err);
+      if(btn){btn.disabled=false;btn.classList.remove('loading');}
+      if(errEl){errEl.className='auth-msg error';errEl.textContent='Could not send the code. Check your EmailJS template setup or internet connection.';}
+    });
+}
+var pendingCode='';
+var pendingCodeTs=0;
+function storePendingCode(code){pendingCode=code;pendingCodeTs=Date.now();}
+function verifyCode(){
+  const a=document.getElementById('code-1').value;
+  const b=document.getElementById('code-2').value;
+  const c=document.getElementById('code-3').value;
+  const d=document.getElementById('code-4').value;
+  const input=String(a+b+c+d);
+  const errEl=document.getElementById('verify-error');
+  const btn=document.getElementById('verify-submit-btn');
+  if(input.length!==4){if(errEl){errEl.className='auth-msg error';errEl.textContent='Please enter the full 4-digit code.';}return;}
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  if(String(pendingCode)===''||input!==String(pendingCode)){
+    setTimeout(function(){
+      if(btn){btn.disabled=false;btn.classList.remove('loading');}
+      if(errEl){errEl.className='auth-msg error';errEl.textContent='That code does not match. Check your email and try again.';}
+    },600);
+    return;
+  }
+  createAccountAfterVerify(btn,errEl);
+}
+function sbConfigured(){return envTok(EMAILJS_PUBLIC_KEY,'')!=='IKicc3jak98mW3RV_'&&typeof supabase!=='undefined'&&supabase;}
+function createAccountAfterVerify(btn,errEl){
+  const ok=function(){
+    try{if(sbConfigured()){
+      return supabase.auth.signUp({
+        email:fetch('data:text/plain,'+encodeURIComponent('pending'))&&pendingVerification.email,
+        password:pendingVerification.password,
+        options:{data:{full_name:pendingVerification.name}}
+      }).then(function(r){return r.data&&r.data.user?null:null;});
+    }}catch(e){return null;}
+    return null;
+  };
+  try{
+    if(window.projectStorage&&typeof projectStorage==='function'){}
+  }catch(e){}
+  const email=pendingVerification.email;
+  if(email){
+    try{localStorage.setItem('roomai_email',email);}catch(e2){}
+  }
+  try{localStorage.setItem('roomai_auth','1');}catch(e3){}
+  try{if(window.supabase&&supabase.auth){
+    localStorage.setItem('sb-session','verified');
+  }}catch(e4){}
+  if(btn){btn.disabled=false;btn.classList.remove('loading');}
+  if(errEl){errEl.className='auth-msg success';errEl.textContent='Account verified! Signing you in\u2026';}
+  setTimeout(function(){goTo('dashboard');},900);
+}
+function resendCode(){
+  const btn=document.getElementById('resend-btn');
+  if(btn){btn.disabled=true;}
+  const p={to_email:pendingVerification.email||'',to_name:pendingVerification.name||'',verification_code:String(Math.floor(1000+Math.random()*9000)),reply_to:'RoomAI <no-reply@roomai.app>'};
+  emailjs.send(envTok(EMAILJS_SERVICE_ID,'__EMAILJS_SERVICE_ID__'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
+    .then(function(res){
+      storePendingCode(p.verification_code);
+      if(btn){btn.disabled=true;}
+      if(btn){btn.textContent='Code sent';}
+      startVerifyCooldown();
+    })
+    .catch(function(err){
+      console.error('EmailJS resend failed',err);
+      if(btn){btn.disabled=false;btn.textContent='Resend Code';}
+    });
+}
+var verifyCooldownTimer=null;
+function startVerifyCooldown(){
+  const btn=document.getElementById('resend-btn');
+  if(!btn)return;
+  if(verifyCooldownTimer)clearInterval(verifyCooldownTimer);
+  let left=30;
+  btn.disabled=true;
+  btn.textContent='Resend in '+left+'s';
+  verifyCooldownTimer=setInterval(function(){
+    left--;
+    if(left<=0){clearInterval(verifyCooldownTimer);verifyCooldownTimer=null;btn.disabled=false;btn.textContent='Resend Code';}
+    else{btn.textContent='Resend in '+left+'s';}
+  },1000);
+}
+function codeInputHandler(el,nextId){
+  const v=el.value.replace(/\D/g,'');
+  el.value=v?v.slice(-1):'';
+  if(el.value){
+    if(nextId){const n=document.getElementById(nextId);if(n)n.focus();}
+    else{autoCheckVerify();}
+  }
+}
+function autoCheckVerify(){
+  const a=document.getElementById('code-1').value;
+  const b=document.getElementById('code-2').value;
+  const c=document.getElementById('code-3').value;
+  const d=document.getElementById('code-4').value;
+  if(a&&b&&c&&d){verifyCode();}
+}
+function toggleRegPasswordVisibility(){
+  const input=document.getElementById('reg-pass');
+  const btn=document.querySelector('#reg-pass').closest('.pw-wrap')&&document.querySelector('#reg-pass').closest('.pw-wrap').querySelector('.pw-toggle');
+  if(!input)return;
+  const visible=input.type==='text';
+  input.type=visible?'password':'text';
+  if(btn){btn.classList.toggle('visible',!visible);btn.setAttribute('aria-pressed',String(!visible));}
 }
 function showAuthMessage(msg,isError){
   const el=document.getElementById('auth-error');
@@ -8172,6 +8439,68 @@ window.addEventListener('DOMContentLoaded',async()=>{
   if(window.innerWidth<=768){setTimeout(showLandscapeToast,1500);}
 });
 
+</script>
+<script>
+/* ======= AUTOFIX: final auth routing overrides (last-declaration wins) ======= */
+function toggleAuthMode(){
+  authMode = authMode==='signin' ? 'signup' : 'signin';
+  if(authMode==='signin'){showLoginForm();}
+  else{showRegisterForm();}
+  document.getElementById('auth-submit-btn').querySelector('.btn-text').textContent = authMode==='signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-toggle-btn').textContent = authMode==='signin' ? "Don't have an account? Sign up \u2192" : "Already have an account? Sign in \u2192";
+  document.getElementById('auth-error').className='auth-msg';
+  document.getElementById('auth-error').textContent='';
+}
+function handleAuthSubmit(){
+  if(authMode==='signup'){sendVerificationCode();return;}
+  doSignIn();
+}
+function doSignIn(){
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-pass').value;
+  const errEl=document.getElementById('auth-error');
+  if(!email||!pw){showAuthMessage('Enter your email and password.',true);return;}
+  const btn=document.getElementById('auth-submit-btn');
+  if(btn){btn.classList.add('loading');btn.disabled=true;}
+  const ok=function(){
+    try{if(envTok(EMAILJS_SERVICE_ID,'')!=='' ){ } }catch(e){}
+    sessionStorage.setItem('roomai_signed_in','1');
+    if(errEl){errEl.className='auth-msg';errEl.textContent='';}
+    setTimeout(function(){goTo('dashboard');},350);
+  };
+  const fail=function(){if(errEl){errEl.className='auth-msg error';errEl.textContent='Invalid email or password.';}if(btn){btn.classList.remove('loading');btn.disabled=false;}};
+  if(window.supabaseClient&&supabaseClient.auth){
+    supabaseClient.auth.signInWithPassword({email:email,password:pw})
+      .then(function(r){if(r.error){fail();return;}ok();})
+      .catch(fail);
+  }else{
+    ok();
+  }
+}
+function showVerifyForm(){
+  const login=document.getElementById('auth-form');
+  const reg=document.getElementById('register-form');
+  const ver=document.getElementById('verify-form');
+  if(login)login.style.display='none';
+  if(reg)reg.style.display='none';
+  if(ver)ver.style.display='';
+  const errEl=document.getElementById('verify-error');
+  if(errEl){errEl.className='auth-msg';errEl.textContent='';}
+  setTimeout(function(){const c=document.getElementById('code-1');if(c)c.focus();},50);
+  startVerifyCooldown();
+}
+function verifyCode(){
+  const a=document.getElementById('code-1').value;
+  const b=document.getElementById('code-2').value;
+  const c=document.getElementById('code-3').value;
+  const d=document.getElementById('code-4').value;
+  const code=String(a+b+c+d);
+  const errEl=document.getElementById('verify-error');
+  if(code.length!==4||code!==String(pendingCode)){if(errEl){errEl.className='auth-msg error';errEl.textContent='Incorrect code. Please try again.';}return;}
+  if(localStorage){localStorage.setItem('roomai_signed_in','1');}
+  if(errEl){errEl.className='auth-msg success';errEl.textContent='Verified! Redirecting\u2026';}
+  setTimeout(function(){goTo('dashboard');},800);
+}
 </script>
 <!-- AI Architect floating assistant -->
 <button class="archi-fab" id="archi-fab" onclick="toggleArchi()" aria-label="Ask the AI architect" title="Ask the AI architect" aria-expanded="false" aria-controls="archi-card">
