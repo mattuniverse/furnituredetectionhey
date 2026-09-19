@@ -3700,8 +3700,10 @@ function layoutDefaultFurniture(type,w,h){
       if(M+2+0.6>h) warnings.push('Bedroom is too shallow \u2014 the bed needs at least 60cm of walkway at the foot (needs ~'+cm(M+2+0.6)+'cm depth, room is '+cm(h)+'cm).');
       // Wardrobe: against the wall, 90cm door-swing clearance in front.
       if(2+M+0.9+0.6+M>h) warnings.push('Bedroom is too shallow \u2014 the wardrobe needs at least 90cm of door-swing clearance in front of it (needs ~'+cm(2+M+0.9+0.6+M)+'cm depth, room is '+cm(h)+'cm).');
+      // Nightstand: directly beside the bed head (left side of the double bed).
+      if(w<1.6+0.6+0.6+0.5+2*M) warnings.push('Bedroom is too narrow \u2014 the nightstand needs to sit directly beside the bed head; keep at least 60cm walkway on the other side (needs ~'+cm(1.6+0.6+0.6+0.5+2*M)+'cm width, room is '+cm(w)+'cm).');
       push('bed_d',(w-1.6)/2,M,1.6,2,0);
-      push('cabinet',(w-1.6)/2+1.6+0.1,M+0.3,0.6,1.2,0);
+      push('cabinet',Math.max((w-1.6)/2-0.6-M,0.15),M,0.6,1.2,0);
       push('wardrobe',(w-1.8)/2,h-0.6-M,1.8,0.6,0);
     },
     'Kitchen':()=>{
@@ -3716,6 +3718,8 @@ function layoutDefaultFurniture(type,w,h){
         if(L<1.2) warnings.push('Kitchen is too cramped \u2014 the '+names[i]+' is too close; work-triangle legs should be at least 120cm (currently '+cm(L)+'cm).');
         if(L>2.7) warnings.push('Kitchen is too spread out \u2014 the '+names[i]+' is too far; work-triangle legs should be at most 270cm (currently '+cm(L)+'cm).');
       });
+      // Never place the stove directly beside the fridge (fire / heat hazard + poor workflow).
+      if(Math.abs(tx-fx)<0.9||Math.abs(ty-fy)<0.9) warnings.push('Kitchen layout \u2014 the stove should never sit directly beside the fridge; give them at least 90cm of separation.');
       // Min 120cm aisle between back-wall appliances and the opposite run.
       if(h<0.6+1.2+0.5+2*M) warnings.push('Kitchen is too shallow \u2014 leave a 120cm aisle between the fridge and the opposite run (needs ~'+cm(0.6+1.2+0.5+2*M)+'cm depth, room is '+cm(h)+'cm).');
       push('wardrobe',0.2,0.25,1.8,0.6,0);
@@ -3728,6 +3732,9 @@ function layoutDefaultFurniture(type,w,h){
       const sofaY=h-0.85-M, coffeeY=sofaY-0.45-0.5;
       if(w<2.2+2*M) warnings.push('Living room is too narrow \u2014 the sofa needs at least '+cm(2.2+2*M)+'cm of width.');
       if(h<0.85+M+0.45+0.5+M+0.4+M) warnings.push('Living room is too shallow \u2014 the coffee table needs at least 45cm of clearance from the sofa (needs ~'+cm(0.85+M+0.45+0.5+M+0.4+M)+'cm depth, room is '+cm(h)+'cm).');
+      const tvY=M, tvCenterY=tvY+0.4/2, sofaCenterY=sofaY+0.85/2;
+      const viewDist=Math.abs(sofaCenterY-tvCenterY);
+      if(viewDist<3.0) warnings.push('Living room is too shallow \u2014 keep at least 300cm between the sofa and the TV for comfortable viewing (currently '+cm(viewDist)+'cm; needs a ~'+cm(Math.max(3.0+h-0.85-M-0.4-M,h))+'cm-deep room).');
       push('tv',(w-1.4)/2,M,1.4,0.4,0);                                   // TV unit at eye level when seated
       push('sofa_3',(w-2.2)/2,sofaY,2.2,0.85,0);
       push('coffee',(w-1)/2,coffeeY,1,0.5,0);
@@ -7880,6 +7887,7 @@ function fpApplyArchitectActions(actions){
     }
   });
   if(!touched){console.log('[architect] fp-canvas: no actions applied');return;}
+  Object.values(fpRooms||{}).forEach(r=>{if(r&&r.furniture&&r.rect)ergoSeparate(r.furniture,r.rect.w,r.rect.h);});
   fpArchFlash=touchIds;
   clearTimeout(fpArchFlashTimer);
   fpArchFlashTimer=setTimeout(()=>{fpArchFlash=[];if(currentScreen!=='editor')drawFpCanvas();},1400);
@@ -7890,6 +7898,53 @@ function archiApplyActions(actions){
   if(!Array.isArray(actions)||!actions.length){console.log('[architect] no actions to apply');return;}
   if(currentScreen==='editor'){applyEditorActions(actions);}
   else{fpApplyArchitectActions(actions);}
+}
+// Ergonomics enforcement fallback: keeps every piece inside the room and
+// pushes overlapping pieces apart so the canvas never violates the global
+// "no overlap / within boundaries" rules, even if the model returned
+// imperfect coordinates. Uses rotation-aware axis-aligned extents.
+function _ergoExtent(f){ // returns {cx,cy,hw,hh} rotated half-extents + center
+  const cs=Math.abs(Math.cos(f.rot||0)),sn=Math.abs(Math.sin(f.rot||0));
+  const hw=(f.w*cs+f.h*sn)/2,hh=(f.w*sn+f.h*cs)/2;
+  const c=itemCenter(f);
+  return {cx:c.x,cy:c.y,hw,hh};
+}
+function _ergoSetXY(f,cx,cy){
+  const cs=Math.cos(f.rot||0),sn=Math.sin(f.rot||0);
+  f.x=cx-(cs*f.w/2-sn*f.h/2);
+  f.y=cy-(sn*f.w/2+cs*f.h/2);
+}
+function ergoSeparate(items,roomW,roomH){
+  const minGap=0.06;
+  const keep=f=>f&&!(f.defId==='door'||f.defId==='window');
+  // Pass 1: pull every piece fully inside its room.
+  items.forEach(f=>{
+    if(!keep(f))return;
+    const e=_ergoExtent(f);
+    const cx=Math.min(Math.max(e.cx,e.hw),Math.max(e.hw,roomW-e.hw));
+    const cy=Math.min(Math.max(e.cy,e.hh),Math.max(e.hh,roomH-e.hh));
+    _ergoSetXY(f,cx,cy);
+  });
+  // Pass 2: push overlapping pairs apart along the smallest overlap axis.
+  for(let pass=0;pass<3;pass++){
+    items.forEach((a,ia)=>{
+      if(!keep(a))return;
+      const ea=_ergoExtent(a);
+      items.forEach((b,ib)=>{
+        if(!keep(b)||ia===ib)return;
+        const eb=_ergoExtent(b);
+        const ovX=(ea.hw+eb.hw)-Math.abs(ea.cx-eb.cx);
+        const ovY=(ea.hh+eb.hh)-Math.abs(ea.cy-eb.cy);
+        if(ovX>minGap&&ovY>minGap){
+          const push=Math.min(ovX<ovY?ovX:ovY,0.12);
+          let nx=ea.cx,ny=ea.cy;
+          if(ovX<ovY)nx+=ea.cx>eb.cx?push:-push;
+          else ny+=ea.cy>eb.cy?push:-push;
+          _ergoSetXY(a,Math.min(Math.max(nx,ea.hw),Math.max(ea.hw,roomW-ea.hw)),Math.min(Math.max(ny,ea.hh),Math.max(ea.hh,roomH-ea.hh)));
+        }
+      });
+    });
+  }
 }
 function applyEditorActions(actions){
   if(!Array.isArray(actions)||!actions.length)return;
@@ -7933,6 +7988,7 @@ function applyEditorActions(actions){
     }
   });
   if(!touched){console.log('[architect] editor: no actions applied');return;}
+  ergoSeparate(furniture,roomW,roomH);
   fpArchFlash=touchIds;
   clearTimeout(fpArchFlashTimer);
   fpArchFlashTimer=setTimeout(()=>{fpArchFlash=[];if(currentScreen==='editor'){try{draw2d();}catch(e){}}},1400);
