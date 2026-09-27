@@ -2368,8 +2368,12 @@ const FLOORPLAN_ENV = {
 const EMAILJS_PUBLIC_KEY = '__EMAILJS_PUBLIC_KEY__';
 const EMAILJS_SERVICE_ID = '__EMAILJS_SERVICE_ID__';
 const EMAILJS_TEMPLATE_ID = '__EMAILJS_TEMPLATE_ID__';
-emailjs.init(envTok(EMAILJS_PUBLIC_KEY, 'IKicc3jak98mW3RV_'));
+// envTok must be declared before its first use below: a top-level `const`
+// throws "Cannot access 'envTok' before initialization" when read early, which
+// aborts the rest of this script block and leaves every later declaration
+// (currentScreen, authMode, ...) uninitialised.
 const envTok=(v,def)=>(v&&typeof v==='string'&&v.indexOf('__')!==0)?v:def;
+emailjs.init(envTok(EMAILJS_PUBLIC_KEY, 'IKicc3jak98mW3RV_'));
 const SUPABASE_URL = envTok(FLOORPLAN_ENV.SUPABASE_URL,'https://labtkuhvvkrlvpfbispd.supabase.co');
 const SUPABASE_ANON_KEY = envTok(FLOORPLAN_ENV.SUPABASE_ANON_KEY,'sb_publishable_2FMdtvqVzsdPU-8xr66irg_Rtt-oylX');
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
