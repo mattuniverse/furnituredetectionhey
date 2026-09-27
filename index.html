@@ -2717,6 +2717,27 @@ function verifyCode(){
   createAccountAfterVerify(btn,errEl);
 }
 function sbConfigured(){return typeof supabaseClient!=='undefined'&&!!supabaseClient.auth;}
+// Fire-and-forget welcome email. Never throws, never blocks signup: a failure
+// here must not prevent the account from being created or the user signing in.
+function sendWelcomeEmail(name,nickname,email){
+  if(typeof emailjs==='undefined'||!emailjs||typeof emailjs.send!=='function'){
+    console.warn('[welcomeEmail] EmailJS not loaded; skipping welcome email.');
+    return;
+  }
+  try{
+    emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'template_qjzz086'),{
+      name:name||'',
+      nickname:nickname||'',
+      email:email||''
+    }).then(function(){
+      console.log('Welcome email sent');
+    }).catch(function(err){
+      console.warn('Email failed to send:',err);
+    });
+  }catch(err){
+    console.warn('Email failed to send:',err);
+  }
+}
 function createAccountAfterVerify(btn,errEl){
   const email=pendingVerification && pendingVerification.email;
   const password=pendingVerification && pendingVerification.password;
@@ -2745,7 +2766,14 @@ function createAccountAfterVerify(btn,errEl){
     options:{data:{full_name:(pendingVerification.name||'')}}
   }).then(function(r){
     if(r.error)throw r.error;
-    if(r.data&&r.data.session&&r.data.session.user){finish(r.data.session.user);return;}
+    if(r.data&&r.data.session&&r.data.session.user){
+      // Account exists: welcome email is best-effort and never blocks sign-in.
+      sendWelcomeEmail(pendingVerification.name,(pendingVerification.name||'').split(' ')[0]||(email||'').split('@')[0],email);
+      finish(r.data.session.user);
+      return;
+    }
+    // Account created but requires email confirmation - still a real signup.
+    sendWelcomeEmail(pendingVerification.name,(pendingVerification.name||'').split(' ')[0]||(email||'').split('@')[0],email);
     finish(null);
   }).catch(function(err){
     console.error('[createAccountAfterVerify]',err.message);
