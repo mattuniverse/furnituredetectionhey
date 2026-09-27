@@ -2228,6 +2228,7 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
         <div class="save-toast" id="save-toast" aria-live="polite"></div>
       </div>
       <div class="fp-ed-banner" id="fp-ed-banner"><span aria-hidden="true">&#x1F3E0;</span><span>Editing <b id="fp-ed-room-label">Room 1</b> &middot; Floor Plan</span><button class="btn-outline" onclick="backToDashboard()" style="margin-left:auto;padding:6px 12px">&larr; Back to Floor Plan</button></div>
+      <div class="fp-ed-banner" id="ro-banner" style="display:none" role="status" aria-live="polite"><span aria-hidden="true">&#x1F512;</span><span id="ro-banner-text">Read-only &mdash; you are not the owner of this design. You can view, measure and export it, but not make changes.</span></div>
     </div>
     <div class="editor-main">
       <div class="left-sidebar" id="sidebar-2d">
@@ -2373,6 +2374,75 @@ const SUPABASE_URL = envTok(FLOORPLAN_ENV.SUPABASE_URL,'https://labtkuhvvkrlvpfb
 const SUPABASE_ANON_KEY = envTok(FLOORPLAN_ENV.SUPABASE_ANON_KEY,'sb_publishable_2FMdtvqVzsdPU-8xr66irg_Rtt-oylX');
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentProjectId = null;
+
+// ── Signed-in identity (authoritative source = Supabase, not storage flags) ──
+let currentUser = null;
+function currentUserId(){ return currentUser ? currentUser.id : null; }
+async function restoreAuthSession(){
+  try{
+    const {data,error} = await supabaseClient.auth.getSession();
+    if(error) throw error;
+    currentUser = (data && data.session && data.session.user) ? data.session.user : null;
+  }catch(err){
+    currentUser = null;
+    console.warn('[restoreAuthSession]',err.message);
+  }
+  return currentUser;
+}
+function markSignedIn(user){
+  currentUser = user || null;
+  try{
+    if(currentUser) sessionStorage.setItem('roomai_signed_in','1');
+    else{
+      sessionStorage.removeItem('roomai_signed_in');
+      localStorage.removeItem('roomai_auth');
+      localStorage.removeItem('sb-session');
+    }
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════
+//  OWNERSHIP / READ-ONLY MODE
+// ══════════════════════════════════════════
+const READ_ONLY_MSG = 'Read-only \u2014 you are not the owner of this design. You can view, measure and export it, but not make changes.';
+let openProjectOwnerId = null;
+let fpProjectOwnerId = null;
+function isReadOnlyMode(){
+  if(currentProjectId && openProjectOwnerId && currentUserId() && openProjectOwnerId !== currentUserId())return true;
+  if(fpProjectId && fpProjectOwnerId && currentUserId() && fpProjectOwnerId !== currentUserId())return true;
+  return false;
+}
+function blockIfReadOnly(){
+  if(!isReadOnlyMode())return false;
+  setStatus(READ_ONLY_MSG);
+  return true;
+}
+function setOpenProjectOwner(uid){
+  openProjectOwnerId = uid || null;
+  updateReadOnlyUi();
+}
+function setFpProjectOwner(uid){
+  fpProjectOwnerId = uid || null;
+  updateReadOnlyUi();
+}
+function resetReadOnlyUi(){
+  openProjectOwnerId = null;
+  fpProjectOwnerId = null;
+  updateReadOnlyUi();
+}
+function updateReadOnlyUi(){
+  const ro = isReadOnlyMode();
+  const banner = document.getElementById('ro-banner');
+  if(banner)banner.style.display = ro ? 'flex' : 'none';
+  // Save stays available on purpose: for a non-owner it writes a NEW project
+  // they own (see saveProject) instead of mutating someone else's row.
+  const blocked = ['btn-design','tool-wall'].map(id=>document.getElementById(id));
+  const camBtn = document.querySelector('[onclick="openSingleCam()"]');
+  if(camBtn)blocked.push(camBtn);
+  const fpEditBtn = document.getElementById('btn-fp-edit');
+  if(fpEditBtn)blocked.push(fpEditBtn);
+  blocked.forEach(b=>{ if(!b)return; b.disabled = ro; b.style.opacity = ro ? '0.45' : ''; b.style.pointerEvents = ro ? 'none' : ''; });
+}
 
 // ══════════════════════════════════════════
 //  THEME (furniture-inspired light/dark)
@@ -2642,32 +2712,42 @@ function verifyCode(){
   }
   createAccountAfterVerify(btn,errEl);
 }
-function sbConfigured(){return envTok(EMAILJS_PUBLIC_KEY,'')!=='IKicc3jak98mW3RV_'&&typeof supabase!=='undefined'&&supabase;}
+function sbConfigured(){return typeof supabaseClient!=='undefined'&&!!supabaseClient.auth;}
 function createAccountAfterVerify(btn,errEl){
-  const ok=function(){
-    try{if(sbConfigured()){
-      return supabase.auth.signUp({
-        email:fetch('data:text/plain,'+encodeURIComponent('pending'))&&pendingVerification.email,
-        password:pendingVerification.password,
-        options:{data:{full_name:pendingVerification.name}}
-      }).then(function(r){return r.data&&r.data.user?null:null;});
-    }}catch(e){return null;}
-    return null;
+  const email=pendingVerification && pendingVerification.email;
+  const password=pendingVerification && pendingVerification.password;
+  const finish=function(user){
+    if(btn){btn.disabled=false;btn.classList.remove('loading');}
+    if(user){
+      markSignedIn(user);
+      if(errEl){errEl.className='auth-msg success';errEl.textContent='Account verified! Signing you in\u2026';}
+      enterDashboard();
+      return;
+    }
+    if(errEl){errEl.className='auth-msg success';errEl.textContent='Account verified! Sign in to continue.';}
+    pendingVerification=null;
+    authMode='signin';
+    showLoginForm();
   };
-  try{
-    if(window.projectStorage&&typeof projectStorage==='function'){}
-  }catch(e){}
-  const email=pendingVerification.email;
-  if(email){
-    try{localStorage.setItem('roomai_email',email);}catch(e2){}
+  if(email)try{localStorage.setItem('roomai_email',email);}catch(e2){}
+  if(!sbConfigured()||!email||!password){
+    console.warn('[createAccountAfterVerify] Supabase not configured; skipping sign-up.');
+    finish(null);
+    return;
   }
-  try{localStorage.setItem('roomai_auth','1');}catch(e3){}
-  try{if(window.supabase&&supabase.auth){
-    localStorage.setItem('sb-session','verified');
-  }}catch(e4){}
-  if(btn){btn.disabled=false;btn.classList.remove('loading');}
-  if(errEl){errEl.className='auth-msg success';errEl.textContent='Account verified! Signing you in\u2026';}
-  setTimeout(function(){goTo('dashboard');},900);
+  supabaseClient.auth.signUp({
+    email:email,
+    password:password,
+    options:{data:{full_name:(pendingVerification.name||'')}}
+  }).then(function(r){
+    if(r.error)throw r.error;
+    if(r.data&&r.data.session&&r.data.session.user){finish(r.data.session.user);return;}
+    finish(null);
+  }).catch(function(err){
+    console.error('[createAccountAfterVerify]',err.message);
+    if(btn){btn.disabled=false;btn.classList.remove('loading');}
+    if(errEl){errEl.className='auth-msg error';errEl.textContent='Could not create the account: '+err.message;}
+  });
 }
 function resendCode(){
   const btn=document.getElementById('resend-btn');
@@ -2759,15 +2839,21 @@ async function handleAuthSubmit(){
   setAuthLoading(true);
   try{
     if(authMode==='signin'){
-      const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+      const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
       if(error) throw error;
-      sessionStorage.setItem('roomai_signed_in','1');
+      markSignedIn(data && data.user);
       await enterDashboard();
     }else{
-      const {error}=await supabaseClient.auth.signUp({email,password});
+      const {data,error}=await supabaseClient.auth.signUp({email,password});
       if(error) throw error;
-      showAuthMessage('Account created \u2014 check your email to confirm, then sign in.',false);
-      toggleAuthMode();
+      // Supabase returns a live session when email confirmation is disabled.
+      if(data && data.session && data.session.user){
+        markSignedIn(data.session.user);
+        await enterDashboard();
+      }else{
+        showAuthMessage('Account created \u2014 check your email to confirm, then sign in.',false);
+        toggleAuthMode();
+      }
     }
   }catch(err){
     showAuthMessage(err.message||'Something went wrong.',true);
@@ -2776,14 +2862,22 @@ async function handleAuthSubmit(){
   }
 }
 async function logout(){
-  await supabaseClient.auth.signOut();
-  sessionStorage.removeItem('roomai_signed_in');
+  try{ await supabaseClient.auth.signOut(); }catch(err){ console.warn('[logout]',err.message); }
+  markSignedIn(null);
   currentProjectId=null;
+  fpProjectId=null;
+  resetReadOnlyUi();
   goTo('login');
 }
 async function enterDashboard(){
-  const {data:{user}}=await supabaseClient.auth.getUser();
-  document.querySelectorAll('[data-avatar]').forEach(el=>el.textContent=(user?.email||'U')[0].toUpperCase());
+  let user = currentUser;
+  try{
+    const {data,error} = await supabaseClient.auth.getUser();
+    if(error) throw error;
+    if(data && data.user){ user = data.user; markSignedIn(user); }
+  }catch(err){ console.warn('[enterDashboard]',err.message); }
+  if(!user){ markSignedIn(null); goTo('login'); return; }
+  document.querySelectorAll('[data-avatar]').forEach(el=>el.textContent=(user.email||'U')[0].toUpperCase());
   await refreshRole();
   goTo('start');
 }
@@ -2867,6 +2961,7 @@ async function loadAdminPanel(){
   }
 }
 async function adminDeleteProject(id,btn){
+  if(currentUserRole!=='admin'){setStatus('Admins only.');return;}
   if(!window.confirm('Delete this project permanently?'))return;
   const {error}=await supabaseClient.from('projects').delete().eq('id',id);
   if(error){setStatus('Delete failed: '+error.message);return;}
@@ -2892,13 +2987,20 @@ async function loadProjects(){
     supabaseClient.rpc('my_saved_projects').then(r=>{if(r.error)throw r.error;saved=r.data||[];}).catch(e=>{savedFailed=true;console.error('[my_saved_projects]',e.message);})
   ]);
   // Before the new RPCs are applied in the SQL editor, fall back to a plain
-  // projects query so the dashboard keeps working exactly as before.
+  // projects query so the dashboard keeps working exactly as before. The
+  // fallback MUST stay scoped to the signed-in user: an unscoped select pulls
+  // every project in the table into another account's dashboard.
   if(mineFailed&&savedFailed){
-    try{
-      const {data,error}=await supabaseClient.from('projects').select('id,name,updated_at,data').order('updated_at',{ascending:false});
-      if(error)throw error;
-      mine=data||[];saved=[];
-    }catch(e){console.error('[loadProjects:fb]',e.message);}
+    const uid=currentUserId();
+    if(uid){
+      try{
+        const {data,error}=await supabaseClient.from('projects').select('id,name,updated_at,data,user_id').eq('user_id',uid).order('updated_at',{ascending:false});
+        if(error)throw error;
+        mine=data||[];saved=[];
+      }catch(e){console.error('[loadProjects:fb]',e.message);}
+    }else{
+      console.warn('[loadProjects] no signed-in user; skipping projects fallback.');
+    }
   }
   myProjectsCache=mine;savedProjectsCache=saved;
   // Published-in-Universe badge map, derived from the shared universe fetch
@@ -2967,7 +3069,10 @@ function renderProjectsGrid(grid){
 // Keep old deleteProject for admin panel only
 async function deleteProject(id,cardEl){
   if(!window.confirm('Delete this project permanently?'))return;
-  const {error}=await supabaseClient.from('projects').delete().eq('id',id);
+  // Owner-scoped: a user must never be able to delete a row they do not own.
+  const uid=currentUserId();
+  if(!uid){setStatus('Sign in to delete your project.');return;}
+  const {error}=await supabaseClient.from('projects').delete().eq('id',id).eq('user_id',uid);
   if(error){setStatus('Delete failed: '+error.message);return;}
   if(cardEl&&cardEl.parentElement)cardEl.parentElement.classList.add('removing');
   setTimeout(()=>loadProjects(),120);
@@ -3778,7 +3883,9 @@ async function openProject(id){
   if(error){setStatus('Could not load that project.');console.error('[openProject]',error);return;}
   if(data.data&&data.data.type==='floor'){
     currentProjectId=null;
+    openProjectOwnerId=null;
     fpProjectId=id;
+    setFpProjectOwner(data.user_id);
     fpCommitEditingRoom();
     fpRooms=(data.data.rooms||[]).map(fpNormalizeRoom);
     fpRoomCount=Math.max(1,fpRooms.length);
@@ -3788,6 +3895,7 @@ async function openProject(id){
     return;
   }
   currentProjectId=id;
+  setOpenProjectOwner(data.user_id);
   roomConfig=data.data.roomConfig;
   walls=data.data.walls||[];
   furniture=data.data.furniture||[];
@@ -3808,18 +3916,35 @@ async function saveProject(){
   const toast=document.getElementById('save-toast');
   const {data:{user}}=await supabaseClient.auth.getUser();
   if(!user){setStatus('Sign in to save your project.');return;}
+  markSignedIn(user);
   saveBtn.classList.add('saving');
   saveBtn.disabled=true;
   const payload={roomConfig:JSON.parse(JSON.stringify(roomConfig)),walls:JSON.parse(JSON.stringify(walls)),furniture:JSON.parse(JSON.stringify(furniture)),photos:roomPhotos,view:editorView};
+  // Only the owner may update an existing row. Anything else (a brand new
+  // project, or one owned by somebody else) is written as a NEW project the
+  // user owns, so a non-owner can never overwrite another account's design.
+  const ownsCurrent = !!currentProjectId && (!openProjectOwnerId || openProjectOwnerId === user.id);
   try{
-    if(currentProjectId){
-      const {error}=await supabaseClient.from('projects').update({data:payload,updated_at:new Date().toISOString()}).eq('id',currentProjectId);
+    if(ownsCurrent){
+      const {data:upd,error}=await supabaseClient.from('projects').update({data:payload,updated_at:new Date().toISOString()}).eq('id',currentProjectId).eq('user_id',user.id).select('id').maybeSingle();
       if(error) throw error;
+      // No row matched (stale owner id, RLS, row gone) - fall through to an
+      // insert rather than silently reporting success.
+      if(!upd){
+        const name=`${roomConfig.type} \u2014 ${new Date().toLocaleDateString()}`;
+        const {data,error:insErr}=await supabaseClient.from('projects').insert({user_id:user.id,name,data:payload}).select().single();
+        if(insErr) throw insErr;
+        currentProjectId=data.id;
+        setOpenProjectOwner(user.id);
+      }
     }else{
+      const wasReadOnly = !!currentProjectId && !!openProjectOwnerId && openProjectOwnerId !== user.id;
       const name=`${roomConfig.type} \u2014 ${new Date().toLocaleDateString()}`;
       const {data,error}=await supabaseClient.from('projects').insert({user_id:user.id,name,data:payload}).select().single();
       if(error) throw error;
       currentProjectId=data.id;
+      setOpenProjectOwner(user.id);
+      if(wasReadOnly)setStatus('Saved as a copy in your projects \u2713');
     }
     setStatus('Project saved \u2713');
     toast.innerHTML='\u2713 Project saved<button class="toast-act" onclick="openUniverseModal()">Add to Universe</button>';
@@ -3866,7 +3991,7 @@ function restoreEditorDraft(){
   try{const raw=localStorage.getItem(EDITOR_DRAFT_KEY);if(raw)snap=JSON.parse(raw);}catch(err){console.warn('[draft]',err.message);}
   if(!snap||!snap.roomConfig)return false;
   roomConfig=snap.roomConfig;walls=snap.walls||[];furniture=snap.furniture||[];roomPhotos=snap.photos||[];
-  selectedItem=null;selectedIds=[];dragStarts=null;marquee=null;wallStart=null;currentProjectId=null;
+  selectedItem=null;selectedIds=[];dragStarts=null;marquee=null;wallStart=null;currentProjectId=null;resetReadOnlyUi();
   sanitizeLayout();
   resetEditHistory();
   const usedIds=[0,...walls.map(w=>w.id),...furniture.map(f=>f.id)];
@@ -3897,7 +4022,9 @@ function goTo(s){
   if(s==='room-setup'){roomConfig=roomConfig||{};roomConfig.type=roomConfig.type||'Living Room';renderSetupFloorControls();renderSetupFurnWarning();}
 }
 function backFromSetup(){
-  const hadUser=sessionStorage.getItem('roomai_signed_in')==='1';
+  // Use the Supabase-backed identity, not the sessionStorage flag (which is
+  // empty whenever the tab was closed and reopened).
+  const hadUser=!!currentUserId();
   if(hadUser){goTo('dashboard');loadProjects();}
   else goTo('landing');
 }
@@ -4319,12 +4446,13 @@ function sugBack(){
   setStatus('Browsing suggested layouts \u2014 preview another, keep the current room, or customize manually.');
 }
 function sugLoadLayout(v){
+  if(blockIfReadOnly())return;
   if(!v)return;
   pushEdits();
   roomConfig=JSON.parse(JSON.stringify(v.roomConfig));
   walls=JSON.parse(JSON.stringify(v.walls||[])).map(w=>({...w,id:uid()}));
   furniture=(v.furniture||[]).map(f=>({...f,id:uid()}));
-  roomPhotos=[];selectedItem=null;selectedIds=[];dragStarts=null;marquee=null;wallStart=null;currentProjectId=null;
+  roomPhotos=[];selectedItem=null;selectedIds=[];dragStarts=null;marquee=null;wallStart=null;currentProjectId=null;resetReadOnlyUi();
   resizeCanvas();buildFurnList();updateBadge();draw2d();updateProps();
   if(editorView==='3d')build3d();
 }
@@ -4421,6 +4549,8 @@ function selectShape(s){
   if(s==='square'){document.getElementById('room-h').value=document.getElementById('room-w').value;}
 }
 function startEditor(){
+  currentProjectId=null;
+  resetReadOnlyUi();
   roomConfig.w=parseFloat(document.getElementById('room-w').value)||5;
   roomConfig.h=parseFloat(document.getElementById('room-h').value)||4;
   roomConfig.wallH=parseFloat(document.getElementById('room-wall-h').value)||2.7;
@@ -4436,7 +4566,7 @@ function startEditor(){
 }
 function loadDemo(){
   roomConfig={type:'Living Room',shape:'rect',w:6,h:5,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878',pattern:'boards'},wallFinish:{style:'solid',color:'#ddd0be'}};
-  walls=[];furniture=[];selectedItem=null;wallStart=null;currentProjectId=null;
+  walls=[];furniture=[];selectedItem=null;wallStart=null;currentProjectId=null;resetReadOnlyUi();
   resetEditHistory();
   buildRectRoom();
   addFurn('sofa_3',0.5,3.5,0);addFurn('coffee',1.5,2.5,0);addFurn('tv',0.5,0.3,0);
@@ -4444,7 +4574,8 @@ function loadDemo(){
   goTo('editor');
   setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();},50);
 }
-function addFurn(defId,x,y,rot){const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;furniture.push({id:uid(),defId,x,y,w:def.w,h:def.h,rot:rot||0,h3d:def.h3d||0.9});}
+function addFurn(defId,x,y,rot){
+  if(blockIfReadOnly())return;const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;furniture.push({id:uid(),defId,x,y,w:def.w,h:def.h,rot:rot||0,h3d:def.h3d||0.9});}
 function buildRectRoom(){
   const w=roomConfig.w,h=roomConfig.h,t=roomConfig.wallT,wh=roomConfig.wallH;
   walls=[
@@ -4477,6 +4608,7 @@ function buildFurnList(){
   });
 }
 function placeFurnAtCenter(defId){
+  if(blockIfReadOnly())return;
   const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;
   const seed={x:Math.max((roomConfig.w-def.w)/2,0),y:Math.max((roomConfig.h-def.h)/2,0)};
   const cand=bestNudge(def,furniture,walls,seed);
@@ -5109,6 +5241,7 @@ function rotZoneHit(f,wx,wy){
 }
 function angTo(wx,wy,f){const c=itemCenter(f);return Math.atan2(wy-c.y,wx-c.x);}
 function armDrag(sx,sy){
+  if(blockIfReadOnly())return;
   if(dragArmed)return true;
   if(Math.hypot(sx-downSx,sy-downSy)<DRAG_THRESHOLD)return false;
   dragArmed=true;
@@ -5240,6 +5373,7 @@ canvas2d.addEventListener('mousemove',e=>{
   if(hoveredItem!==prev)draw2d();
 });
 function endDrag(){
+  if(blockIfReadOnly())return;
   const rotItem=rotating;
   let marqueeDragged=false;
   if(marquee){
@@ -5396,7 +5530,9 @@ canvas2d.addEventListener('touchend',e=>{
 canvas2d.addEventListener('touchcancel',()=>{touchPinch2D=null;touchPan2D=null;isPanning=false;canvas2d.dispatchEvent(new MouseEvent('mouseup',{button:0}));},{passive:false});
 canvas2d.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
 canvas2d.addEventListener('drop',e=>{
-  e.preventDefault();const defId=e.dataTransfer.getData('furnId');if(!defId)return;
+  e.preventDefault();
+  if(blockIfReadOnly())return;
+  const defId=e.dataTransfer.getData('furnId');if(!defId)return;
   const def=FURNITURE_DEFS.find(d=>d.id===defId);if(!def)return;
   const rect=canvas2d.getBoundingClientRect();
   const raw=screenToWorld(e.clientX-rect.left,e.clientY-rect.top);
@@ -5414,6 +5550,8 @@ window.addEventListener('keydown',e=>{
   const typing=!!(activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA'||activeEl.tagName==='SELECT'||activeEl.isContentEditable));
   if(e.key==='Escape'){wallStart=null;marquee=null;panMode=false;const bp=document.getElementById('badge-pan');if(bp)bp.style.display='none';setTool('select');}
   if(typing)return;
+  const mutatingKey=e.key==='Delete'||e.key==='Backspace'||e.key==='r'||e.ctrlKey||e.metaKey;
+  if(mutatingKey&&blockIfReadOnly())return;
   if(e.key==='Delete'||e.key==='Backspace'){deleteSelected();}
   if(e.ctrlKey||e.metaKey){
     const k=e.key.toLowerCase();
@@ -5458,6 +5596,22 @@ function toggleSelection(item){
   draw2d();
 }
 function updateProps(_fullRerender){
+  renderProps(_fullRerender);
+  if(isReadOnlyMode()){
+    const el=document.getElementById('prop-content');
+    if(el){
+      el.querySelectorAll('input,select,button').forEach(x=>{x.disabled=true;x.style.opacity='0.55';x.style.pointerEvents='none';});
+      if(!el.querySelector('.ro-prop-note')){
+        const note=document.createElement('div');
+        note.className='ro-prop-note empty-prop';
+        note.style.marginTop='10px';
+        note.textContent='Read-only \u2014 you are not the owner of this design.';
+        el.appendChild(note);
+      }
+    }
+  }
+}
+function renderProps(_fullRerender){
   const el=document.getElementById('prop-content');
   if(!selectedItem){
     const floor=roomConfig.floor||{style:'wood',color:'#c8a878',pattern:'boards'};
@@ -5525,6 +5679,7 @@ function updateProps(_fullRerender){
 }
 function rotSel(deg){if(!selectedItem||!furniture.includes(selectedItem))return;pushEdits();if(selectedItem.defId==='door'||selectedItem.defId==='window'){selectedItem.rot=(selectedItem.rot||0)+deg*Math.PI/180;snapDoorWindow(selectedItem);}else centerRotate(selectedItem,(selectedItem.rot||0)+deg*Math.PI/180);draw2d();updateProps();}
 function deleteSelected(){
+  if(blockIfReadOnly())return;
   const items=selectedFurnitureArr();
   const wallDel=!!(selectedItem&&walls.includes(selectedItem));
   if(!items.length&&!wallDel)return;
@@ -5547,6 +5702,7 @@ function cloneFurnitureItem(f){
   return c;
 }
 function duplicateSelected(){
+  if(blockIfReadOnly())return;
   const items=selectedFurnitureArr();
   if(!items.length){setStatus('Select a furniture item to duplicate first.');return;}
   pushEdits();
@@ -5569,6 +5725,7 @@ function copySelection(){
   return true;
 }
 function pasteClipboard(){
+  if(blockIfReadOnly())return;
   if(!clipboardItems||!clipboardItems.length){setStatus('Nothing copied yet \u2014 select items and press Ctrl+C first.');return;}
   pushEdits();
   const anchor=screenToWorld(canvasW/2,canvasH/2);
@@ -5830,6 +5987,7 @@ async function scanFurniture(){
 }
 
 async function uploadRoomPhoto(wall,file){
+  if(blockIfReadOnly())return;
   const{data:{user}}=await supabaseClient.auth.getUser();
   if(!user)return;
   const owner=currentProjectId||'unsaved';
@@ -5877,6 +6035,7 @@ function setVerifyInclude(id,val){const d=pendingDetections.find(x=>x.id===id);i
 function setVerifyType(id,defId){const d=pendingDetections.find(x=>x.id===id);if(d)d.defId=defId;}
 function cancelVerification(){pendingDetections=[];closeModal('modal-verify');}
 function confirmVerification(){
+  if(blockIfReadOnly())return;
   let placed=0;
   pushEdits();
   pendingDetections.filter(d=>d.include).forEach(d=>{placed+=placeDetectedFurniture({detections:[d],imageWidth:d.imageWidth,imageHeight:d.imageHeight});});
@@ -6022,6 +6181,7 @@ async function detectSingleFromFile(file){
   }
 }
 function placeSingle(defId){
+  if(blockIfReadOnly())return;
   const def=FURNITURE_DEFS.find(f=>f.id===defId);if(!def)return;
   const seed={x:Math.max((roomConfig.w-def.w)/2,0),y:Math.max((roomConfig.h-def.h)/2,0)};
   const cand=bestNudge(def,furniture,walls,seed);
@@ -6039,6 +6199,7 @@ function placeAllDetected(){
 }
 
 function placeDetectedFurniture(result){
+  if(blockIfReadOnly())return;
   const{detections,imageWidth,imageHeight}=result;
   if(!detections||!detections.length||!imageWidth||!imageHeight)return 0;
   const defs=detections.map(d=>FURNITURE_DEFS.find(f=>f.id===(d.furnitureId||d.defId))).filter(Boolean);
@@ -7306,7 +7467,7 @@ const fpctx=canvasFp?canvasFp.getContext('2d'):null;
 
 function startFloorPlan(){
   if(currentScreen==='fp-count'){
-    fpRooms=[];fpSuggestions={};fpDrag=null;fpSelId=null;fpEditing=false;fpProjectId=null;
+    fpRooms=[];fpSuggestions={};fpDrag=null;fpSelId=null;fpEditing=false;fpProjectId=null;resetReadOnlyUi();
     goTo('fp-canvas');
     setTimeout(()=>{resizeFpCanvas();setFpTool('room');fpRenderRoomList();fpUpdateInfo();drawFpCanvas();},50);
   }else{
@@ -7318,7 +7479,7 @@ function startFloorPlan(){
 function exitFloorPlan(){
   fpCommitEditingRoom();
   if(fpRooms.length&&!window.confirm('Leave the floor plan? Unsaved changes will be lost.'))return;
-  fpRooms=[];fpSuggestions={};fpSelId=null;fpEditing=false;fpDrag=null;fpProjectId=null;
+  fpRooms=[];fpSuggestions={};fpSelId=null;fpEditing=false;fpDrag=null;fpProjectId=null;resetReadOnlyUi();
   goTo('start');
 }
 function fpCountStep(d){
@@ -7631,6 +7792,7 @@ function fpAddRoomSet(id){
   fpStatus('Added '+n+' suggested '+(n===1?'piece':'pieces')+' to '+r.label+'.');
 }
 function fpAddSetToRoom(r){
+  if(blockIfReadOnly())return;
   const type=r.roomConfig.type;
   const ids=fpFurnitureSetFor(type);
   const saved=roomConfig;
@@ -7649,6 +7811,7 @@ function fpAddSetToRoom(r){
   return added;
 }
 function fpRemoveRoom(id){
+  if(blockIfReadOnly())return;
   const r=fpRoomById(id);if(!r)return;
   if(!window.confirm('Remove '+r.label+' from the floor plan?'))return;
   fpRooms=fpRooms.filter(x=>x.id!==id);
@@ -7706,18 +7869,27 @@ async function saveFloorPlan(){
   const toastEl=document.getElementById('save-toast-fp');
   const {data:{user}}=await supabaseClient.auth.getUser();
   if(!user){fpStatus('Sign in to save your project.');return;}
+  markSignedIn(user);
   if(btn){btn.classList.add('saving');btn.disabled=true;}
   const rooms=fpRooms.map(r=>({id:r.id,label:r.label,rect:r.rect,walls:r.walls,furniture:r.furniture,roomConfig:r.roomConfig}));
   const payload={type:'floor',rooms};
+  const fpName=(fpProjectName&&fpProjectName.trim())||('Floor Plan \u2014 '+fpRooms.length+(fpRooms.length===1?' room':' rooms')+' \u2014 '+new Date().toLocaleDateString());
+  const ownsCurrent = !!fpProjectId && (!fpProjectOwnerId || fpProjectOwnerId === user.id);
   try{
-    if(fpProjectId){
-      const {error}=await supabaseClient.from('projects').update({data:payload,updated_at:new Date().toISOString()}).eq('id',fpProjectId);
+    if(ownsCurrent){
+      const {data:upd,error}=await supabaseClient.from('projects').update({data:payload,updated_at:new Date().toISOString()}).eq('id',fpProjectId).eq('user_id',user.id).select('id').maybeSingle();
       if(error)throw error;
+      if(!upd){
+        const {data,error:insErr}=await supabaseClient.from('projects').insert({user_id:user.id,name:fpName,data:payload}).select().single();
+        if(insErr)throw insErr;
+        fpProjectId=data.id;
+        setFpProjectOwner(user.id);
+      }
     }else{
-      const name=(fpProjectName&&fpProjectName.trim())||('Floor Plan \u2014 '+fpRooms.length+(fpRooms.length===1?' room':' rooms')+' \u2014 '+new Date().toLocaleDateString());
-      const {data,error}=await supabaseClient.from('projects').insert({user_id:user.id,name,data:payload}).select().single();
+      const {data,error}=await supabaseClient.from('projects').insert({user_id:user.id,name:fpName,data:payload}).select().single();
       if(error)throw error;
       fpProjectId=data.id;
+      setFpProjectOwner(user.id);
     }
     fpShowToast(toastEl,'\u2713 Floor plan saved',false);
     fpStatus('Floor plan saved.');
@@ -7806,6 +7978,7 @@ if(canvasFp&&fpctx){
   });
   const fpEndDrag=(e)=>{
     if(!fpDrag)return;
+    if(blockIfReadOnly())return;
     const rect=canvasFp.getBoundingClientRect();
     const w=fpToWorld(e.clientX-rect.left,e.clientY-rect.top);
     fpDrag.x1=w.x;fpDrag.y1=w.y;
@@ -7839,7 +8012,7 @@ function quickStartFloorPlanGo(){
   const inp=document.getElementById('fp-name-input');
   fpProjectName=(inp&&inp.value)?inp.value.trim():'My Floor Plan';
   if(!fpProjectName)fpProjectName='My Floor Plan';
-  fpRooms=[];fpSuggestions={};fpDrag=null;fpSelId=null;fpEditing=false;fpProjectId=null;
+  fpRooms=[];fpSuggestions={};fpDrag=null;fpSelId=null;fpEditing=false;fpProjectId=null;resetReadOnlyUi();
   fpRoomCount=4;
   goTo('fp-canvas');
   setTimeout(()=>{resizeFpCanvas();setFpTool('room');fpRenderRoomList();fpUpdateInfo();drawFpCanvas();},50);
@@ -7907,6 +8080,7 @@ async function fpLoadMyRooms(){
     : '<div class="fp-myrooms-empty">No saved rooms yet. Save a room or floor plan and it will appear here.</div>';
 }
 function fpAddSavedRoom(saved,wx,wy){
+  if(blockIfReadOnly())return;
   const rc=JSON.parse(JSON.stringify(saved.roomConfig||{type:'Custom',shape:'rect',w:3,h:3,wallH:2.7,wallT:0.15,floor:{style:'wood',color:'#c8a878',pattern:'boards'},wallFinish:{style:'solid',color:'#ddd0be'}}));
   let w=(saved.rect&&saved.rect.w)||rc.w||3;
   let h=(saved.rect&&saved.rect.h)||rc.h||3;
@@ -7964,6 +8138,7 @@ function fpTplMove(e){
   if(area){const r=area.getBoundingClientRect();const over=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;area.classList.toggle('fp-drop-ok',over);}
 }
 function fpTplDrop(e){
+  if(blockIfReadOnly())return;
   const area=document.getElementById('fp-canvas-area');
   const ghost=fpTplDrag?fpTplDrag.ghost:null;
   const tpl=fpTplDrag?fpTplDrag.tpl:null;
@@ -8115,6 +8290,7 @@ function fpFindFurniture(ref){
   return null;
 }
 function fpApplyArchitectActions(actions){
+  if(blockIfReadOnly())return;
   if(!Array.isArray(actions)||!actions.length)return;
   fpEnsureFurnitureIds();
   let touched=false,touchIds=[];
@@ -8214,6 +8390,7 @@ function ergoSeparate(items,roomW,roomH){
   }
 }
 function applyEditorActions(actions){
+  if(blockIfReadOnly())return;
   if(!Array.isArray(actions)||!actions.length)return;
   (furniture||[]).forEach(f=>{if(f&&!f.id)f.id=uid();});
   const roomW=Math.max(Number(roomConfig.w)||5,0.5),roomH=Math.max(Number(roomConfig.h)||4,0.5);
@@ -8431,7 +8608,24 @@ document.addEventListener('pointerdown',e=>{
 });
 window.addEventListener('DOMContentLoaded',async()=>{
   goTo('landing');
-  if(sessionStorage.getItem('roomai_signed_in')==='1'&&localStorage.getItem(EDITOR_DRAFT_KEY)){
+  // The Supabase session is the only authority for "signed in". The
+  // sessionStorage/localStorage flags vanish when the tab closes and were
+  // previously trusted, which left the app in a half-signed-in state.
+  try{
+    supabaseClient.auth.onAuthStateChange((event,session)=>{
+      if(event==='SIGNED_OUT'||!session){
+        markSignedIn(null);
+        currentProjectId=null;
+        fpProjectId=null;
+        resetReadOnlyUi();
+        if(currentScreen!=='landing')goTo('login');
+      }else if(session&&session.user){
+        currentUser=session.user;
+      }
+    });
+  }catch(err){console.warn('[authState]',err.message);}
+  const user=await restoreAuthSession();
+  if(user&&localStorage.getItem(EDITOR_DRAFT_KEY)){
     try{await enterDashboard();}catch(err){console.warn('[boot]',err.message);}
     try{restoreEditorDraft();}catch(err){console.warn('[boot:draft]',err.message);}
   }
@@ -8462,16 +8656,15 @@ function doSignIn(){
   if(!email||!pw){showAuthMessage('Enter your email and password.',true);return;}
   const btn=document.getElementById('auth-submit-btn');
   if(btn){btn.classList.add('loading');btn.disabled=true;}
-  const ok=function(){
-    try{if(envTok(EMAILJS_SERVICE_ID,'')!=='' ){ } }catch(e){}
-    sessionStorage.setItem('roomai_signed_in','1');
+  const ok=function(user){
+    markSignedIn(user||currentUser);
     if(errEl){errEl.className='auth-msg';errEl.textContent='';}
-    setTimeout(function(){goTo('dashboard');},350);
+    setTimeout(function(){enterDashboard();},350);
   };
   const fail=function(){if(errEl){errEl.className='auth-msg error';errEl.textContent='Invalid email or password.';}if(btn){btn.classList.remove('loading');btn.disabled=false;}};
   if(window.supabaseClient&&supabaseClient.auth){
     supabaseClient.auth.signInWithPassword({email:email,password:pw})
-      .then(function(r){if(r.error){fail();return;}ok();})
+      .then(function(r){if(r.error){fail();return;}ok(r.data&&r.data.user);})
       .catch(fail);
   }else{
     ok();
@@ -8490,16 +8683,25 @@ function showVerifyForm(){
   startVerifyCooldown();
 }
 function verifyCode(){
-  const a=document.getElementById('code-1').value;
-  const b=document.getElementById('code-2').value;
-  const c=document.getElementById('code-3').value;
-  const d=document.getElementById('code-4').value;
-  const code=String(a+b+c+d);
-  const errEl=document.getElementById('verify-error');
+  var a=document.getElementById('code-1').value;
+  var b=document.getElementById('code-2').value;
+  var c=document.getElementById('code-3').value;
+  var d=document.getElementById('code-4').value;
+  var code=String(a+b+c+d);
+  var errEl=document.getElementById('verify-error');
   if(code.length!==4||code!==String(pendingCode)){if(errEl){errEl.className='auth-msg error';errEl.textContent='Incorrect code. Please try again.';}return;}
-  if(localStorage){localStorage.setItem('roomai_signed_in','1');}
-  if(errEl){errEl.className='auth-msg success';errEl.textContent='Verified! Redirecting\u2026';}
-  setTimeout(function(){goTo('dashboard');},800);
+  // The emailed code only proves email ownership \u2014 it does not create a
+  // Supabase session. Hand off to createAccountAfterVerify() so the account is
+  // actually created and signed in.
+  var btn=document.getElementById('verify-submit-btn');
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  if(typeof createAccountAfterVerify==='function'){
+    createAccountAfterVerify(btn,errEl);
+  }else{
+    if(localStorage){localStorage.setItem('roomai_signed_in','1');}
+    if(errEl){errEl.className='auth-msg success';errEl.textContent='Verified! Redirecting\u2026';}
+    setTimeout(function(){goTo('dashboard');},800);
+  }
 }
 </script>
 <!-- AI Architect floating assistant -->

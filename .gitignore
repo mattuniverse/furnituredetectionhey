@@ -1,3 +1,4 @@
 # Build output (served by Vercel from `dist`)
 dist/
 node_modules/
+public/
