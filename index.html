@@ -2662,10 +2662,6 @@ function routeAuthSubmit(){
   const tg=document.getElementById('auth-toggle-btn');
   if(tg){tg.textContent=authMode==='signin'?"Don't have an account? Sign up \u2192":"Already have an account? Sign in \u2192";}
 }
-function handleAuthSubmit(){
-  if(authMode==='signup'){sendVerificationCode();return;}
-  doSignIn();
-}
 function sendVerificationCode(){
   const name=document.getElementById('reg-name').value.trim();
   const email=document.getElementById('reg-email').value.trim();
@@ -2879,28 +2875,20 @@ async function requestPasswordReset(){
   }
 }
 async function handleAuthSubmit(){
+  // The register form has its own onsubmit (sendVerificationCode), so this is
+  // only a guard for a stale authMode. Signup must never reach auth.signUp()
+  // from here: every account goes through the emailed code and then
+  // createAccountAfterVerify(), which is what signs the new user in.
+  if(authMode==='signup'){sendVerificationCode();return;}
   const email=document.getElementById('login-email').value.trim();
   const password=document.getElementById('login-pass').value;
   if(!email||!password){showAuthMessage('Enter an email and password.',true);return;}
   setAuthLoading(true);
   try{
-    if(authMode==='signin'){
-      const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
-      if(error) throw error;
-      markSignedIn(data && data.user);
-      await enterDashboard();
-    }else{
-      const {data,error}=await supabaseClient.auth.signUp({email,password});
-      if(error) throw error;
-      // Supabase returns a live session when email confirmation is disabled.
-      if(data && data.session && data.session.user){
-        markSignedIn(data.session.user);
-        await enterDashboard();
-      }else{
-        showAuthMessage('Account created \u2014 check your email to confirm, then sign in.',false);
-        toggleAuthMode();
-      }
-    }
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+    if(error) throw error;
+    markSignedIn(data && data.user);
+    await enterDashboard();
   }catch(err){
     showAuthMessage(err.message||'Something went wrong.',true);
   }finally{
@@ -8681,7 +8669,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
 
 </script>
 <script>
-/* ======= AUTOFIX: final auth routing overrides (last-declaration wins) ======= */
+/* ======= Final auth routing overrides (toggle / verify form) ======= */
 function toggleAuthMode(){
   authMode = authMode==='signin' ? 'signup' : 'signin';
   if(authMode==='signin'){showLoginForm();}
@@ -8690,31 +8678,6 @@ function toggleAuthMode(){
   document.getElementById('auth-toggle-btn').textContent = authMode==='signin' ? "Don't have an account? Sign up \u2192" : "Already have an account? Sign in \u2192";
   document.getElementById('auth-error').className='auth-msg';
   document.getElementById('auth-error').textContent='';
-}
-function handleAuthSubmit(){
-  if(authMode==='signup'){sendVerificationCode();return;}
-  doSignIn();
-}
-function doSignIn(){
-  const email=document.getElementById('login-email').value.trim();
-  const pw=document.getElementById('login-pass').value;
-  const errEl=document.getElementById('auth-error');
-  if(!email||!pw){showAuthMessage('Enter your email and password.',true);return;}
-  const btn=document.getElementById('auth-submit-btn');
-  if(btn){btn.classList.add('loading');btn.disabled=true;}
-  const ok=function(user){
-    markSignedIn(user||currentUser);
-    if(errEl){errEl.className='auth-msg';errEl.textContent='';}
-    setTimeout(function(){enterDashboard();},350);
-  };
-  const fail=function(){if(errEl){errEl.className='auth-msg error';errEl.textContent='Invalid email or password.';}if(btn){btn.classList.remove('loading');btn.disabled=false;}};
-  if(window.supabaseClient&&supabaseClient.auth){
-    supabaseClient.auth.signInWithPassword({email:email,password:pw})
-      .then(function(r){if(r.error){fail();return;}ok(r.data&&r.data.user);})
-      .catch(fail);
-  }else{
-    ok();
-  }
 }
 function showVerifyForm(){
   const login=document.getElementById('auth-form');
