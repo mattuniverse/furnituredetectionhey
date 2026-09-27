@@ -2683,7 +2683,7 @@ function sendVerificationCode(){
   if(errEl){errEl.className='auth-msg';errEl.textContent='Sending verification code\u2026';(errEl.classList?errEl.classList.add('success'):errEl.className='auth-msg success');}
   pendingVerification={name:name,email:email,password:pw};
   const p={to_email:email,to_name:name,verification_code:String(Math.floor(1000+Math.random()*9000)),reply_to:'RoomAI <no-reply@roomai.app>'};
-  emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
+  emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'template_rmc1gi9'),p)
     .then(function(res){
       storePendingCode(p.verification_code);
       if(btn){btn.disabled=false;btn.classList.remove('loading');}
@@ -2799,7 +2799,7 @@ function resendCode(){
   const btn=document.getElementById('resend-btn');
   if(btn){btn.disabled=true;}
   const p={to_email:pendingVerification.email||'',to_name:pendingVerification.name||'',verification_code:String(Math.floor(1000+Math.random()*9000)),reply_to:'RoomAI <no-reply@roomai.app>'};
-  emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
+  emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'template_rmc1gi9'),p)
     .then(function(res){
       storePendingCode(p.verification_code);
       if(btn){btn.disabled=true;}
