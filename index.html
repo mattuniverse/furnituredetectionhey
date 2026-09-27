@@ -2683,7 +2683,7 @@ function sendVerificationCode(){
   if(errEl){errEl.className='auth-msg';errEl.textContent='Sending verification code\u2026';(errEl.classList?errEl.classList.add('success'):errEl.className='auth-msg success');}
   pendingVerification={name:name,email:email,password:pw};
   const p={to_email:email,to_name:name,verification_code:String(Math.floor(1000+Math.random()*9000)),reply_to:'RoomAI <no-reply@roomai.app>'};
-  emailjs.send(envTok(EMAILJS_SERVICE_ID,'__EMAILJS_SERVICE_ID__'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
+  emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
     .then(function(res){
       storePendingCode(p.verification_code);
       if(btn){btn.disabled=false;btn.classList.remove('loading');}
@@ -2721,16 +2721,26 @@ function verifyCode(){
 function sbConfigured(){return typeof supabaseClient!=='undefined'&&!!supabaseClient.auth;}
 // Fire-and-forget welcome email. Never throws, never blocks signup: a failure
 // here must not prevent the account from being created or the user signing in.
-function sendWelcomeEmail(name,nickname,email){
+function sendWelcomeEmail(){
   if(typeof emailjs==='undefined'||!emailjs||typeof emailjs.send!=='function'){
     console.warn('[welcomeEmail] EmailJS not loaded; skipping welcome email.');
     return;
   }
+  // The register form is hidden (not removed) while the user is on the verify
+  // step, so its inputs still hold the entered values. Guarded because a throw
+  // here would be caught by the signUp .catch() and report a false failure.
+  const val=function(id){
+    const el=document.getElementById(id);
+    return el&&typeof el.value==='string'?el.value.trim():'';
+  };
+  const name=val('reg-name');
+  const email=val('reg-email');
   try{
     emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'template_qjzz086'),{
-      name:name||'',
-      nickname:nickname||'',
-      email:email||'',
+      name:name,
+      // no nickname field exists on the signup form yet
+      nickname:'',
+      email:email,
       // template_qjzz086 uses {{title}} in the subject line
       title:'New Registration'
     }).then(function(){
@@ -2772,12 +2782,12 @@ function createAccountAfterVerify(btn,errEl){
     if(r.error)throw r.error;
     if(r.data&&r.data.session&&r.data.session.user){
       // Account exists: welcome email is best-effort and never blocks sign-in.
-      sendWelcomeEmail(pendingVerification.name,(pendingVerification.name||'').split(' ')[0]||(email||'').split('@')[0],email);
+      sendWelcomeEmail();
       finish(r.data.session.user);
       return;
     }
     // Account created but requires email confirmation - still a real signup.
-    sendWelcomeEmail(pendingVerification.name,(pendingVerification.name||'').split(' ')[0]||(email||'').split('@')[0],email);
+    sendWelcomeEmail();
     finish(null);
   }).catch(function(err){
     console.error('[createAccountAfterVerify]',err.message);
@@ -2789,7 +2799,7 @@ function resendCode(){
   const btn=document.getElementById('resend-btn');
   if(btn){btn.disabled=true;}
   const p={to_email:pendingVerification.email||'',to_name:pendingVerification.name||'',verification_code:String(Math.floor(1000+Math.random()*9000)),reply_to:'RoomAI <no-reply@roomai.app>'};
-  emailjs.send(envTok(EMAILJS_SERVICE_ID,'__EMAILJS_SERVICE_ID__'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
+  emailjs.send(envTok(EMAILJS_SERVICE_ID,'service_0z302mc'),envTok(EMAILJS_TEMPLATE_ID,'register_verify'),p)
     .then(function(res){
       storePendingCode(p.verification_code);
       if(btn){btn.disabled=true;}
