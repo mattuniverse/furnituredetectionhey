@@ -1841,10 +1841,10 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
         <tbody></tbody>
       </table>
     </div>
-    <div class="panel-title" style="margin:24px 0 8px">Universe posts</div>
+    <div class="panel-title" style="margin:24px 0 8px">Pending review</div>
     <div class="admin-table-wrap">
       <table class="admin-table" id="admin-universe">
-        <thead><tr><th>Caption</th><th>Owner</th><th>Type</th><th>Likes</th><th></th></tr></thead>
+        <thead><tr><th>Caption</th><th>Owner</th><th>Submitted</th><th>Actions</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -2977,21 +2977,22 @@ async function loadAdminPanel(){
   const uniTab=document.getElementById('admin-universe').querySelector('tbody');
   if(uniTab)uniTab.innerHTML='';
   try{
-    const {data:posts,error:uErr}=await supabaseClient.rpc('universe_admin_list');
+    const {data:posts,error:uErr}=await supabaseClient.rpc('universe_admin_queue');
     if(uErr)throw uErr;
     if(!uniTab)return;
     if(posts&&posts.length){
       posts.forEach(q=>{
         const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${q.caption?escHtml(q.caption):'<em style="color:var(--color-text-muted)">No caption</em>'}</td><td>${escHtml(q.email)}</td><td>${q.is_official?'<span class="admin-role is-admin">Official</span>':'<span class="admin-role is-user">Community</span>'}</td><td>${q.likes}</td><td><button class="admin-delete" onclick="universeAdminRemove('${q.id}',this)">Remove</button></td>`;
+        tr.dataset.post=q.id;
+        tr.innerHTML=`<td>${q.caption?escHtml(q.caption):'<em style="color:var(--color-text-muted)">No caption</em>'}</td><td>${escHtml(q.email||'\u2014')}</td><td>${new Date(q.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</td><td><button onclick="adminReviewPost('${q.id}','${q.project_id}')">Review</button> <button onclick="adminApprovePost('${q.id}',this)">Approve</button> <button class="admin-delete" onclick="adminRejectPost('${q.id}')">Reject</button></td>`;
         uniTab.appendChild(tr);
       });
     }else{
-      uniTab.innerHTML='<tr><td colspan="5" style="color:var(--color-text-muted);font-size:12px">No published posts.</td></tr>';
+      uniTab.innerHTML='<tr><td colspan="4" style="color:var(--color-text-muted);font-size:12px">No templates waiting for review.</td></tr>';
     }
   }catch(err){
     console.error('[loadAdminPanel] universe',err);
-    if(uniTab)uniTab.innerHTML='<tr><td colspan="5" style="color:var(--color-danger);font-size:12px">Could not load universe posts.</td></tr>';
+    if(uniTab)uniTab.innerHTML='<tr><td colspan="4" style="color:var(--color-danger);font-size:12px">Could not load the review queue.</td></tr>';
   }
 }
 async function adminDeleteProject(id,btn){
@@ -3012,6 +3013,7 @@ async function adminDeleteProject(id,btn){
 let dashProjectsTab='mine';
 let myProjectsCache=[];
 let savedProjectsCache=[];
+let ownStatusCache={};
 let ownPostsCache={};
 async function loadProjects(){
   let mine=[],saved=[];
@@ -3046,6 +3048,18 @@ async function loadProjects(){
     ownPostsCache={};
     (posts||[]).forEach(r=>{if(r.project_id)ownPostsCache[r.project_id]=r.id;});
   }catch(univErr){ownPostsCache={};}
+  // ownPostsCache above is fed by universe_list, which now hides unapproved
+  // posts. Query the submitter's own submissions directly so a queued or
+  // rejected post still shows its badge instead of inviting a duplicate.
+  try{
+    const ids=(mine||[]).map(r=>r.id).filter(Boolean);
+    if(ids.length){
+      const {data:rows,error:sErr}=await supabaseClient.rpc('universe_status_for_project',{p_project_ids:ids});
+      if(sErr)throw sErr;
+      ownStatusCache={};
+      (rows||[]).forEach(r=>{if(r.project_id)ownStatusCache[r.project_id]={post_id:r.post_id,status:r.status,reject_reason:r.reject_reason};});
+    }else{ownStatusCache={};}
+  }catch(stErr){console.error('[loadProjects:status]',stErr.message);ownStatusCache={};}
   renderProjectsGrid(document.getElementById('project-grid'));
 }
 function setProjectsTab(tab){
@@ -3087,12 +3101,22 @@ function renderProjectsGrid(grid){
     card.onclick=()=>openProject(p.id);
     card.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(p.id);}};
     let chip;
+    // Authoritative status from universe_status_for_project, NOT universe_list:
+    // the feed hides unapproved posts, so it cannot be the source of truth here.
+    const st=ownStatusCache[p.id];
     if(isSaved){
       chip='<span class="universe-chip" aria-label="Saved from Universe">&#x1F310; Saved from Universe</span>';
-    }else if(ownPostsCache[p.id]){
-      chip=`<button class="universe-chip published" data-post="${ownPostsCache[p.id]}" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','${ownPostsCache[p.id]}',this)" aria-label="Published to Universe; click to unpublish"><span class="chip-dot">&#9679;</span>In Universe &mdash; tap to unpublish</button>`;
+    }else if(st&&st.status==='rejected'){
+      chip=`<button class="universe-chip gmuted" onclick="event.stopPropagation();universeResubmitPost('${p.id}','${st.post_id}',this)" aria-label="Rejected: resubmit for review">&#x2717; Rejected &mdash; tap to resubmit</button>`;
+    }else if(st&&st.status==='pending'){
+      chip=`<button class="universe-chip" onclick="event.stopPropagation();universeDeleteOwnPost('${p.id}','${st.post_id}',this)" aria-label="Pending review: withdraw submission">&#x23F3; Awaiting review &mdash; tap to withdraw</button>`;
+    }else if(st&&st.status==='approved'){
+      chip=`<button class="universe-chip published" data-post="${st.post_id}" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','${st.post_id}',this)" aria-label="Live in Universe; click to unpublish"><span class="chip-dot">&#9679;</span>Live in Universe &mdash; tap to unpublish</button>`;
     }else{
-      chip=`<button class="universe-chip" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','',this)" aria-label="Publish this project to Universe">&#x1F310; Publish to Universe</button>`;
+      chip=`<button class="universe-chip" onclick="event.stopPropagation();projectUniverseToggle('${p.id}','',this)" aria-label="Submit this project to Universe">&#x1F310; Submit to Universe</button>`;
+    }
+    if(st&&st.status==='rejected'&&st.reject_reason){
+      chip+=`<div class="project-date" style="color:var(--color-danger)">Reason: ${escHtml(st.reject_reason)}</div>`;
     }
     const del=isSaved?'':`<button class="delete-project" title="Delete project" aria-label="Delete ${p.name}" onclick="event.stopPropagation();deleteProject('${p.id}',this.parentElement)">&#x2715;</button>`;
     card.innerHTML=`${del}<div class="project-thumb"><span class="thumb-icon">${isFp?'&#x1F3E0;':'&#x1F6CB;&#xFE0F;'}</span></div><div class="project-info"><div class="project-name">${p.name}${isFp?'<span class="project-type-tag">Floor plan</span>':''}</div><div class="project-date">${isSaved?'Saved '+date:'Modified '+date}</div></div><div class="project-actions-row">${chip}</div>`;
@@ -3828,7 +3852,7 @@ async function confirmUniversePublish(){
       if(fbErr)throw fbErr;
     }
     closeModal('modal-universe');
-    setStatus('Published to Universe!');
+    setStatus('Submitted for review \u2014 an admin approves templates before they appear in the Universe.');
   }catch(err){
     console.error('[publish]',err);
     setStatus('Could not publish: '+(err.message||'unknown error'));
@@ -3846,7 +3870,7 @@ async function projectUniverseToggle(projectId,postId,btn){
     }else{
       const {error}=await supabaseClient.rpc('universe_publish',{pid:projectId,pcap:''});
       if(error)throw error;
-      setStatus('Published to Universe \u2713');
+      setStatus('Submitted for review \u2014 awaiting admin approval.');
     }
     loadProjects();
   }catch(err){
@@ -3868,6 +3892,78 @@ async function universeAdminRemove(postId,btn){
   }catch(err){
     console.error('[adminRemove]',err);
     setStatus('Remove failed: '+err.message);
+  }
+}
+
+// ══════════════════════════════════════════
+//  UNIVERSE MODERATION (admin) + SUBMITTER ACTIONS
+// ══════════════════════════════════════════
+let adminReviewMode=false;
+async function adminReviewPost(postId,projectId){
+  if(currentUserRole!=='admin'){setStatus('Admins only.');return;}
+  if(!projectId){setStatus('That submission has no project to review.');return;}
+  // openProject clears the flag on entry, so arm it only after the load.
+  await openProject(projectId);
+  adminReviewMode=true;
+  setStatus('Review mode \u2014 read-only. This is the submitter\u2019s design, not yours.');
+}
+async function adminApprovePost(postId,btn){
+  if(currentUserRole!=='admin'){setStatus('Admins only.');return;}
+  if(btn){btn.disabled=true;}
+  try{
+    const {error}=await supabaseClient.rpc('universe_admin_approve',{p_post_id:postId});
+    if(error) throw error;
+    const tr=btn&&btn.closest('tr');
+    if(tr)tr.remove();
+    setStatus('Approved \u2014 it is now live in the Universe.');
+  }catch(err){
+    console.error('[adminApprove]',err);
+    setStatus('Approve failed: '+err.message);
+    if(btn){btn.disabled=false;}
+  }
+}
+async function adminRejectPost(postId){
+  if(currentUserRole!=='admin'){setStatus('Admins only.');return;}
+  const reason=window.prompt('Reason for rejection (the submitter will see this):','');
+  if(reason===null)return;
+  try{
+    const {error}=await supabaseClient.rpc('universe_admin_reject',{p_post_id:postId,p_reason:reason});
+    if(error) throw error;
+    const row=document.querySelector('#admin-universe tr[data-post="'+postId+'"]');
+    if(row)row.remove();
+    setStatus('Rejected. The submitter can edit and resubmit.');
+  }catch(err){
+    console.error('[adminReject]',err);
+    setStatus('Reject failed: '+err.message);
+  }
+}
+async function universeResubmitPost(projectId,postId,btn){
+  if(btn){btn.disabled=true;}
+  try{
+    const {error}=await supabaseClient.rpc('universe_resubmit',{p_post_id:postId});
+    if(error) throw error;
+    delete ownStatusCache[projectId];
+    setStatus('Resubmitted for review.');
+    await loadProjects();
+  }catch(err){
+    console.error('[resubmit]',err);
+    setStatus('Resubmit failed: '+err.message);
+    if(btn){btn.disabled=false;}
+  }
+}
+async function universeDeleteOwnPost(projectId,postId,btn){
+  if(!window.confirm('Delete this submission? The design itself is kept.'))return;
+  if(btn){btn.disabled=true;}
+  try{
+    const {error}=await supabaseClient.rpc('universe_delete_own_post',{p_post_id:postId});
+    if(error) throw error;
+    delete ownStatusCache[projectId];
+    setStatus('Submission deleted.');
+    await loadProjects();
+  }catch(err){
+    console.error('[deleteOwnPost]',err);
+    setStatus('Delete failed: '+err.message);
+    if(btn){btn.disabled=false;}
   }
 }
 function sanitizeLayout(){
@@ -3913,6 +4009,7 @@ function sanitizeLayout(){
   if(notes.length)console.warn('[layout-heal] repaired loaded layout: '+notes.join('; '));
 }
 async function openProject(id){
+  adminReviewMode=false;
   const {data,error}=await supabaseClient.from('projects').select('*').eq('id',id).single();
   if(error){setStatus('Could not load that project.');console.error('[openProject]',error);return;}
   if(data.data&&data.data.type==='floor'){
@@ -3945,6 +4042,10 @@ async function openProject(id){
   setTimeout(()=>{resizeCanvas();buildFurnList();updateBadge();draw2d();if(savedView==='3d')switchEditorView('3d');},50);
 }
 async function saveProject(){
+  // Review mode: an admin inspecting a submission must never turn it into a
+  // project they own. saveProject's non-owner path inserts a NEW row, so
+  // without this guard a stray click silently copies the submitter's design.
+  if(adminReviewMode){setStatus('Review mode \u2014 this is someone else\u2019s submission and cannot be saved.');return;}
   if(fpEditing||currentScreen==='fp-canvas'){await saveFloorPlan();return;}
   const saveBtn=document.getElementById('btn-save');
   const toast=document.getElementById('save-toast');
@@ -7892,6 +7993,7 @@ function fpShowToast(el,msg,isErr){
   setTimeout(()=>{el.classList.remove('show');el.style.background='';el.style.borderColor='';el.style.color='';},3000);
 }
 async function saveFloorPlan(){
+  if(adminReviewMode){setStatus('Review mode \u2014 this is someone else\u2019s submission and cannot be saved.');return;}
   const wasEditorScreen=currentScreen==='editor';
   fpCommitEditingRoom();
   if(wasEditorScreen){
