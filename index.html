@@ -1826,18 +1826,11 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
   </div>
   <div class="dash-body">
     <div class="dash-title">Admin Panel</div>
-    <div class="dash-subtitle">Review accounts and manage every floor plan in the studio</div>
+    <div class="dash-subtitle">Review accounts and moderate Universe submissions</div>
     <div class="panel-title" style="margin:18px 0 8px">Users</div>
     <div class="admin-table-wrap">
       <table class="admin-table" id="admin-users">
         <thead><tr><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="panel-title" style="margin:24px 0 8px">All projects</div>
-    <div class="admin-table-wrap">
-      <table class="admin-table" id="admin-projects">
-        <thead><tr><th>Project</th><th>Owner</th><th>Updated</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -2414,8 +2407,15 @@ const READ_ONLY_MSG = 'Read-only \u2014 you are not the owner of this design. Yo
 let openProjectOwnerId = null;
 let fpProjectOwnerId = null;
 function isReadOnlyMode(){
-  if(currentProjectId && openProjectOwnerId && currentUserId() && openProjectOwnerId !== currentUserId())return true;
-  if(fpProjectId && fpProjectOwnerId && currentUserId() && fpProjectOwnerId !== currentUserId())return true;
+  const uid=currentUserId();
+  // Role is deliberately NOT consulted. Ownership is the only test, so an admin
+  // opening someone else's design gets exactly the same read-only view as any
+  // other non-owner, while their own designs stay fully editable.
+  if(!uid)return !!(currentProjectId||fpProjectId);
+  // A project is loaded but its owner could not be determined. Fail closed:
+  // an unknown owner must never be assumed to be the person editing.
+  if(currentProjectId&&(!openProjectOwnerId||openProjectOwnerId!==uid))return true;
+  if(fpProjectId&&(!fpProjectOwnerId||fpProjectOwnerId!==uid))return true;
   return false;
 }
 function blockIfReadOnly(){
@@ -2933,10 +2933,9 @@ function openAdmin(){
 }
 async function loadAdminPanel(){
   const usersTab=document.getElementById('admin-users').querySelector('tbody');
-  const projTab=document.getElementById('admin-projects').querySelector('tbody');
   const {data:{user}}=await supabaseClient.auth.getUser();
   document.getElementById('admin-avatar').textContent=(user?.email||'A')[0].toUpperCase();
-  usersTab.innerHTML='';projTab.innerHTML='';
+  usersTab.innerHTML='';
   if(currentUserRole!=='admin'){
     usersTab.innerHTML='<tr><td colspan="3" style="color:var(--color-text-muted);font-size:12px">Admin access required. Make this account an admin first (see supabase/schema.sql).</td></tr>';
     return;
@@ -2957,22 +2956,6 @@ async function loadAdminPanel(){
   }catch(err){
     console.error('[loadAdminPanel] users',err);
     usersTab.innerHTML='<tr><td colspan="3" style="color:var(--color-danger);font-size:12px">Could not load users \u2014 check that the admin SQL has been run.</td></tr>';
-  }
-  try{
-    const {data:projs,error:pErr}=await supabaseClient.rpc('admin_list_projects');
-    if(pErr)throw pErr;
-    if(projs&&projs.length){
-      projs.forEach(p=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${p.name}</td><td>${p.email||'\u2013'}</td><td>${new Date(p.updated_at).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</td><td><button class="admin-delete" onclick="adminDeleteProject('${p.id}',this)">Delete</button></td>`;
-        projTab.appendChild(tr);
-      });
-    }else{
-      projTab.innerHTML='<tr><td colspan="4" style="color:var(--color-text-muted);font-size:12px">No projects yet.</td></tr>';
-    }
-  }catch(err){
-    console.error('[loadAdminPanel] projects',err);
-    projTab.innerHTML='<tr><td colspan="4" style="color:var(--color-danger);font-size:12px">Could not load projects.</td></tr>';
   }
   const uniTab=document.getElementById('admin-universe').querySelector('tbody');
   if(uniTab)uniTab.innerHTML='';
@@ -2995,18 +2978,6 @@ async function loadAdminPanel(){
     if(uniTab)uniTab.innerHTML='<tr><td colspan="4" style="color:var(--color-danger);font-size:12px">Could not load the review queue.</td></tr>';
   }
 }
-async function adminDeleteProject(id,btn){
-  if(currentUserRole!=='admin'){setStatus('Admins only.');return;}
-  if(!window.confirm('Delete this project permanently?'))return;
-  const {error}=await supabaseClient.from('projects').delete().eq('id',id);
-  if(error){setStatus('Delete failed: '+error.message);return;}
-  const tr=btn.closest('tr');
-  if(tr)tr.remove();
-  const tbody=document.getElementById('admin-projects').querySelector('tbody');
-  if(tbody&&!tbody.children.length)tbody.innerHTML='<tr><td colspan="4" style="color:var(--color-text-muted);font-size:12px">No projects yet.</td></tr>';
-  setStatus('Project deleted.');
-}
-
 // ══════════════════════════════════════════
 //  PROJECTS (Supabase)
 // ══════════════════════════════════════════
@@ -4012,6 +3983,10 @@ async function openProject(id){
   adminReviewMode=false;
   const {data,error}=await supabaseClient.from('projects').select('*').eq('id',id).single();
   if(error){setStatus('Could not load that project.');console.error('[openProject]',error);return;}
+  // Opening a design you do not own is allowed, but strictly read-only. This is
+  // how an admin reaches a submission for review, and it applies to every
+  // non-owner regardless of role.
+  if(data.user_id&&currentUserId()&&data.user_id!==currentUserId())setStatus(READ_ONLY_MSG);
   if(data.data&&data.data.type==='floor'){
     currentProjectId=null;
     openProjectOwnerId=null;
