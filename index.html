@@ -826,6 +826,14 @@ canvas { display: block; }
 .admin-role.is-user { color: var(--color-text-muted); background: var(--color-bg-sunken); }
 .admin-delete { padding: 5px 10px; border: 1.5px solid var(--color-danger-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-danger); font-size: 11px; cursor: pointer; font-family: var(--font-body); font-weight: 500; transition: all var(--transition-fast) var(--ease-soft); }
 .admin-delete:hover { background: var(--color-danger-bg); border-color: var(--color-danger); }
+.tpl-filter { display: flex; gap: 6px; margin: 0 0 10px; flex-wrap: wrap; }
+.tpl-chip { padding: 5px 12px; border: 1px solid var(--color-border-light); border-radius: 999px; background: transparent; color: var(--color-text-muted); font-size: 12px; font-family: var(--font-body); font-weight: 500; cursor: pointer; transition: all var(--transition-fast) var(--ease-soft); }
+.tpl-chip:hover { border-color: var(--color-border); color: var(--color-text-secondary); }
+.tpl-chip.is-on { background: var(--color-accent-light); border-color: var(--color-accent); color: var(--color-accent); font-weight: 600; }
+.tpl-status { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.tpl-status.is-pending { color: #b45309; background: #fef3c7; }
+.tpl-status.is-approved { color: var(--color-accent); background: var(--color-accent-light); }
+.tpl-status.is-rejected { color: var(--color-danger); background: var(--color-danger-bg); }
 #screen-admin .empty-state { padding: 40px 16px; }
 
 /* Project delete on card */
@@ -1838,6 +1846,20 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
     <div class="admin-table-wrap">
       <table class="admin-table" id="admin-universe">
         <thead><tr><th>Caption</th><th>Owner</th><th>Submitted</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="panel-title" style="margin:24px 0 8px">Universe templates</div>
+    <div class="panel-sub" style="margin:0 0 8px;font-size:12px;color:var(--color-text-muted)">Browse every submitted template. Click View to open it read-only.</div>
+    <div class="tpl-filter" id="admin-tpl-filter">
+      <button class="tpl-chip is-on" data-tpl="all" onclick="setAdminTplFilter('all',this)">All</button>
+      <button class="tpl-chip" data-tpl="pending" onclick="setAdminTplFilter('pending',this)">Pending</button>
+      <button class="tpl-chip" data-tpl="approved" onclick="setAdminTplFilter('approved',this)">Approved</button>
+      <button class="tpl-chip" data-tpl="rejected" onclick="setAdminTplFilter('rejected',this)">Rejected</button>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="admin-templates">
+        <thead><tr><th>Caption</th><th>Owner</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -2977,6 +2999,50 @@ async function loadAdminPanel(){
     console.error('[loadAdminPanel] universe',err);
     if(uniTab)uniTab.innerHTML='<tr><td colspan="4" style="color:var(--color-danger);font-size:12px">Could not load the review queue.</td></tr>';
   }
+  await loadAdminTemplates();
+}
+let adminTplFilter='all';
+function setAdminTplFilter(status,btn){
+  adminTplFilter=status;
+  document.querySelectorAll('#admin-tpl-filter .tpl-chip').forEach(c=>c.classList.toggle('is-on',c===btn));
+  loadAdminTemplates();
+}
+const TPL_STATUS_LABEL={pending:'Pending',approved:'Approved',rejected:'Rejected'};
+async function loadAdminTemplates(){
+  const tpl=document.getElementById('admin-templates');
+  if(!tpl)return;
+  const tbody=tpl.querySelector('tbody');
+  if(currentUserRole!=='admin'){tbody.innerHTML='';return;}
+  tbody.innerHTML='<tr><td colspan="5" style="color:var(--color-text-muted);font-size:12px">Loading…</td></tr>';
+  let rows=[];
+  try{
+    const {data,error}=await supabaseClient.rpc('universe_admin_list');
+    if(error)throw error;
+    rows=data||[];
+  }catch(err){
+    // The RPC may not be installed yet; fall back to what we can reach.
+    console.error('[loadAdminTemplates]',err);
+    try{
+      const {data,error}=await supabaseClient.rpc('universe_admin_queue');
+      if(!error&&data)rows=data.map(q=>Object.assign({},q,{status:'pending',reviewed_at:null,reject_reason:null}));
+    }catch(e){console.error('[loadAdminTemplates:fallback]',e.message);}
+  }
+  const filtered=adminTplFilter==='all'?rows:rows.filter(r=>r.status===adminTplFilter);
+  filtered.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="5" style="color:var(--color-text-muted);font-size:12px">No ${adminTplFilter==='all'?'':adminTplFilter} templates.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML='';
+  filtered.forEach(t=>{
+    const tr=document.createElement('tr');
+    tr.dataset.post=t.id;
+    const when=t.reviewed_at||t.created_at;
+    const cap=t.caption?escHtml(t.caption):'<em style="color:var(--color-text-muted)">No caption</em>';
+    const reason=t.reject_reason?`<div style="font-size:11px;color:var(--color-danger);margin-top:2px">${escHtml(t.reject_reason)}</div>`:'';
+    tr.innerHTML=`<td>${cap}${reason}</td><td>${escHtml(t.email||'\u2014')}</td><td><span class="tpl-status is-${escHtml(t.status||'pending')}">${TPL_STATUS_LABEL[t.status]||'Pending'}</span></td><td>${when?new Date(when).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'\u2014'}</td><td><button onclick="adminReviewPost('${t.id}','${t.project_id}')">View</button></td>`;
+    tbody.appendChild(tr);
+  });
 }
 // ══════════════════════════════════════════
 //  PROJECTS (Supabase)
