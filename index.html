@@ -2429,6 +2429,11 @@ const READ_ONLY_MSG = 'Read-only \u2014 you are not the owner of this design. Yo
 let openProjectOwnerId = null;
 let fpProjectOwnerId = null;
 function isReadOnlyMode(){
+  // Admins are reviewers, never editors. This is unconditional and includes the
+  // admin's OWN designs: an admin must not be able to mutate a floorplan by any
+  // route, including the one where they are the owner. Navigation, measuring and
+  // the 2D/3D switch are untouched, so preview and review still work.
+  if(currentUserRole==='admin')return true;
   const uid=currentUserId();
   // Role is deliberately NOT consulted. Ownership is the only test, so an admin
   // opening someone else's design gets exactly the same read-only view as any
@@ -2462,8 +2467,17 @@ function updateReadOnlyUi(){
   const ro = isReadOnlyMode();
   const banner = document.getElementById('ro-banner');
   if(banner)banner.style.display = ro ? 'flex' : 'none';
-  // Save stays available on purpose: for a non-owner it writes a NEW project
-  // they own (see saveProject) instead of mutating someone else's row.
+  // Save stays available to a non-admin non-owner on purpose: saveProject writes
+  // a NEW project they own rather than mutating someone else's row. Admins get
+  // no such escape hatch, so both save buttons are disabled for them.
+  const adminLocked = currentUserRole==='admin';
+  ['btn-save','btn-fp-save'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(!b)return;
+    b.disabled=adminLocked;
+    b.style.opacity=adminLocked?'0.45':'';
+    b.style.pointerEvents=adminLocked?'none':'';
+  });
   const blocked = ['btn-design','tool-wall'].map(id=>document.getElementById(id));
   const camBtn = document.querySelector('[onclick="openSingleCam()"]');
   if(camBtn)blocked.push(camBtn);
@@ -2944,6 +2958,10 @@ async function refreshRole(){
     if(data==='admin')currentUserRole='admin';
   }catch(err){console.warn('[refreshRole]',err.message);}
   document.querySelectorAll('[data-admin-link]').forEach(link=>{link.style.display=currentUserRole==='admin'?'':'none';});
+  // The role decides whether the editor is editable at all, so the chrome has
+  // to be re-evaluated once it is known. Without this an admin would land in
+  // the editor with Save enabled until some other event triggered this.
+  updateReadOnlyUi();
 }
 
 // ══════════════════════════════════════════
@@ -4087,6 +4105,9 @@ async function saveProject(){
   // project they own. saveProject's non-owner path inserts a NEW row, so
   // without this guard a stray click silently copies the submitter's design.
   if(adminReviewMode){setStatus('Review mode \u2014 this is someone else\u2019s submission and cannot be saved.');return;}
+  // Admin lock. Deliberately a guard in the function rather than only a disabled
+  // button, so calling this from the console cannot route around the UI.
+  if(currentUserRole==='admin'){setStatus('Admin accounts cannot save designs \u2014 this account is for review only.');return;}
   if(fpEditing||currentScreen==='fp-canvas'){await saveFloorPlan();return;}
   const saveBtn=document.getElementById('btn-save');
   const toast=document.getElementById('save-toast');
@@ -8035,6 +8056,9 @@ function fpShowToast(el,msg,isErr){
 }
 async function saveFloorPlan(){
   if(adminReviewMode){setStatus('Review mode \u2014 this is someone else\u2019s submission and cannot be saved.');return;}
+  // Admin lock, same reason as saveProject: openUniverseModal calls this
+  // directly, so a disabled button alone would not cover that path.
+  if(currentUserRole==='admin'){setStatus('Admin accounts cannot save designs \u2014 this account is for review only.');return;}
   const wasEditorScreen=currentScreen==='editor';
   fpCommitEditingRoom();
   if(wasEditorScreen){
