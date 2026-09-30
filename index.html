@@ -1791,10 +1791,10 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
     </div>
   </div>
   <div class="dash-body">
-    <div class="dash-title">Where shall we design?</div>
-    <div class="dash-subtitle">Choose a mode to get started</div>
-    <div class="mode-grid">
-      <button class="mode-card" onclick="goTo('room-setup')" aria-label="Design a single room">
+    <div class="dash-title" data-admin-hide>Where shall we design?</div>
+    <div class="dash-subtitle" data-admin-hide>Choose a mode to get started</div>
+    <div class="mode-grid" data-admin-hide>
+      <button class="mode-card" onclick="startRoomSetup()" aria-label="Design a single room">
         <span class="mode-icon" aria-hidden="true">&#x1F6CB;&#xFE0F;</span>
         <span class="mode-title">Design a Room</span>
         <span class="mode-desc">Sketch one room, capture its walls, arrange furniture, style the flooring and walls, then view it in 3D.</span>
@@ -1805,9 +1805,17 @@ body.t-ui .joy-base, body.t-ui .vert-zone, body.t-ui .zoom-btns { opacity: .85; 
         <span class="mode-desc">Lay out several rooms on one canvas, customize each room, and get layout suggestions for the whole plan.</span>
       </button>
     </div>
-    <div class="start-actions">
+    <div class="start-actions" data-admin-hide>
       <button class="btn-outline" onclick="goTo('dashboard');loadProjects()" aria-label="View my saved projects">&rarr; My Projects</button>
       <button class="btn-outline" onclick="openUniverse()" aria-label="Browse community templates">&#x1F310; Universe</button>
+    </div>
+    <div id="start-admin-note" style="display:none;margin-top:26px;padding:16px 18px;border:1px solid var(--color-border-light);border-radius:var(--radius-md);background:var(--color-surface-hover)">
+      <div style="font-weight:600;margin-bottom:6px">Reviewer account</div>
+      <div style="font-size:13px;color:var(--color-text-secondary)">This account reviews templates and manages users. Designing is disabled here &mdash; open a submission from the review queue to preview it read-only.</div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn-outline" onclick="openAdmin()" aria-label="Open admin panel">Admin panel</button>
+        <button class="btn-outline" onclick="openUniverse()" aria-label="Browse community templates">&#x1F310; Universe</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2962,6 +2970,29 @@ async function refreshRole(){
   // to be re-evaluated once it is known. Without this an admin would land in
   // the editor with Save enabled until some other event triggered this.
   updateReadOnlyUi();
+  applyAdminModeVisibility();
+}
+// Admins get no designing entry points at all. The mode cards and the
+// My Projects / Universe row are marked with data-admin-hide, and the admin note
+// takes over as the action row in their place, so an admin sees exactly one set
+// of buttons rather than two stacked sets. Marked by data attribute rather than
+// deleted from the DOM so the markup stays the single source of truth per role.
+function applyAdminModeVisibility(){
+  const admin=currentUserRole==='admin';
+  document.querySelectorAll('[data-admin-hide]').forEach(el=>{el.style.display=admin?'none':'';});
+  const note=document.getElementById('start-admin-note');
+  if(note)note.style.display=admin?'block':'none';
+}
+// Guards the two design entry points. Hiding the cards is cosmetic on its own,
+// so the functions themselves refuse an admin as well.
+function blockAdminDesignEntry(){
+  if(currentUserRole!=='admin')return false;
+  setStatus('Admin accounts cannot design. Open the admin panel to review submissions.');
+  return true;
+}
+function startRoomSetup(){
+  if(blockAdminDesignEntry())return;
+  goTo('room-setup');
 }
 
 // ══════════════════════════════════════════
@@ -7663,7 +7694,8 @@ const canvasFp=document.getElementById('canvas-fp');
 const fpctx=canvasFp?canvasFp.getContext('2d'):null;
 
 function startFloorPlan(){
-  if(currentScreen==='fp-count'){
+ if(blockAdminDesignEntry())return;
+ if(currentScreen==='fp-count'){
     fpRooms=[];fpSuggestions={};fpDrag=null;fpSelId=null;fpEditing=false;fpProjectId=null;resetReadOnlyUi();
     goTo('fp-canvas');
     setTimeout(()=>{resizeFpCanvas();setFpTool('room');fpRenderRoomList();fpUpdateInfo();drawFpCanvas();},50);
